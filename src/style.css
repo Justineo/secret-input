@@ -24,6 +24,24 @@
   padding-inline: 0.08em;
 }
 
+.vbg-custom-toast {
+  position: fixed;
+  z-index: 10;
+  inset-block-end: calc(var(--vbg-space-6) + env(safe-area-inset-bottom, 0px));
+  inset-inline-start: 50%;
+  box-sizing: border-box;
+  width: min(calc(100% - var(--vbg-space-4) - var(--vbg-space-4)), 36rem);
+  margin: 0;
+  padding: var(--vbg-space-3) var(--vbg-space-4);
+  border: 1px solid var(--vbg-color-warning);
+  border-radius: var(--vbg-radius);
+  background: var(--vbg-amber-100);
+  color: var(--vbg-text-primary);
+  font-size: var(--vbg-type-compact);
+  line-height: var(--vbg-leading-compact);
+  transform: translateX(-50%);
+}
+
 .vbg-custom-home {
   display: grid;
   grid-template-columns: minmax(0, 7fr) minmax(18rem, 5fr);
