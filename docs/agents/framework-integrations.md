@@ -1,6 +1,6 @@
 # React and Vue integrations
 
-Framework integrations call `mask()` on a real input and reuse the same controller. They must not duplicate masking or editing behavior. The package publishes them from `@justineo/secret-input/react` and `@justineo/secret-input/vue`; the root entry has no framework dependency.
+Framework integrations call `mask()` on a real input and reuse the same controller. They must not duplicate masking or editing behavior. The package publishes them from `secret-input/react` and `secret-input/vue`; the root entry has no framework dependency.
 
 The React 19 component renders one native input and gives callers that node through `ref`. Its `value`, `defaultValue`, and `redacted` props synchronize controller state. Accepting the current controlled value preserves controller history. `onValueChange` reports the actual value after explicit edits; `onInput` remains the native event whose target contains presentation state. Do not add React's `onChange` prop or pass the actual value through the native `value` prop, because either would falsely imply that `event.currentTarget.value` is authoritative.
 

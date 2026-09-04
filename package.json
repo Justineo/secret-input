@@ -1,7 +1,16 @@
 {
-  "name": "@justineo/secret-input",
-  "version": "0.0.0",
-  "description": "A framework-independent controller for native masked secret inputs.",
+  "name": "secret-input",
+  "version": "0.1.0",
+  "description": "A native text-input controller that keeps unwanted autofill out of non-login secrets.",
+  "keywords": [
+    "autofill",
+    "input",
+    "mask",
+    "password",
+    "react",
+    "secret",
+    "vue"
+  ],
   "homepage": "https://secret-input.void.app/",
   "bugs": "https://github.com/Justineo/secret-input/issues",
   "license": "MIT",
@@ -11,9 +20,11 @@
     "url": "git+https://github.com/Justineo/secret-input.git"
   },
   "files": [
+    "CHANGELOG.md",
     "dist"
   ],
   "type": "module",
+  "sideEffects": false,
   "exports": {
     ".": "./dist/index.mjs",
     "./react": "./dist/react.mjs",
@@ -31,7 +42,7 @@
     "test": "vp test",
     "test:browser": "vp test --run --mode browser",
     "check": "vp check && vue-tsc --noEmit",
-    "prepublishOnly": "vp run build"
+    "prepack": "vp pack"
   },
   "devDependencies": {
     "@types/react": "^19.2.18",

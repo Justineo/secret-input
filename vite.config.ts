@@ -15,7 +15,12 @@ function driverCapabilities(): WebdriverIO.Capabilities {
     case "chrome":
       return { "wdio:chromedriverOptions": { binary } };
     case "edge":
-      return { "wdio:edgedriverOptions": { binary } };
+      return {
+        "ms:edgeOptions": {
+          args: ["--disable-dev-shm-usage", "--no-sandbox"],
+        },
+        "wdio:edgedriverOptions": { binary },
+      };
     case "firefox":
       return { "wdio:geckodriverOptions": { binary } };
     default:
@@ -48,6 +53,13 @@ export default defineConfig(({ mode }) => {
     },
     pack: {
       entry: ["src/index.ts", "src/react.ts", "src/vue.ts"],
+      deps: {
+        dts: {
+          neverBundle: true,
+        },
+        neverBundle: true,
+        onlyImport: ["react", "vue"],
+      },
       dts: {
         vue: true,
       },
@@ -73,7 +85,10 @@ export default defineConfig(({ mode }) => {
               browser,
               headless: browser !== "safari",
             })),
-            provider: webdriverio({ capabilities: driverCapabilities() }),
+            provider: webdriverio({
+              capabilities: driverCapabilities(),
+              outputDir: ".vitest-attachments/webdriver",
+            }),
             ui: false,
           },
           include: ["tests/browser/**/*.test.ts"],
