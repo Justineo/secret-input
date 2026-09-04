@@ -25,6 +25,7 @@ jobs:
       - uses: voidzero-dev/setup-vp@v1.18.0
         with:
           cache: true
+          run-install: false
 
       - run: vp install --frozen-lockfile -- --trust-lockfile
       - run: vp run check
