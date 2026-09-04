@@ -1,0 +1,70 @@
+name: Release
+
+on:
+  push:
+    tags:
+      - "v**"
+
+permissions:
+  id-token: write
+  contents: write
+
+jobs:
+  release:
+    runs-on: ubuntu-latest
+    environment: npm-publish
+    timeout-minutes: 20
+
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v7
+
+      - name: Setup Vite+
+        uses: voidzero-dev/setup-vp@v1.18.0
+        with:
+          cache: true
+          run-install: false
+
+      - name: Verify tag matches package version
+        env:
+          RELEASE_TAG: ${{ github.ref_name }}
+        run: |
+          version="$(node -p "require('./package.json').version")"
+          test "v$version" = "$RELEASE_TAG"
+
+      - name: Install dependencies
+        run: vp install --frozen-lockfile -- --trust-lockfile
+
+      - name: Validate
+        run: vp run check
+
+      - name: Test
+        run: vp test --run
+
+      - name: Build
+        run: vp pack
+
+      - name: Publint
+        run: vp run publint
+
+      - name: Extract release notes
+        env:
+          RELEASE_TAG: ${{ github.ref_name }}
+        run: vp exec releaselog --format notes "$RELEASE_TAG" > RELEASE_NOTES.md
+
+      - name: Get dist tag
+        id: dist-tag
+        env:
+          RELEASE_TAG: ${{ github.ref_name }}
+        run: |
+          tag="$(node ./scripts/dist-tag.mjs "$RELEASE_TAG")"
+          echo "tag=$tag" >> "$GITHUB_OUTPUT"
+
+      - name: Create GitHub release
+        uses: softprops/action-gh-release@v3.0.3
+        with:
+          body_path: RELEASE_NOTES.md
+          prerelease: ${{ contains(github.ref_name, '-') }}
+
+      - name: Publish to npm
+        run: vp pm publish --access public --tag "${{ steps.dist-tag.outputs.tag }}" --no-git-checks --report-summary -- --provenance

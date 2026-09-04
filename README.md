@@ -174,6 +174,8 @@ vp build
 vp pack
 ```
 
+Add the next entry to `CHANGELOG.md`, then run `pnpm release` to bump the version, commit, tag, and push. The tag workflow validates the version, tests and lints the package, creates a GitHub release, and publishes the matching npm dist-tag with provenance.
+
 The Vue adapter is an SFC using `<script setup>`. Vite+ packages it through tsdown and `unplugin-vue`; `vue-tsc` runs through `typescript-native-bridge`, whose checker is TypeScript 7's tsgo engine.
 
 Maintenance guidance starts in [AGENTS.md](AGENTS.md), with deeper design notes under [`docs/agents/`](docs/agents/).
