@@ -1,13 +1,17 @@
 overrides:
   typescript: npm:typescript-native-bridge@6.0.3-bridge.16.tsgo.7.0.2
   vite@*: "catalog:"
+  vitest@*: "catalog:"
 catalog:
+  "@vitest/browser-webdriverio": 4.1.11
   bumpp: 12.3.0
   publint: 0.3.24
   releaselog: 8.1.0
   vite: npm:@voidzero-dev/vite-plus-core@0.3.0
   vite-plus: 0.3.0
+  vitest: 4.1.11
   void: 0.10.13
+  webdriverio: 9.31.5
 peerDependencyRules:
   allowAny:
     - vite
@@ -15,5 +19,7 @@ peerDependencyRules:
     vite: "*"
 allowBuilds:
   better-sqlite3: true
+  edgedriver: true
   esbuild: true
+  geckodriver: true
   workerd: true

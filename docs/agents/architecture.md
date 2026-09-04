@@ -8,4 +8,6 @@ Cancelable `beforeinput` operations are intercepted before the browser mutates `
 
 Selections are represented internally as grapheme indices. Mask offsets already have that shape; revealed DOM selections use UTF-16 offsets and are translated at the controller boundary.
 
+The value remains the supplied JavaScript string without Unicode normalization or an ASCII restriction; only CR/LF are removed to match native single-line value sanitization. Graphemes are an editing coordinate, not the value format. This intentionally renders one bullet per user-perceived character so the masked text surface cannot place ordinary edits inside an emoji or combining sequence. Native selection APIs and `maxlength` are defined in UTF-16 code units, so revealed selections are translated and length limits count the actual string's code units while accepting only complete graphemes.
+
 `formdata` is the only point where the actual value leaves controller state for standard form submission. The handler replaces each masked name with actual values in control order. All successful controls sharing such a name must be masked; mixing ordinary and masked controls under the same name is outside the contract.

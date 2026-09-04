@@ -29,12 +29,14 @@
     "publint": "publint",
     "release": "bumpp --all",
     "test": "vp test",
+    "test:browser": "vp test --run --mode browser",
     "check": "vp check && vue-tsc --noEmit",
     "prepublishOnly": "vp run build"
   },
   "devDependencies": {
     "@types/react": "^19.2.18",
     "@types/react-dom": "^19.2.7",
+    "@vitest/browser-webdriverio": "catalog:",
     "bumpp": "catalog:",
     "happy-dom": "^20.12.0",
     "overlayscrollbars": "^2.16.0",
@@ -46,9 +48,11 @@
     "unplugin-vue": "^7.2.0",
     "vite": "catalog:",
     "vite-plus": "catalog:",
+    "vitest": "catalog:",
     "void": "catalog:",
     "vue": "^3.5.42",
-    "vue-tsc": "^3.3.11"
+    "vue-tsc": "^3.3.11",
+    "webdriverio": "catalog:"
   },
   "peerDependencies": {
     "react": "^19.0.0",

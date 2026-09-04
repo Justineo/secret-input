@@ -1,4 +1,5 @@
-import { createApp, defineComponent, h, nextTick, ref } from "vue";
+import { createApp, createSSRApp, defineComponent, h, nextTick, ref } from "vue";
+import { renderToString } from "vue/server-renderer";
 import { afterEach, beforeEach, describe, expect, it, vi } from "vite-plus/test";
 
 import { SecretInput } from "../src/vue.ts";
@@ -31,10 +32,13 @@ describe("Vue SecretInput", () => {
           h("form", null, [
             h(SecretInput, {
               autocomplete: "current-password",
+              autocapitalize: "words",
+              autocorrect: "on",
               class: "field",
               "data-form-type": "password",
               modelValue: value.value,
               name: "token",
+              spellcheck: "true",
               onChange: change,
               onInput: (event: Event) => {
                 if (event.currentTarget instanceof HTMLInputElement) {
@@ -56,6 +60,9 @@ describe("Vue SecretInput", () => {
     expect(input?.name).toBe("token");
     expect(input?.type).toBe("text");
     expect(input?.autocomplete).toBe("off");
+    expect(input?.getAttribute("autocapitalize")).toBe("words");
+    expect(input?.getAttribute("autocorrect")).toBe("on");
+    expect(input?.getAttribute("spellcheck")).toBe("true");
     expect(input?.getAttribute("data-1p-ignore")).toBe("");
     expect(input?.getAttribute("data-form-type")).toBe("other");
     expect(input?.value).toBe("•••••");
@@ -90,6 +97,45 @@ describe("Vue SecretInput", () => {
     unmount = () => app.unmount();
 
     expect(container.querySelector("input")?.value).toBe("visible");
+  });
+
+  it("server-renders the initial masked presentation and discards pre-hydration values", async () => {
+    const value = "a👩‍💻e\u0301";
+    const markup = await renderToString(createSSRApp(SecretInput, { modelValue: value }));
+    container.innerHTML = markup;
+    const input = container.querySelector("input")!;
+
+    expect(input.type).toBe("text");
+    expect(input.autocomplete).toBe("off");
+    expect(input.getAttribute("autocapitalize")).toBe("off");
+    expect(input.hasAttribute("data-1p-ignore")).toBe(true);
+    expect(input.getAttribute("value")).toBe("•••");
+    expect(markup).not.toContain(value);
+
+    input.value = "browser-filled";
+    const app = createSSRApp(SecretInput, { modelValue: value });
+    app.mount(container);
+    unmount = () => app.unmount();
+
+    expect(container.querySelector("input")).toBe(input);
+    expect(input.value).toBe("•••");
+  });
+
+  it("keeps plaintext out of server output before revealing on hydration", async () => {
+    const value = "visible";
+    const markup = await renderToString(
+      createSSRApp(SecretInput, { redacted: false, modelValue: value }),
+    );
+    container.innerHTML = markup;
+
+    expect(container.querySelector("input")?.value).toBe("•••••••");
+    expect(markup).not.toContain(value);
+
+    const app = createSSRApp(SecretInput, { redacted: false, modelValue: value });
+    app.mount(container);
+    unmount = () => app.unmount();
+
+    expect(container.querySelector("input")?.value).toBe(value);
   });
 
   it("does not surface browser-written DOM values", async () => {

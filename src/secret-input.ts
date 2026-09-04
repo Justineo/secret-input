@@ -3,6 +3,14 @@ import { passwordManagerAttributes } from "./password-manager.ts";
 
 const MASK = "•";
 
+function sanitize(value: string): string {
+  return value.replace(/[\r\n]/gu, "");
+}
+
+export function redact(value: string): string {
+  return MASK.repeat(splitGraphemes(sanitize(value)).length);
+}
+
 export const secretInput = Symbol("secret-input");
 
 export interface SecretInputState {
@@ -35,11 +43,9 @@ interface Edit extends Selection {
   inputType: string;
 }
 
-interface CompositionState {
+interface CompositionState extends Selection {
   currentText?: string;
-  end: number;
   originalText: string;
-  start: number;
 }
 
 interface HistoryGroup {
@@ -126,8 +132,18 @@ function isDisabled(input: HTMLInputElement): boolean {
   return input.disabled || input.matches(":disabled");
 }
 
+function setDefaultAttribute(input: HTMLInputElement, name: string, value: string): void {
+  if (!input.hasAttribute(name)) {
+    input.setAttribute(name, value);
+  }
+}
+
 function clamp(value: number, minimum: number, maximum: number): number {
   return Math.min(Math.max(value, minimum), maximum);
+}
+
+function collapsed(position: number): Selection {
+  return { start: position, end: position };
 }
 
 function graphemeIndexAtOffset(graphemes: readonly string[], offset: number): number {
@@ -175,13 +191,13 @@ function createController(
       return value;
     },
     set value(nextValue: string) {
-      setValue(String(nextValue));
+      setValue(sanitize(String(nextValue)));
     },
     get defaultValue() {
       return defaultValue;
     },
     set defaultValue(nextValue: string) {
-      defaultValue = String(nextValue);
+      defaultValue = sanitize(String(nextValue));
     },
     get redacted() {
       return redacted;
@@ -259,10 +275,10 @@ function createController(
     clearHistory();
     value = nextValue;
     const length = splitGraphemes(nextValue).length;
-    render({ start: length, end: length });
+    render(collapsed(length));
   }
 
-  function render(selection?: Selection, length?: number): void {
+  function render(selection?: Selection): void {
     const currentComposition = composition;
     const parts = splitGraphemes(value);
     const revealedValue =
@@ -273,9 +289,10 @@ function createController(
             currentComposition.currentText,
             ...parts.slice(currentComposition.end),
           ].join("");
-    const displayValue = redacted ? MASK.repeat(length ?? parts.length) : revealedValue;
-    if (input.value !== displayValue) {
-      input.value = displayValue;
+    const displayParts = splitGraphemes(revealedValue);
+    const presentation = redacted ? MASK.repeat(displayParts.length) : revealedValue;
+    if (input.value !== presentation) {
+      input.value = presentation;
     }
 
     if (!selection) {
@@ -287,30 +304,31 @@ function createController(
       return;
     }
 
-    const displayParts = splitGraphemes(displayValue);
     input.setSelectionRange(
       offsetAtGraphemeIndex(displayParts, selection.start),
       offsetAtGraphemeIndex(displayParts, selection.end),
     );
   }
 
-  function replace(
-    start: number,
-    end: number,
-    insertedText: string,
-    inputType: string,
-    recordHistory = true,
-  ): void {
+  function replace(start: number, end: number, insertedText: string, inputType: string): void {
     const parts = splitGraphemes(value);
     const safeStart = clamp(start, 0, parts.length);
     const safeEnd = clamp(end, safeStart, parts.length);
-    const normalizedText = insertedText.replace(/[\r\n]/gu, "");
+    const normalizedText = sanitize(insertedText);
     let insertedParts = splitGraphemes(normalizedText);
     const { maxLength } = input;
 
     if (maxLength >= 0) {
-      const available = Math.max(maxLength - (parts.length - (safeEnd - safeStart)), 0);
-      insertedParts = insertedParts.slice(0, available);
+      const removedLength = parts.slice(safeStart, safeEnd).join("").length;
+      const available = Math.max(maxLength - (value.length - removedLength), 0);
+      let insertedLength = 0;
+      const firstOverflow = insertedParts.findIndex((part) => {
+        insertedLength += part.length;
+        return insertedLength > available;
+      });
+      if (firstOverflow >= 0) {
+        insertedParts = insertedParts.slice(0, firstOverflow);
+      }
     }
 
     const nextValue = [
@@ -321,21 +339,20 @@ function createController(
     const nextCaret = safeStart + insertedParts.length;
 
     if (nextValue === value) {
-      render({ start: nextCaret, end: nextCaret });
+      render(collapsed(nextCaret));
       return;
     }
 
     const continuesHistory =
-      recordHistory &&
       historyGroup?.inputType === inputType &&
       ((inputType === "insertText" && safeStart === safeEnd && safeStart === historyGroup.caret) ||
         (inputType === "deleteContentBackward" && safeEnd === historyGroup.caret) ||
         (inputType === "deleteContentForward" && safeStart === historyGroup.caret));
 
-    if (recordHistory && !continuesHistory) {
+    if (!continuesHistory) {
       undoStack.push({ value, start: safeStart, end: safeEnd });
       redoStack.length = 0;
-    } else if (continuesHistory) {
+    } else {
       const snapshot = undoStack.at(-1);
       if (snapshot && inputType === "deleteContentBackward") {
         snapshot.start = safeStart;
@@ -352,7 +369,7 @@ function createController(
       inputType === "deleteContentForward"
         ? { caret: nextCaret, inputType }
         : undefined;
-    render({ start: nextCaret, end: nextCaret });
+    render(collapsed(nextCaret));
     dispatchInput(inputType, insertedParts.length > 0 ? insertedParts.join("") : null);
   }
 
@@ -437,10 +454,7 @@ function createController(
         currentComposition.currentText = data ?? "";
         const draftLength = splitGraphemes(currentComposition.currentText).length;
         const caret = currentComposition.start + draftLength;
-        render(
-          { start: caret, end: caret },
-          parts.length - (currentComposition.end - currentComposition.start) + draftLength,
-        );
+        render(collapsed(caret));
         return;
       }
       case "insertFromComposition": {
@@ -677,8 +691,8 @@ export function mask(input: HTMLInputElement, options: MaskOptions = {}): Secret
     return masked;
   }
 
-  const value = String(options.value ?? options.defaultValue ?? "");
-  const defaultValue = String(options.defaultValue ?? value);
+  const value = sanitize(String(options.value ?? options.defaultValue ?? ""));
+  const defaultValue = sanitize(String(options.defaultValue ?? value));
   const redacted = options.redacted ?? true;
 
   input.type = "text";
@@ -686,15 +700,9 @@ export function mask(input: HTMLInputElement, options: MaskOptions = {}): Secret
   for (const [name, attributeValue] of Object.entries(passwordManagerAttributes)) {
     input.setAttribute(name, attributeValue);
   }
-  if (!input.hasAttribute("autocapitalize")) {
-    input.setAttribute("autocapitalize", "off");
-  }
-  if (!input.hasAttribute("autocorrect")) {
-    input.setAttribute("autocorrect", "off");
-  }
-  if (!input.hasAttribute("spellcheck")) {
-    input.setAttribute("spellcheck", "false");
-  }
+  setDefaultAttribute(input, "autocapitalize", "off");
+  setDefaultAttribute(input, "autocorrect", "off");
+  setDefaultAttribute(input, "spellcheck", "false");
   input.style.setProperty("ime-mode", "disabled");
 
   // Current Chromium remembers text controls that have contained at least two

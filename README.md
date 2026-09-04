@@ -104,6 +104,8 @@ const apiKey = ref("");
 
 Both adapters render `input[type="text"]` and reuse `mask()`; neither implementation passes the actual value to the native `value` prop. React and Vue are optional peer dependencies and are absent from the core entry point.
 
+For server rendering, both adapters emit the same grapheme-length bullets that the hydrated redacted input will display, together with the autofill opt-outs. They never emit a temporary password input or put plaintext in the input value, even when `redacted` is initially false. Hydration installs the controller, applies the requested presentation, and discards any pre-hydration DOM mutation because user input and autofill cannot be distinguished reliably at that point.
+
 ## Password managers
 
 `mask()` sets `autocomplete="off"` together with the field opt-outs recognized by 1Password, Bitwarden, Dashlane, LastPass, and Proton Pass:
@@ -164,7 +166,7 @@ The browser still knows this is a text input. Its context menu may therefore dis
 
 The browser initially collects the current presentation value. A document-level `formdata` handler replaces it with the actual state value, so ordinary submissions and `new FormData(form)` receive the actual secret in either presentation. Multiple masked inputs may share a name and retain DOM order. Do not mix masked and ordinary successful controls under the same name; the masked group owns that `FormData` entry.
 
-Native `disabled`, fieldset-disabled, `readonly`, `required`, labels, ARIA, focus, selection, and styling remain attached to the real input. `maxlength` limits user edits by grapheme count, while property assignment follows native value-setter behavior and is not truncated. Constraints whose meaning depends on the actual text, such as `pattern`, need application validation through `setCustomValidity()`.
+Native `disabled`, fieldset-disabled, `readonly`, `required`, labels, ARIA, focus, selection, and styling remain attached to the real input. The actual string is never Unicode-normalized or restricted to ASCII; only CR/LF are removed, matching native single-line input sanitization. Masked editing treats extended graphemes as atomic so Backspace cannot split emoji or combining sequences, while `maxlength` retains native UTF-16 code-unit semantics and rejects a whole grapheme when it cannot fit. Property assignment is not truncated. Constraints that inspect the DOM presentation instead of actual state, including `minlength` and `pattern`, need application validation through `setCustomValidity()`.
 
 ## Security and accessibility boundary
 
@@ -187,9 +189,14 @@ pnpm install
 vp dev
 vpr check
 vp test
+vp run test:browser
 vp build
 vp pack
 ```
+
+Browser tests use Vite+'s Vitest Browser Mode with the WebdriverIO provider to drive installed Chrome, Edge, Firefox, and real Safari. Set `BROWSER=chrome`, `edge`, `firefox`, or `safari` to run one target. Safari requires **Develop → Allow Remote Automation** once, or `safaridriver --enable`; CI runs every target separately. Automation uses isolated profiles, so saved-credential autofill remains a manual test; the automated suite covers both autofill-shaped `beforeinput` and direct browser-written DOM mutations instead.
+
+GitHub Actions runs static checks, unit tests, package validation, the site build, and all four browser jobs for every pull request and main-branch update. Site deployment and tagged releases wait for that complete verification chain. Browser failures retain Vitest screenshots and attachments for seven days.
 
 Add the next entry to `CHANGELOG.md`, then run `pnpm release` to bump the version, commit, tag, and push. The tag workflow validates the version, tests and lints the package, creates a GitHub release, and publishes the matching npm dist-tag with provenance.
 

@@ -4,3 +4,5 @@ coverage
 *.log
 .DS_Store
 .void
+.vitest-attachments
+tests/browser/__screenshots__

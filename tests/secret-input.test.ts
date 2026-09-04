@@ -31,6 +31,16 @@ function dispatchTransfer(input: HTMLInputElement, type: "drop" | "paste", data:
   input.dispatchEvent(event);
 }
 
+function composition(
+  input: HTMLInputElement,
+  type: "compositionend" | "compositionstart",
+  data = "",
+): void {
+  const event = new CompositionEvent(type, { bubbles: true });
+  Object.defineProperty(event, "data", { value: data });
+  input.dispatchEvent(event);
+}
+
 function keyDown(
   input: HTMLInputElement,
   key: string,
@@ -60,6 +70,16 @@ describe("mask", () => {
     expect(input.value).toBe("•••••••");
     expect(input.getAttribute("value")).toBeNull();
     expect(input.value).not.toContain("secret");
+  });
+
+  it("discards DOM values written before the controller attaches", () => {
+    const input = document.createElement("input");
+    input.value = "browser-filled";
+
+    const masked = mask(input, { value: "kept" });
+
+    expect(state(masked).value).toBe("kept");
+    expect(masked.value).toBe("••••");
   });
 
   it("normalizes the editing surface to a text input", () => {
@@ -128,6 +148,25 @@ describe("mask", () => {
     expect(currentState.value).toBe("initial");
     expect(currentState.defaultValue).toBe("initial");
     expect(input.value).toBe("•••••••");
+  });
+
+  it("applies native single-line value sanitization", () => {
+    const input = mask(document.createElement("input"), {
+      defaultValue: "de\r\nfault",
+      value: "a\nb\rc",
+    });
+
+    expect(state(input).value).toBe("abc");
+    expect(state(input).defaultValue).toBe("default");
+
+    state(input).value = "x\r\ny";
+    state(input).defaultValue = "r\neset";
+    expect(state(input).value).toBe("xy");
+    expect(state(input).defaultValue).toBe("reset");
+
+    state(input).value = "";
+    beforeInput(input, "insertText", "a\r\nb");
+    expect(state(input).value).toBe("ab");
   });
 
   it("returns the native input and exposes state through one symbol", () => {
@@ -287,6 +326,20 @@ describe("mask", () => {
     expect(input.selectionStart).toBe(1);
   });
 
+  it.each(["é", "e\u0301", "🔐", "👩‍💻", "👍🏽", "🇨🇳"])(
+    "preserves %s as one masked editing unit",
+    (value) => {
+      const input = createInput();
+      input.focus();
+
+      beforeInput(input, "insertText", value);
+
+      expect(state(input).value).toBe(value);
+      expect(input.value).toBe("•");
+      expect(input.selectionStart).toBe(1);
+    },
+  );
+
   it.each(["insertFromPasteAsQuotation", "insertFromYank"])("handles %s", (inputType) => {
     const input = createInput();
     input.focus();
@@ -307,6 +360,21 @@ describe("mask", () => {
     expect(state(input).value).toBe("aéb");
     expect(input.value).toBe("•••");
   });
+
+  it.each(["deleteContentBackward", "deleteContentForward"])(
+    "does not split a grapheme during %s",
+    (inputType) => {
+      const input = createInput("a👩‍💻b");
+      input.focus();
+      const caret = inputType === "deleteContentBackward" ? 2 : 1;
+      input.setSelectionRange(caret, caret);
+
+      beforeInput(input, inputType);
+
+      expect(state(input).value).toBe("ab");
+      expect(input.value).toBe("••");
+    },
+  );
 
   it.each([
     { inputType: "deleteContentBackward", start: 2, end: 2, expected: "a cd" },
@@ -431,7 +499,7 @@ describe("mask", () => {
     const input = createInput();
     input.focus();
 
-    input.dispatchEvent(new CompositionEvent("compositionstart", { bubbles: true }));
+    composition(input, "compositionstart");
     beforeInput(input, "insertCompositionText", "n");
     expect(state(input).value).toBe("");
     expect(input.value).toBe("•");
@@ -440,9 +508,7 @@ describe("mask", () => {
     expect(state(input).value).toBe("");
     expect(input.value).toBe("••");
 
-    const compositionEnd = new CompositionEvent("compositionend", { bubbles: true });
-    Object.defineProperty(compositionEnd, "data", { value: "你" });
-    input.dispatchEvent(compositionEnd);
+    composition(input, "compositionend", "你");
     beforeInput(input, "insertFromComposition", "你");
 
     expect(state(input).value).toBe("你");
@@ -454,18 +520,33 @@ describe("mask", () => {
     state(input).redacted = false;
     input.focus();
 
-    input.dispatchEvent(new CompositionEvent("compositionstart", { bubbles: true }));
+    composition(input, "compositionstart");
     beforeInput(input, "insertCompositionText", "ni");
 
     expect(state(input).value).toBe("");
     expect(input.value).toBe("ni");
 
-    const compositionEnd = new CompositionEvent("compositionend", { bubbles: true });
-    Object.defineProperty(compositionEnd, "data", { value: "你" });
-    input.dispatchEvent(compositionEnd);
+    composition(input, "compositionend", "你");
 
     expect(state(input).value).toBe("你");
     expect(input.value).toBe("你");
+  });
+
+  it("segments composition drafts together with surrounding text", () => {
+    const input = createInput("a");
+    input.focus();
+    input.setSelectionRange(1, 1);
+
+    composition(input, "compositionstart");
+    beforeInput(input, "insertCompositionText", "\u0301");
+
+    expect(state(input).value).toBe("a");
+    expect(input.value).toBe("•");
+
+    composition(input, "compositionend", "\u0301");
+
+    expect(state(input).value).toBe("a\u0301");
+    expect(input.value).toBe("•");
   });
 
   it("restores the selected text when composition is canceled", () => {
@@ -475,9 +556,9 @@ describe("mask", () => {
     input.focus();
     input.setSelectionRange(1, 2);
 
-    input.dispatchEvent(new CompositionEvent("compositionstart", { bubbles: true }));
+    composition(input, "compositionstart");
     beforeInput(input, "insertCompositionText", "x");
-    input.dispatchEvent(new CompositionEvent("compositionend", { bubbles: true }));
+    composition(input, "compositionend");
 
     expect(state(input).value).toBe("ab");
     expect(input.value).toBe("••");
@@ -491,12 +572,10 @@ describe("mask", () => {
     input.focus();
     input.setSelectionRange(1, 2);
 
-    input.dispatchEvent(new CompositionEvent("compositionstart", { bubbles: true }));
+    composition(input, "compositionstart");
     beforeInput(input, "insertCompositionText", "ni");
     beforeInput(input, "insertFromComposition", "你");
-    const compositionEnd = new CompositionEvent("compositionend", { bubbles: true });
-    Object.defineProperty(compositionEnd, "data", { value: "你" });
-    input.dispatchEvent(compositionEnd);
+    composition(input, "compositionend", "你");
 
     expect(state(input).value).toBe("a你");
     expect(input.value).toBe("••");
@@ -507,7 +586,7 @@ describe("mask", () => {
     const input = createInput();
     input.focus();
 
-    input.dispatchEvent(new CompositionEvent("compositionstart", { bubbles: true }));
+    composition(input, "compositionstart");
     beforeInput(input, "insertCompositionText", "密", false);
     input.value = "密";
     input.dispatchEvent(
@@ -521,9 +600,7 @@ describe("mask", () => {
     expect(state(input).value).toBe("");
     expect(input.value).toBe("•");
 
-    const compositionEnd = new CompositionEvent("compositionend", { bubbles: true });
-    Object.defineProperty(compositionEnd, "data", { value: "密" });
-    input.dispatchEvent(compositionEnd);
+    composition(input, "compositionend", "密");
 
     expect(state(input).value).toBe("密");
     expect(input.value).toBe("•");
@@ -533,7 +610,7 @@ describe("mask", () => {
     const input = createInput("kept");
     input.focus();
     input.setSelectionRange(4, 4);
-    input.dispatchEvent(new CompositionEvent("compositionstart", { bubbles: true }));
+    composition(input, "compositionstart");
 
     for (const draft of ["h", "hha", "hhaha", "hhaha'hha'hha"]) {
       beforeInput(input, "insertCompositionText", draft, false);
@@ -605,9 +682,9 @@ describe("mask", () => {
     }
   });
 
-  it("limits edits by grapheme count", () => {
+  it("applies maxlength in UTF-16 code units without splitting graphemes", () => {
     const input = createInput();
-    input.maxLength = 2;
+    input.maxLength = 6;
     input.focus();
 
     beforeInput(input, "insertText", "a👩‍💻b");
@@ -617,19 +694,29 @@ describe("mask", () => {
 
     input.setSelectionRange(1, 2);
     beforeInput(input, "insertText", "bc");
-    expect(state(input).value).toBe("ab");
-    expect(input.value).toBe("••");
+    expect(state(input).value).toBe("abc");
+    expect(input.value).toBe("•••");
+
+    state(input).value = "";
+    input.maxLength = 1;
+    beforeInput(input, "insertText", "🔐");
+    expect(state(input).value).toBe("");
+    expect(input.value).toBe("");
+
+    state(input).value = "🔐";
+    expect(state(input).value).toBe("🔐");
+    expect(input.value).toBe("•");
   });
 
   it("provides actual values to FormData", () => {
     const { form, input } = createFormInput("token");
-    const masked = mask(input, { value: "submitted" });
+    const masked = mask(input, { value: "submitted🔐" });
 
     const formData = formDataFor(form);
 
-    expect(masked[secretInput].value).toBe("submitted");
-    expect(input.value).toBe("•••••••••");
-    expect(formData.get("token")).toBe("submitted");
+    expect(masked[secretInput].value).toBe("submitted🔐");
+    expect(input.value).toBe("••••••••••");
+    expect(formData.get("token")).toBe("submitted🔐");
   });
 
   it("preserves duplicate names when every matching input is masked", () => {

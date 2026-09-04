@@ -1,5 +1,6 @@
 import { act, createElement, createRef, useState } from "react";
-import { createRoot } from "react-dom/client";
+import { createRoot, hydrateRoot } from "react-dom/client";
+import { renderToString } from "react-dom/server";
 import { afterEach, beforeEach, describe, expect, it, vi } from "vite-plus/test";
 
 import { SecretInput } from "../src/react.ts";
@@ -33,12 +34,15 @@ describe("React SecretInput", () => {
           "form",
           null,
           createElement(SecretInput, {
+            autoCapitalize: "words",
             autoComplete: "current-password",
+            autoCorrect: "on",
             className: "field",
             name: "token",
             onInput: (event) => presentedValues.push(event.currentTarget.value),
             onValueChange,
             ref: inputRef,
+            spellCheck: true,
             value: "first",
           }),
         ),
@@ -51,6 +55,9 @@ describe("React SecretInput", () => {
     expect(input?.name).toBe("token");
     expect(input?.type).toBe("text");
     expect(input?.autocomplete).toBe("off");
+    expect(input?.getAttribute("autocapitalize")).toBe("words");
+    expect(input?.getAttribute("autocorrect")).toBe("on");
+    expect(input?.getAttribute("spellcheck")).toBe("true");
     expect(input?.getAttribute("data-1p-ignore")).toBe("");
     expect(input?.getAttribute("data-form-type")).toBe("other");
     expect(input?.value).toBe("•••••");
@@ -78,6 +85,50 @@ describe("React SecretInput", () => {
     });
 
     expect(container.querySelector("input")?.value).toBe("visible");
+  });
+
+  it("server-renders the initial masked presentation and discards pre-hydration values", async () => {
+    const value = "a👩‍💻e\u0301";
+    const ref = createRef<HTMLInputElement>();
+    const element = createElement(SecretInput, { ref, value });
+    const markup = renderToString(element);
+    const serverContainer = document.createElement("div");
+    serverContainer.innerHTML = markup;
+    document.body.append(serverContainer);
+    const input = serverContainer.querySelector("input")!;
+
+    expect(input.type).toBe("text");
+    expect(input.autocomplete).toBe("off");
+    expect(input.getAttribute("autocapitalize")).toBe("off");
+    expect(input.hasAttribute("data-1p-ignore")).toBe(true);
+    expect(input.getAttribute("value")).toBe("•••");
+    expect(markup).not.toContain(value);
+
+    input.value = "browser-filled";
+    const hydratedRoot = hydrateRoot(serverContainer, element);
+    await act(async () => {});
+
+    expect(ref.current).toBe(input);
+    expect(input.value).toBe("•••");
+
+    await act(async () => hydratedRoot.unmount());
+  });
+
+  it("keeps plaintext out of server output before revealing on hydration", async () => {
+    const value = "visible";
+    const element = createElement(SecretInput, { redacted: false, value });
+    const serverContainer = document.createElement("div");
+    serverContainer.innerHTML = renderToString(element);
+    document.body.append(serverContainer);
+
+    expect(serverContainer.querySelector("input")?.value).toBe("•••••••");
+    expect(serverContainer.innerHTML).not.toContain(value);
+
+    const hydratedRoot = hydrateRoot(serverContainer, element);
+    await act(async () => {});
+
+    expect(serverContainer.querySelector("input")?.value).toBe(value);
+    await act(async () => hydratedRoot.unmount());
   });
 
   it("preserves undo when a controlled owner accepts an edit", async () => {

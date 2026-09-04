@@ -1,7 +1,7 @@
 import { createElement, useCallback, useLayoutEffect, useRef } from "react";
 import type { ComponentPropsWithoutRef, InputEvent, Ref } from "react";
 
-import { mask, secretInput } from "./secret-input.ts";
+import { mask, redact, secretInput } from "./secret-input.ts";
 import type { MaskOptions, SecretInputState } from "./secret-input.ts";
 import { passwordManagerAttributes } from "./password-manager.ts";
 
@@ -30,6 +30,7 @@ export function SecretInput({
     redacted,
     value: value ?? defaultValue ?? "",
   });
+  const initialPresentation = useRef(redact(initial.current.value));
   const state = useRef<SecretInputState | null>(null);
   const controlledValue = useRef(value);
   controlledValue.current = value;
@@ -97,9 +98,13 @@ export function SecretInput({
   );
 
   return createElement("input", {
+    autoCapitalize: "off",
+    autoCorrect: "off",
+    spellCheck: false,
     ...props,
     ...passwordManagerAttributes,
     autoComplete: "off",
+    defaultValue: initialPresentation.current,
     onInput: handleInput,
     ref: setInput,
     type: "text",

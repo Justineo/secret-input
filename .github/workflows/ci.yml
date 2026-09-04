@@ -2,13 +2,16 @@ name: CI
 
 permissions:
   contents: read
-  id-token: write
 
 on:
   push:
     branches:
       - main
   pull_request:
+  workflow_call:
+    secrets:
+      VOID_TOKEN:
+        required: false
   workflow_dispatch:
 
 concurrency:
@@ -17,24 +20,131 @@ concurrency:
 
 jobs:
   validate:
-    runs-on: ubuntu-latest
+    name: Package
+    runs-on: ubuntu-24.04
     timeout-minutes: 15
 
     steps:
-      - uses: actions/checkout@v6
+      - name: Checkout
+        uses: actions/checkout@v7
 
-      - uses: voidzero-dev/setup-vp@v1.18.0
+      - name: Setup Vite+
+        uses: voidzero-dev/setup-vp@v1.18.0
         with:
           cache: true
           run-install: false
 
-      - run: vp install --frozen-lockfile -- --trust-lockfile
-      - run: vp run check
-      - run: vp test --run
-      - run: vp pack
-      - run: vp build
+      - name: Install dependencies
+        run: vp install --frozen-lockfile -- --trust-lockfile
+
+      - name: Check
+        run: vp run check
+
+      - name: Test
+        run: vp test --run
+
+      - name: Build package
+        run: vp pack
+
+      - name: Validate package
+        run: vp run publint
+
+      - name: Build site
+        run: vp build
+
+  browser:
+    name: Browser / ${{ matrix.browser }}
+    runs-on: ${{ matrix.os }}
+    timeout-minutes: 20
+    strategy:
+      fail-fast: false
+      matrix:
+        include:
+          - browser: chrome
+            os: ubuntu-24.04
+          - browser: edge
+            os: ubuntu-24.04
+          - browser: firefox
+            os: ubuntu-24.04
+          - browser: safari
+            os: macos-15
+
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v7
+
+      - name: Setup Vite+
+        uses: voidzero-dev/setup-vp@v1.18.0
+        with:
+          cache: true
+          run-install: false
+
+      - name: Install dependencies
+        run: vp install --frozen-lockfile -- --trust-lockfile
+
+      - name: Enable Safari WebDriver
+        if: ${{ matrix.browser == 'safari' }}
+        run: sudo safaridriver --enable
+
+      - name: Use runner WebDriver
+        if: ${{ matrix.browser != 'safari' }}
+        run: |
+          case "$BROWSER" in
+            chrome) driver="$CHROMEWEBDRIVER/chromedriver" ;;
+            edge) driver="$EDGEWEBDRIVER/msedgedriver" ;;
+            firefox) driver="$GECKOWEBDRIVER/geckodriver" ;;
+          esac
+          test -x "$driver"
+          echo "WEBDRIVER_BINARY=$driver" >> "$GITHUB_ENV"
+        env:
+          BROWSER: ${{ matrix.browser }}
+
+      - name: Test ${{ matrix.browser }}
+        run: vp run test:browser
+        env:
+          BROWSER: ${{ matrix.browser }}
+
+      - name: Upload failure artifacts
+        if: ${{ failure() }}
+        uses: actions/upload-artifact@v4
+        with:
+          name: browser-${{ matrix.browser }}-failure
+          path: |
+            .vitest-attachments
+            tests/browser/__screenshots__
+          if-no-files-found: ignore
+          include-hidden-files: true
+          retention-days: 7
+
+  deploy:
+    name: Deploy site
+    if: ${{ github.event_name == 'push' && github.ref == 'refs/heads/main' }}
+    needs:
+      - validate
+      - browser
+    runs-on: ubuntu-24.04
+    timeout-minutes: 15
+    permissions:
+      contents: read
+      id-token: write
+
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v7
+
+      - name: Setup Vite+
+        uses: voidzero-dev/setup-vp@v1.18.0
+        with:
+          cache: true
+          run-install: false
+
+      - name: Install dependencies
+        run: vp install --frozen-lockfile -- --trust-lockfile
+
+      - name: Build site
+        run: vp build
+
       - name: Deploy to Void
-        if: ${{ github.event_name == 'push' && github.ref == 'refs/heads/main' }}
         run: vp exec void deploy --skip-build --project secret-input
         env:
           VOID_TOKEN: ${{ secrets.VOID_TOKEN }}

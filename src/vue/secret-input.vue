@@ -1,7 +1,7 @@
 <script setup lang="ts">
 import { nextTick, watch } from "vue";
 
-import { mask, secretInput } from "../secret-input.ts";
+import { mask, redact, secretInput } from "../secret-input.ts";
 import type { SecretInput } from "../secret-input.ts";
 
 defineOptions({
@@ -25,6 +25,7 @@ const emit = defineEmits<{
   input: [event: InputEvent];
   "update:modelValue": [value: string];
 }>();
+const initialPresentation = redact(props.modelValue ?? props.defaultValue ?? "");
 
 let input: SecretInput | undefined;
 
@@ -81,7 +82,11 @@ watch(() => [props.defaultValue, props.modelValue, props.redacted], sync, { flus
 <template>
   <input
     :ref="setInput"
+    autocapitalize="off"
+    autocorrect="off"
+    spellcheck="false"
     v-bind="$attrs"
+    :value="initialPresentation"
     type="text"
     autocomplete="off"
     data-1p-ignore

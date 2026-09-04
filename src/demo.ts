@@ -27,7 +27,7 @@ type MatrixRow = {
   solutions: readonly [BrowserSupport, BrowserSupport, BrowserSupport, BrowserSupport];
 };
 
-function sameAssessment(status: Support, detail: string): BrowserSupport {
+function allBrowsers(status: Support, detail: string): BrowserSupport {
   const assessment = [status, detail] as const;
   return [assessment, assessment, assessment, assessment];
 }
@@ -84,7 +84,7 @@ const supportMatrix = [
           "Safari does not fill automatically; it waits for interaction before showing a picker.",
         ],
       ],
-      sameAssessment(
+      allBrowsers(
         "supported",
         "No automatic fill was observed; interaction-triggered password UI is evaluated separately.",
       ),
@@ -97,7 +97,7 @@ const supportMatrix = [
           "Safari does not fill automatically; it waits for interaction before showing a picker.",
         ],
       ],
-      sameAssessment("supported", "No automatic fill was observed."),
+      allBrowsers("supported", "No automatic fill was observed."),
     ],
   },
   {
@@ -124,7 +124,7 @@ const supportMatrix = [
         ["supported", "No password-manager UI was observed."],
         ["unsupported", "Focusing either field opens the password picker."],
       ],
-      sameAssessment("supported", "No password-manager UI was observed."),
+      allBrowsers("supported", "No password-manager UI was observed."),
     ],
   },
   {
@@ -132,11 +132,11 @@ const supportMatrix = [
     solutions: [
       nativeValueProtection,
       nativeValueProtection,
-      sameAssessment(
+      allBrowsers(
         "unsupported",
         "CSS changes painting only; accessibility APIs still receive the text input's plaintext value.",
       ),
-      sameAssessment(
+      allBrowsers(
         "supported",
         "The accessible value contains bullets because the DOM value is masked; typing echo may still announce new input.",
       ),
@@ -145,10 +145,10 @@ const supportMatrix = [
   {
     label: "Undo/redo",
     solutions: [
-      sameAssessment("supported", "Uses the browser's native editing history."),
-      sameAssessment("supported", "Uses the browser's native editing history."),
-      sameAssessment("supported", "Uses the browser's native editing history."),
-      sameAssessment(
+      allBrowsers("supported", "Uses the browser's native editing history."),
+      allBrowsers("supported", "Uses the browser's native editing history."),
+      allBrowsers("supported", "Uses the browser's native editing history."),
+      allBrowsers(
         "best-effort",
         "Keyboard and beforeinput undo/redo are simulated in controller state; grouping and context-menu integration can differ from native behavior.",
       ),
@@ -157,14 +157,8 @@ const supportMatrix = [
   {
     label: "Disables IME",
     solutions: [
-      sameAssessment(
-        "supported",
-        "Native password-field behavior prevents normal IME composition.",
-      ),
-      sameAssessment(
-        "supported",
-        "Native password-field behavior prevents normal IME composition.",
-      ),
+      allBrowsers("supported", "Native password-field behavior prevents normal IME composition."),
+      allBrowsers("supported", "Native password-field behavior prevents normal IME composition."),
       [
         [
           "best-effort",
@@ -202,11 +196,11 @@ const supportMatrix = [
     solutions: [
       nativePasswordAccessibility,
       nativePasswordAccessibility,
-      sameAssessment(
+      allBrowsers(
         "unsupported",
         "The control remains an ordinary text field; visual CSS masking adds no secure accessibility semantics.",
       ),
-      sameAssessment(
+      allBrowsers(
         "unsupported",
         "The control remains an ordinary text field, and no standard ARIA role can restore native password semantics.",
       ),
@@ -233,9 +227,7 @@ function initializeSetup(): void {
   const warning = requiredElement<HTMLElement>("#password-manager-warning");
   let manager: string | undefined;
 
-  const observer = new MutationObserver(() => {
-    blockPasswordManager();
-  });
+  const observer = new MutationObserver(blockPasswordManager);
 
   function blockPasswordManager(): boolean {
     manager ??= findPasswordManager(document);
@@ -258,9 +250,7 @@ function initializeSetup(): void {
 
   if (!blockPasswordManager()) {
     window.setTimeout(() => {
-      if (!blockPasswordManager()) {
-        submit.disabled = false;
-      }
+      submit.disabled = blockPasswordManager();
     }, 500);
   }
 
@@ -336,7 +326,6 @@ function renderSupportMatrix(): void {
         icon.height = 18;
         icon.dataset.support = status;
         icon.title = description;
-        icon.setAttribute("aria-hidden", "true");
         descriptions.push(description);
         group.append(icon);
       }

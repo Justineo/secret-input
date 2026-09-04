@@ -5,7 +5,6 @@
     "moduleDetection": "force",
     "module": "nodenext",
     "moduleResolution": "nodenext",
-    "resolveJsonModule": true,
     "strict": true,
     "exactOptionalPropertyTypes": true,
     "noFallthroughCasesInSwitch": true,
@@ -16,7 +15,6 @@
     "declaration": true,
     "noEmit": true,
     "allowImportingTsExtensions": true,
-    "esModuleInterop": true,
     "isolatedModules": true,
     "verbatimModuleSyntax": true,
     "skipLibCheck": true
