@@ -48,8 +48,9 @@
               <section class="vbg-custom-setup-step" aria-labelledby="setup-step-title">
                 <h2 id="setup-step-title" class="vbg-heading-20">Save a test login</h2>
                 <p class="vbg-caption">
-                  Save disposable credentials in the browser to create an autofill candidate. This
-                  page stores only a completion flag.
+                  Save disposable credentials in the browser to create an autofill candidate.
+                  Disable password-manager extensions for this site. This page stores only a
+                  completion flag.
                 </p>
                 <form id="credential-form" class="vbg-custom-setup-form" action="./" method="post">
                   <div class="vbg-field">
@@ -74,7 +75,16 @@
                     />
                   </div>
 
-                  <button class="vbg-button" type="submit">Save and continue</button>
+                  <p id="password-manager-warning" class="vbg-note" role="alert" hidden></p>
+                  <button
+                    id="continue-setup"
+                    class="vbg-button"
+                    type="submit"
+                    aria-describedby="password-manager-warning"
+                    disabled
+                  >
+                    Save and continue
+                  </button>
                 </form>
               </section>
             </div>

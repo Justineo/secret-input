@@ -7,6 +7,7 @@ import edgeIcon from "./assets/browser-logos/edge.png";
 import firefoxIcon from "./assets/browser-logos/firefox.png";
 import safariIcon from "./assets/browser-logos/safari.png";
 import { mask } from "./index.ts";
+import { findPasswordManager } from "./password-manager.ts";
 
 OverlayScrollbars(document.body, {});
 
@@ -227,8 +228,48 @@ if (localStorage.getItem(storageKey) === "true") {
 }
 
 function initializeSetup(): void {
-  requiredElement<HTMLFormElement>("#credential-form").addEventListener("submit", (event) => {
+  const form = requiredElement<HTMLFormElement>("#credential-form");
+  const submit = requiredElement<HTMLButtonElement>("#continue-setup");
+  const warning = requiredElement<HTMLElement>("#password-manager-warning");
+  let manager: string | undefined;
+
+  const observer = new MutationObserver(() => {
+    blockPasswordManager();
+  });
+
+  function blockPasswordManager(): boolean {
+    manager ??= findPasswordManager(document);
+    if (!manager) {
+      return false;
+    }
+
+    observer.disconnect();
+    submit.disabled = true;
+    warning.hidden = false;
+    warning.textContent = `${manager} appears to be active. Disable it for this site and reload before continuing.`;
+    return true;
+  }
+
+  observer.observe(document.documentElement, {
+    attributes: true,
+    childList: true,
+    subtree: true,
+  });
+
+  if (!blockPasswordManager()) {
+    window.setTimeout(() => {
+      if (!blockPasswordManager()) {
+        submit.disabled = false;
+      }
+    }, 500);
+  }
+
+  form.addEventListener("submit", (event) => {
     event.preventDefault();
+    if (blockPasswordManager() || submit.disabled) {
+      return;
+    }
+
     localStorage.setItem(storageKey, "true");
     location.reload();
   });
