@@ -25,15 +25,17 @@
       <header class="vbg-header">
         <div class="vbg-masthead">
           <span class="vbg-identity">
-            <img src="/logo.svg" alt="" width="32" height="32" />
-            Secret input
+            <img class="vbg-custom-logo" src="/logo.svg" alt="" width="32" height="32" />
+            Secret Input
           </span>
-          <a
-            class="vbg-document-meta vbg-custom-header-link"
-            href="https://github.com/Justineo/secret-input#readme"
-          >
-            Documentation
-          </a>
+          <nav class="vbg-document-meta" aria-label="Project">
+            <a
+              class="vbg-custom-header-link"
+              href="https://github.com/Justineo/secret-input#readme"
+            >
+              Documentation
+            </a>
+          </nav>
         </div>
       </header>
 
@@ -49,18 +51,18 @@
                   fields.
                 </h1>
                 <p class="vbg-lede">
-                  Browser autofill is too aggressive. It can silently replace API keys and other
-                  non-login secrets with saved credentials, leaving a valid-looking form with the
-                  wrong value. Secret Input rejects those writes.
+                  Browsers can mistake API keys and other non-login secrets for saved credentials,
+                  silently leaving a valid-looking form with the wrong value. Secret Input keeps
+                  those writes out of application state. Use native password inputs for login
+                  passwords.
                 </p>
-                <p class="vbg-note">For login passwords, use a native password input.</p>
               </header>
 
               <section class="vbg-custom-setup-step" aria-labelledby="setup-step-title">
                 <h2 id="setup-step-title" class="vbg-heading-20">Save a test login</h2>
                 <p class="vbg-caption">
-                  Save disposable credentials in the browser to create an autofill candidate.
-                  Disable password-manager extensions for this site. This page stores only a
+                  Submit disposable credentials so the browser can save an autofill candidate.
+                  Disable password-manager extensions for this site; this page stores only a
                   completion flag.
                 </p>
                 <form id="credential-form" class="vbg-custom-setup-form" action="./" method="post">
@@ -104,26 +106,23 @@
 
         <template id="comparison-template">
           <section class="vbg-section" aria-labelledby="comparison-title">
-            <div class="vbg-opening">
-              <div class="vbg-opening-claim">
+            <header class="vbg-custom-comparison-intro">
+              <div class="vbg-custom-comparison-claim">
                 <h1 id="comparison-title" class="vbg-title">Why obvious autofill fixes fail.</h1>
                 <p class="vbg-lede">Compare four approaches across current browsers.</p>
               </div>
 
-              <div class="vbg-opening-context">
-                <button id="reset-demo" class="vbg-custom-field-action" type="button">
-                  Back to setup
-                </button>
-              </div>
-            </div>
+              <button id="reset-demo" class="vbg-custom-field-action" type="button">
+                Back to setup
+              </button>
+            </header>
 
             <article class="vbg-custom-case">
               <header class="vbg-custom-case-summary">
                 <h2 class="vbg-heading-20">Autocomplete off</h2>
                 <p class="vbg-caption">
-                  Uses <code>input[type="password"]</code> with <code>autocomplete="off"</code>.
-                  Often assumed to disable autofill, but browsers may ignore the hint and classify
-                  unrelated fields as credentials.
+                  A native password input with <code>autocomplete="off"</code>. Browsers may ignore
+                  the hint and still classify the pair as login credentials.
                 </p>
               </header>
               <form class="vbg-custom-case-form">
@@ -140,12 +139,11 @@
 
             <article class="vbg-custom-case">
               <header class="vbg-custom-case-summary">
-                <h2 class="vbg-heading-20">New-password workaround</h2>
+                <h2 class="vbg-heading-20">New-password</h2>
                 <p class="vbg-caption">
-                  Uses <code>input[type="password"]</code> with
-                  <code>autocomplete="new-password"</code>. This common workaround prevents silent
-                  saved-password fill, but password pickers and generated-password UI can still
-                  appear.
+                  A native password input with <code>autocomplete="new-password"</code>. This common
+                  workaround prevents silent saved-password fill, but still triggers password and
+                  generated-password UI.
                 </p>
               </header>
               <form class="vbg-custom-case-form">
@@ -166,12 +164,11 @@
 
             <article class="vbg-custom-case">
               <header class="vbg-custom-case-summary">
-                <h2 class="vbg-heading-20">CSS-masked text</h2>
+                <h2 class="vbg-heading-20">CSS masking</h2>
                 <p class="vbg-caption">
-                  Uses <code>input[type="text"]</code> with
-                  <code>-webkit-text-security: disc</code>. It masks only at paint time and avoids
-                  password heuristics in some browsers, but Safari may still show password UI and
-                  assistive tech receives the real value.
+                  A text input with <code>-webkit-text-security: disc</code> when supported. It
+                  avoids password UI in some browsers, but masks only visually and Safari still
+                  shows autofill UI.
                 </p>
               </header>
               <form class="vbg-custom-case-form">
@@ -197,10 +194,9 @@
               <header class="vbg-custom-case-summary">
                 <h2 class="vbg-heading-20">Secret Input</h2>
                 <p class="vbg-caption">
-                  Calls <code>mask(input)</code> on <code>input[type="text"]</code>, applies known
-                  password-manager opt-outs, and keeps the secret in controller state while the DOM
-                  value contains only bullets. Native password accessibility cannot be reproduced
-                  and some editing behavior is best effort.
+                  A text input passed to <code>mask(input)</code>. Its DOM value holds bullets while
+                  browser-written text stays out of state. Native password accessibility cannot be
+                  reproduced; undo/redo and IME handling are best effort.
                 </p>
               </header>
               <form class="vbg-custom-case-form">
@@ -264,8 +260,8 @@
                   <tr>
                     <th scope="col">Behavior</th>
                     <th scope="col">Autocomplete off</th>
-                    <th scope="col">New-password workaround</th>
-                    <th scope="col">CSS-masked text</th>
+                    <th scope="col">New-password</th>
+                    <th scope="col">CSS masking</th>
                     <th scope="col" data-recommended="true">Secret Input</th>
                   </tr>
                 </thead>

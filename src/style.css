@@ -1,3 +1,8 @@
+.vbg-custom-logo {
+  width: 24px;
+  height: 24px;
+}
+
 .vbg-custom-header-link {
   text-underline-offset: 0.2em;
 }
@@ -45,12 +50,47 @@
   max-width: 32rem;
 }
 
+.vbg-custom-comparison-intro {
+  display: grid;
+  grid-template-columns: repeat(12, minmax(0, 1fr));
+  gap: var(--vbg-space-6);
+  align-items: start;
+}
+
+.vbg-custom-comparison-claim {
+  display: grid;
+  grid-column: 1 / span 8;
+  gap: var(--vbg-space-3);
+}
+
+.vbg-custom-comparison-intro > *,
+.vbg-custom-comparison-claim > * {
+  margin: 0;
+}
+
+.vbg-custom-comparison-intro > .vbg-custom-field-action {
+  grid-column: 10 / -1;
+  justify-self: end;
+}
+
+.vbg-custom-comparison-intro + .vbg-custom-case {
+  margin-block-start: var(--vbg-space-8);
+}
+
 .vbg-custom-case {
   display: grid;
   grid-template-columns: repeat(12, minmax(0, 1fr));
   gap: var(--vbg-space-6);
   padding-block: var(--vbg-space-6);
   border-bottom: 1px solid var(--vbg-border-default);
+}
+
+.vbg-custom-case:first-of-type {
+  padding-block-start: 0;
+}
+
+.vbg-custom-case + .vbg-custom-case {
+  margin-block-start: 0;
 }
 
 .vbg-custom-matrix {
@@ -183,6 +223,17 @@
   .vbg-custom-case {
     grid-template-columns: 1fr;
     gap: var(--vbg-space-6);
+  }
+
+  .vbg-custom-comparison-intro {
+    grid-template-columns: 1fr;
+    gap: var(--vbg-space-4);
+  }
+
+  .vbg-custom-comparison-claim,
+  .vbg-custom-comparison-intro > .vbg-custom-field-action {
+    grid-column: 1;
+    justify-self: start;
   }
 
   .vbg-custom-case-summary,
