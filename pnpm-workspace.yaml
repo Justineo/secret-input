@@ -4,8 +4,13 @@ overrides:
 catalog:
   vite: npm:@voidzero-dev/vite-plus-core@0.3.0
   vite-plus: 0.3.0
+  void: 0.10.12
 peerDependencyRules:
   allowAny:
     - vite
   allowedVersions:
     vite: "*"
+allowBuilds:
+  better-sqlite3: true
+  esbuild: true
+  workerd: true

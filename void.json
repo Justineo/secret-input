@@ -1,0 +1,6 @@
+{
+  "inference": {
+    "appType": "spa",
+    "outputDir": "dist"
+  }
+}

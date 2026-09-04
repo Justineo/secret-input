@@ -4,6 +4,8 @@ Browser autofill is aggressive enough to silently replace API keys, webhook sign
 
 The `mask(input)` API treats browser-controlled DOM state as untrusted. It uses a text input, keeps the actual secret in separate controller state, renders bullets by default, and discards browser-originated mutations instead of adopting them as application state.
 
+[Live demo](https://secret-input.void.app/)
+
 ```text
 input[secretInput].value     secret123
 input[secretInput].redacted  true
