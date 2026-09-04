@@ -1,0 +1,33 @@
+name: CI
+
+permissions:
+  contents: read
+
+on:
+  push:
+    branches:
+      - main
+  pull_request:
+  workflow_dispatch:
+
+concurrency:
+  group: ci-${{ github.ref }}
+  cancel-in-progress: true
+
+jobs:
+  validate:
+    runs-on: ubuntu-latest
+    timeout-minutes: 15
+
+    steps:
+      - uses: actions/checkout@v6
+
+      - uses: voidzero-dev/setup-vp@v1.18.0
+        with:
+          cache: true
+
+      - run: vp install --frozen-lockfile -- --trust-lockfile
+      - run: vp run check
+      - run: vp test --run
+      - run: vp build
+      - run: vp pack

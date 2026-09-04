@@ -1,0 +1,65 @@
+{
+  "name": "@justineo/secret-input",
+  "version": "0.0.0",
+  "description": "A framework-independent controller for native masked secret inputs.",
+  "homepage": "https://github.com/Justineo/secret-input#readme",
+  "bugs": "https://github.com/Justineo/secret-input/issues",
+  "license": "MIT",
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/Justineo/secret-input.git"
+  },
+  "files": [
+    "dist"
+  ],
+  "type": "module",
+  "exports": {
+    ".": "./dist/index.mjs",
+    "./react": "./dist/react.mjs",
+    "./vue": "./dist/vue.mjs",
+    "./package.json": "./package.json"
+  },
+  "publishConfig": {
+    "access": "public"
+  },
+  "scripts": {
+    "build": "vp pack",
+    "dev": "vp dev",
+    "test": "vp test",
+    "check": "vp check && vue-tsc --noEmit",
+    "prepublishOnly": "vp run build"
+  },
+  "devDependencies": {
+    "@types/react": "^19.2.18",
+    "@types/react-dom": "^19.2.7",
+    "happy-dom": "^20.12.0",
+    "overlayscrollbars": "^2.16.0",
+    "react": "^19.2.8",
+    "react-dom": "^19.2.8",
+    "typescript": "npm:typescript-native-bridge@6.0.3-bridge.16.tsgo.7.0.2",
+    "unplugin-vue": "^7.2.0",
+    "vite": "catalog:",
+    "vite-plus": "catalog:",
+    "vue": "^3.5.42",
+    "vue-tsc": "^3.3.11"
+  },
+  "peerDependencies": {
+    "react": "^19.0.0",
+    "vue": "^3.5.0"
+  },
+  "peerDependenciesMeta": {
+    "react": {
+      "optional": true
+    },
+    "vue": {
+      "optional": true
+    }
+  },
+  "devEngines": {
+    "packageManager": {
+      "name": "pnpm",
+      "version": "11.25.0",
+      "onFail": "download"
+    }
+  }
+}

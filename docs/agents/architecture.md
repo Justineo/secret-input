@@ -1,0 +1,11 @@
+# Architecture and value model
+
+`mask()` installs one idempotent, closure-backed controller on a native `input[type="text"]` and returns that same input as `SecretInput`. No wrapper or Shadow DOM is created. The native element remains the styling, focus, selection, label, accessibility, form, and event surface.
+
+The actual string lives in the controller closure. The exported `secretInput` Symbol exposes a stable `SecretInputState` with only `value`, `defaultValue`, and `redacted`. Using one unique Symbol avoids native and third-party property-name collisions without adding several string properties. It is an API namespace, not a security boundary. `input[secretInput].value` is authoritative, `defaultValue` supplies the initial value when `value` is omitted and remains the form-reset value, and `input.value` is presentation. `redacted` defaults to `true`, making `input.value` contain one `•` per grapheme. Setting it to `false` explicitly renders the actual string. Never reconstruct the secret from `input.value` and never override the native `value` property.
+
+Cancelable `beforeinput` operations are intercepted before the browser mutates `input.value`. The controller applies the operation to secret state, renders the selected presentation, and dispatches `input` on the same native element. Autofill-like replacements and unrecognized mutations restore that presentation without updating the secret. Switching `redacted` is a quiet presentation change: it preserves the logical grapheme selection and does not alter value or history.
+
+Selections are represented internally as grapheme indices. Mask offsets already have that shape; revealed DOM selections use UTF-16 offsets and are translated at the controller boundary.
+
+`formdata` is the only point where the actual value leaves controller state for standard form submission. The handler replaces each masked name with actual values in control order. All successful controls sharing such a name must be masked; mixing ordinary and masked controls under the same name is outside the contract.

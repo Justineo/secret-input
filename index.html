@@ -1,0 +1,267 @@
+<!doctype html>
+<html lang="en" data-overlayscrollbars-initialize>
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <meta
+      name="description"
+      content="Stop aggressive browser autofill from silently corrupting non-login secret fields."
+    />
+    <link rel="preconnect" href="https://fonts.googleapis.com" />
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+    <link
+      href="https://fonts.googleapis.com/css2?family=Geist:wght@400..600&family=Geist+Mono:wght@400..600&display=swap"
+      rel="stylesheet"
+      referrerpolicy="no-referrer"
+    />
+    <link rel="stylesheet" href="https://vercel.com/geist/vercel-brand.css" />
+    <title>Secret Input</title>
+  </head>
+  <body class="vbg-report" data-overlayscrollbars-initialize>
+    <div class="vbg-shell">
+      <a class="vbg-skip-link" href="#main">Skip to content</a>
+
+      <header class="vbg-header">
+        <div class="vbg-masthead">
+          <span class="vbg-identity">Secret input</span>
+        </div>
+      </header>
+
+      <main id="main">
+        <div id="demo-root"></div>
+
+        <template id="setup-template">
+          <section class="vbg-section" aria-labelledby="setup-title">
+            <div class="vbg-custom-home">
+              <header class="vbg-custom-home-intro">
+                <h1 id="setup-title" class="vbg-title">
+                  Stop autofill from corrupting secret fields.
+                </h1>
+                <p class="vbg-lede">
+                  Browser autofill is too aggressive. It can silently replace API keys and other
+                  non-login secrets with saved credentials, leaving a valid-looking form with the
+                  wrong value. Secret Input rejects those writes.
+                </p>
+                <p class="vbg-note">For login passwords, use a native password input.</p>
+              </header>
+
+              <section class="vbg-custom-setup-step" aria-labelledby="setup-step-title">
+                <h2 id="setup-step-title" class="vbg-heading-20">Save a test login</h2>
+                <p class="vbg-caption">
+                  Save disposable credentials in the browser to create an autofill candidate. This
+                  page stores only a completion flag.
+                </p>
+                <form id="credential-form" class="vbg-custom-setup-form" action="./" method="post">
+                  <div class="vbg-field">
+                    <label class="vbg-label" for="setup-username">Username</label>
+                    <input
+                      id="setup-username"
+                      name="username"
+                      type="text"
+                      autocomplete="username"
+                      required
+                    />
+                  </div>
+
+                  <div class="vbg-field">
+                    <label class="vbg-label" for="setup-password">Password</label>
+                    <input
+                      id="setup-password"
+                      name="password"
+                      type="password"
+                      autocomplete="current-password"
+                      required
+                    />
+                  </div>
+
+                  <button class="vbg-button" type="submit">Save and continue</button>
+                </form>
+              </section>
+            </div>
+          </section>
+        </template>
+
+        <template id="comparison-template">
+          <section class="vbg-section" aria-labelledby="comparison-title">
+            <div class="vbg-opening">
+              <div class="vbg-opening-claim">
+                <h1 id="comparison-title" class="vbg-title">Why obvious autofill fixes fail.</h1>
+                <p class="vbg-lede">
+                  Four implementations expose the tradeoffs. CSS masking can deter autofill; Secret
+                  Input also prevents autofilled DOM text from becoming the submitted value.
+                </p>
+              </div>
+
+              <div class="vbg-opening-context">
+                <button id="reset-demo" class="vbg-custom-field-action" type="button">
+                  Back to setup
+                </button>
+              </div>
+            </div>
+
+            <article class="vbg-custom-case">
+              <header class="vbg-custom-case-summary">
+                <h2 class="vbg-heading-20">Autocomplete off</h2>
+                <p class="vbg-caption">
+                  Uses <code>input[type="password"]</code> with <code>autocomplete="off"</code>.
+                  Often assumed to disable autofill, but browsers may ignore the hint and classify
+                  unrelated fields as credentials.
+                </p>
+              </header>
+              <form class="vbg-custom-case-form">
+                <div class="vbg-field">
+                  <label class="vbg-label" for="native-webhook-url">Webhook URL</label>
+                  <input id="native-webhook-url" type="text" autocomplete="off" />
+                </div>
+                <div class="vbg-field">
+                  <label class="vbg-label" for="native-signing-secret">Signing secret</label>
+                  <input id="native-signing-secret" type="password" autocomplete="off" />
+                </div>
+              </form>
+            </article>
+
+            <article class="vbg-custom-case">
+              <header class="vbg-custom-case-summary">
+                <h2 class="vbg-heading-20">New-password workaround</h2>
+                <p class="vbg-caption">
+                  Uses <code>input[type="password"]</code> with
+                  <code>autocomplete="new-password"</code>. This common workaround prevents silent
+                  saved-password fill, but password pickers and generated-password UI can still
+                  appear.
+                </p>
+              </header>
+              <form class="vbg-custom-case-form">
+                <div class="vbg-field">
+                  <label class="vbg-label" for="new-password-webhook-url">Webhook URL</label>
+                  <input id="new-password-webhook-url" type="text" autocomplete="off" />
+                </div>
+                <div class="vbg-field">
+                  <label class="vbg-label" for="new-password-signing-secret">Signing secret</label>
+                  <input
+                    id="new-password-signing-secret"
+                    type="password"
+                    autocomplete="new-password"
+                  />
+                </div>
+              </form>
+            </article>
+
+            <article class="vbg-custom-case">
+              <header class="vbg-custom-case-summary">
+                <h2 class="vbg-heading-20">CSS-masked text</h2>
+                <p class="vbg-caption">
+                  Uses <code>input[type="text"]</code> with
+                  <code>-webkit-text-security: disc</code>. It masks only at paint time and avoids
+                  password heuristics in some browsers, but Safari may still show password UI and
+                  assistive tech receives the real value.
+                </p>
+              </header>
+              <form class="vbg-custom-case-form">
+                <div class="vbg-field">
+                  <label class="vbg-label" for="css-webhook-url">Webhook URL</label>
+                  <input id="css-webhook-url" type="text" autocomplete="off" />
+                </div>
+                <div class="vbg-field">
+                  <label class="vbg-label" for="css-signing-secret">Signing secret</label>
+                  <input
+                    id="css-signing-secret"
+                    type="text"
+                    autocomplete="off"
+                    autocapitalize="off"
+                    autocorrect="off"
+                    spellcheck="false"
+                  />
+                </div>
+              </form>
+            </article>
+
+            <article class="vbg-custom-case">
+              <header class="vbg-custom-case-summary">
+                <h2 class="vbg-heading-20">Secret Input</h2>
+                <p class="vbg-caption">
+                  Calls <code>mask(input)</code> on <code>input[type="text"]</code>, keeping the
+                  secret in controller state while the DOM value contains only bullets. Native
+                  password accessibility cannot be reproduced and some editing behavior is best
+                  effort.
+                </p>
+              </header>
+              <form class="vbg-custom-case-form">
+                <div class="vbg-field">
+                  <label class="vbg-label" for="masked-webhook-url">Webhook URL</label>
+                  <input id="masked-webhook-url" type="text" autocomplete="off" />
+                </div>
+                <div class="vbg-field">
+                  <label class="vbg-label" for="masked-signing-secret">Signing secret</label>
+                  <input
+                    id="masked-signing-secret"
+                    type="text"
+                    autocomplete="off"
+                    autocapitalize="off"
+                    autocorrect="off"
+                    spellcheck="false"
+                  />
+                </div>
+              </form>
+            </article>
+
+            <div
+              class="vbg-table-wrap vbg-custom-matrix"
+              data-density="compact"
+              data-sticky-first="true"
+              data-variant="comparison"
+            >
+              <table aria-label="Browser support by implementation and behavior">
+                <caption>
+                  <span class="vbg-custom-matrix-legend">
+                    <span>
+                      <img
+                        class="vbg-custom-browser"
+                        data-support="supported"
+                        src="/src/assets/browser-logos/chrome.png"
+                        alt=""
+                        aria-hidden="true"
+                      />
+                      Supported
+                    </span>
+                    <span>
+                      <img
+                        class="vbg-custom-browser"
+                        data-support="best-effort"
+                        src="/src/assets/browser-logos/chrome.png"
+                        alt=""
+                        aria-hidden="true"
+                      />
+                      Best effort
+                    </span>
+                    <span>
+                      <img
+                        class="vbg-custom-browser"
+                        data-support="unsupported"
+                        src="/src/assets/browser-logos/chrome.png"
+                        alt=""
+                        aria-hidden="true"
+                      />
+                      Unsupported
+                    </span>
+                  </span>
+                </caption>
+                <thead>
+                  <tr>
+                    <th scope="col">Behavior</th>
+                    <th scope="col">Autocomplete off</th>
+                    <th scope="col">New-password workaround</th>
+                    <th scope="col">CSS-masked text</th>
+                    <th scope="col" data-recommended="true">Secret Input</th>
+                  </tr>
+                </thead>
+                <tbody id="support-matrix"></tbody>
+              </table>
+            </div>
+          </section>
+        </template>
+      </main>
+    </div>
+
+    <script type="module" src="/src/demo.ts"></script>
+  </body>
+</html>
