@@ -12,6 +12,13 @@
   outline-offset: 2px;
 }
 
+.vbg-custom-autofill {
+  border-radius: 0.15em;
+  background: light-dark(rgb(232 240 254), rgb(70 90 126 / 40%));
+  box-decoration-break: clone;
+  padding-inline: 0.08em;
+}
+
 .vbg-custom-home {
   display: grid;
   grid-template-columns: minmax(0, 7fr) minmax(18rem, 5fr);
