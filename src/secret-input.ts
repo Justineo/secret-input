@@ -1,4 +1,5 @@
 import { nextWordBoundary, previousWordBoundary, splitGraphemes } from "./graphemes.ts";
+import { passwordManagerAttributes } from "./password-manager.ts";
 
 const MASK = "•";
 
@@ -681,6 +682,10 @@ export function mask(input: HTMLInputElement, options: MaskOptions = {}): Secret
   const redacted = options.redacted ?? true;
 
   input.type = "text";
+  input.autocomplete = "off";
+  for (const [name, attributeValue] of Object.entries(passwordManagerAttributes)) {
+    input.setAttribute(name, attributeValue);
+  }
   if (!input.hasAttribute("autocapitalize")) {
     input.setAttribute("autocapitalize", "off");
   }

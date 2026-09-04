@@ -24,4 +24,6 @@ Ordinary caret, range selection, keyboard, and pointer handling stay native. Con
 
 Autofill commonly mutates the DOM without a cancelable `beforeinput`. The controller never adopts that value and restores the authoritative presentation—masks while redacted, the actual secret while revealed—on the next observed input/change/edit event. Direct script writes without events cannot be observed immediately because value property changes do not produce mutations or events.
 
-Autocorrection and browser-managed `insertReplacementText` are intentionally rejected because they are not reliably distinguishable from autofill. Consumers should normally use `autocomplete="off"`, `autocapitalize="off"`, and `spellcheck="false"` for secret fields.
+`mask()` also sets `autocomplete="off"` and the known field-level opt-out hints for 1Password, Bitwarden, Dashlane, LastPass, and Proton Pass. The React and Vue adapters render the same attributes before their controller attaches. These vendor contracts are best-effort and can change or be ignored; they reduce third-party UI and writes but do not replace the authoritative-state boundary.
+
+Autocorrection and browser-managed `insertReplacementText` are intentionally rejected because they are not reliably distinguishable from autofill. The controller enforces `autocomplete="off"` and defaults autocapitalization, autocorrection, and spellcheck to off unless the author explicitly configures those text services.

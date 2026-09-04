@@ -30,7 +30,9 @@ describe("Vue SecretInput", () => {
         () => () =>
           h("form", null, [
             h(SecretInput, {
+              autocomplete: "current-password",
               class: "field",
+              "data-form-type": "password",
               modelValue: value.value,
               name: "token",
               onChange: change,
@@ -53,6 +55,9 @@ describe("Vue SecretInput", () => {
     expect(input?.className).toBe("field");
     expect(input?.name).toBe("token");
     expect(input?.type).toBe("text");
+    expect(input?.autocomplete).toBe("off");
+    expect(input?.getAttribute("data-1p-ignore")).toBe("");
+    expect(input?.getAttribute("data-form-type")).toBe("other");
     expect(input?.value).toBe("•••••");
     expect(formDataFor(input!.form!).get("token")).toBe("first");
 

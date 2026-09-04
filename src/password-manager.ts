@@ -7,6 +7,14 @@ const signatures = [
   ["Proton Pass", "[data-protonpass-form], [data-protonpass-role]"],
 ] as const;
 
+export const passwordManagerAttributes = {
+  "data-1p-ignore": "",
+  "data-bwignore": "true",
+  "data-form-type": "other",
+  "data-lpignore": "true",
+  "data-protonpass-ignore": "true",
+} as const;
+
 export function findPasswordManager(root: ParentNode): string | undefined {
   return signatures.find(([, selector]) => root.querySelector(selector))?.[0];
 }

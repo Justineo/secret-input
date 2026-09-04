@@ -71,6 +71,21 @@ describe("mask", () => {
     expect(input.type).toBe("text");
   });
 
+  it("asks native and third-party password managers to ignore the input", () => {
+    const input = document.createElement("input");
+    input.autocomplete = "current-password";
+    input.setAttribute("data-form-type", "password");
+
+    mask(input);
+
+    expect(input.autocomplete).toBe("off");
+    expect(input.getAttribute("data-1p-ignore")).toBe("");
+    expect(input.getAttribute("data-bwignore")).toBe("true");
+    expect(input.getAttribute("data-form-type")).toBe("other");
+    expect(input.getAttribute("data-lpignore")).toBe("true");
+    expect(input.getAttribute("data-protonpass-ignore")).toBe("true");
+  });
+
   it("reveals and redacts without changing the secret or emitting input", () => {
     const input = createInput("a👩‍💻b");
     const listener = vi.fn();

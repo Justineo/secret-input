@@ -79,5 +79,15 @@ watch(() => [props.defaultValue, props.modelValue, props.redacted], sync, { flus
 </script>
 
 <template>
-  <input :ref="setInput" type="text" v-bind="$attrs" />
+  <input
+    :ref="setInput"
+    v-bind="$attrs"
+    type="text"
+    autocomplete="off"
+    data-1p-ignore
+    data-bwignore="true"
+    data-form-type="other"
+    data-lpignore="true"
+    data-protonpass-ignore="true"
+  />
 </template>

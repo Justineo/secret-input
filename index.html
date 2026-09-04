@@ -189,10 +189,10 @@
               <header class="vbg-custom-case-summary">
                 <h2 class="vbg-heading-20">Secret Input</h2>
                 <p class="vbg-caption">
-                  Calls <code>mask(input)</code> on <code>input[type="text"]</code>, keeping the
-                  secret in controller state while the DOM value contains only bullets. Native
-                  password accessibility cannot be reproduced and some editing behavior is best
-                  effort.
+                  Calls <code>mask(input)</code> on <code>input[type="text"]</code>, applies known
+                  password-manager opt-outs, and keeps the secret in controller state while the DOM
+                  value contains only bullets. Native password accessibility cannot be reproduced
+                  and some editing behavior is best effort.
                 </p>
               </header>
               <form class="vbg-custom-case-form">

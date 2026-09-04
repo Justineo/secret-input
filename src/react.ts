@@ -3,6 +3,7 @@ import type { ComponentPropsWithoutRef, InputEvent, Ref } from "react";
 
 import { mask, secretInput } from "./secret-input.ts";
 import type { MaskOptions, SecretInputState } from "./secret-input.ts";
+import { passwordManagerAttributes } from "./password-manager.ts";
 
 export interface SecretInputProps extends Omit<
   ComponentPropsWithoutRef<"input">,
@@ -97,6 +98,8 @@ export function SecretInput({
 
   return createElement("input", {
     ...props,
+    ...passwordManagerAttributes,
+    autoComplete: "off",
     onInput: handleInput,
     ref: setInput,
     type: "text",

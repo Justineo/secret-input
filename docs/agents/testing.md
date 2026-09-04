@@ -8,6 +8,7 @@ Prefer public, observable behavior:
 - Insert, paste/drop, selection replacement, delete, keyboard and `beforeinput` undo/redo, composition, and grapheme edits update the right actual range. Contiguous typing and character deletion form one history transaction, while caret/pointer movement and unrelated edits start a new one. Composition drafts remain outside the actual state, and Safari-style commit-before-end ordering commits exactly once.
 - Copy, cut, and selection dragging cannot export either the secret or masks while redacted; revealed state restores native export and cut behavior. The native context menu remains available.
 - Unexpected `input.value` mutations never enter secret state in either presentation.
+- `mask()` enforces `autocomplete="off"` and the known vendor opt-out attributes; React and Vue render the same attributes before attaching the controller.
 - `FormData` receives actual values; disabled controls are omitted and reset restores the state `defaultValue`.
 - React controlled values and Vue `v-model` receive actual edits while their rendered native values remain presentation state; accepted values preserve undo history, browser-written values do not reach adapter callbacks, and both adapters forward input attributes and preserve form participation.
 - Property writes are quiet; user edits emit `input`, and blur after editing emits `change`.

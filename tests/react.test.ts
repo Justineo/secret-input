@@ -33,6 +33,7 @@ describe("React SecretInput", () => {
           "form",
           null,
           createElement(SecretInput, {
+            autoComplete: "current-password",
             className: "field",
             name: "token",
             onInput: (event) => presentedValues.push(event.currentTarget.value),
@@ -49,6 +50,9 @@ describe("React SecretInput", () => {
     expect(input?.className).toBe("field");
     expect(input?.name).toBe("token");
     expect(input?.type).toBe("text");
+    expect(input?.autocomplete).toBe("off");
+    expect(input?.getAttribute("data-1p-ignore")).toBe("");
+    expect(input?.getAttribute("data-form-type")).toBe("other");
     expect(input?.value).toBe("•••••");
     expect(formDataFor(input!.form!).get("token")).toBe("first");
 

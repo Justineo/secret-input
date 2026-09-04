@@ -104,6 +104,23 @@ const apiKey = ref("");
 
 Both adapters render `input[type="text"]` and reuse `mask()`; neither implementation passes the actual value to the native `value` prop. React and Vue are optional peer dependencies and are absent from the core entry point.
 
+## Password managers
+
+`mask()` sets `autocomplete="off"` together with the field opt-outs recognized by 1Password, Bitwarden, Dashlane, LastPass, and Proton Pass:
+
+```html
+<input
+  autocomplete="off"
+  data-1p-ignore
+  data-bwignore="true"
+  data-form-type="other"
+  data-lpignore="true"
+  data-protonpass-ignore="true"
+/>
+```
+
+The React and Vue adapters render these attributes directly, before attaching the controller. They are vendor hints, not guarantees: a password manager may ignore or change its contract. The separate authoritative state remains the protection against unexpected DOM writes.
+
 ## Comparison page
 
 The page served by `vp dev` first saves a disposable browser credential, then compares native `autocomplete="off"`, the common `autocomplete="new-password"` workaround, CSS masking, and `mask(input)` in that order. The CSS case applies `-webkit-text-security: disc` only after `CSS.supports()` confirms support; it is an experiment, not part of the library API.

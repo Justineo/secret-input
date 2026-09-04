@@ -4,6 +4,7 @@
 - Keep the authoritative value in `input[secretInput].value`; `redacted` defaults to `true`.
 - `input.value` contains bullets while redacted and plaintext only after an explicit `redacted = false`.
 - Browser DOM/autofill mutations never implicitly become secret state.
+- Apply standard and known vendor ignore attributes to deter native and third-party autofill.
 - Do not use CSS-based masking in the library; keep it comparison-only. Document that revealed state exposes plaintext through DOM and accessibility APIs.
 - Preserve native styling, accessibility, focus, selection, and form behavior where possible.
 - Keep the controller framework-independent; React and Vue adapters reuse it.
