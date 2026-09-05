@@ -261,11 +261,6 @@
 }
 .support-detail {
   margin-block-start: var(--space-4);
-  padding: var(--space-3) var(--space-4);
-  border: 1px solid var(--stroke);
-  border-inline-start: 3px solid var(--stroke-strong);
-  border-radius: 6px;
-  background: light-dark(oklch(0.975 0 0), oklch(0.18 0 0));
   color: var(--ink);
 }
 .support-detail p {
