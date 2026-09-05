@@ -4,6 +4,9 @@
 
 Keep autofill out of API keys, tokens, and other non-login secrets.
 
+- **Wrong values.** Autofill can replace an API key or signing secret with a saved login password. Masking can hide the change until an integration fails. Submitting the form can also send a login password where an API key was expected.
+- **Repeated interruptions.** Saved-password and password-generation menus can cover controls and reappear on focus. Users have to dismiss irrelevant suggestions while entering or reviewing configuration.
+
 `mask()` keeps the actual value in `input.secretValue` and renders bullets in a native text input. Browser and extension writes cannot silently replace that state. No wrapper, Shadow DOM, or CSS masking.
 
 [Live demo and browser comparison](https://secret-input.void.app/) · [Limitations](#boundaries)

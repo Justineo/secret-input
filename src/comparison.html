@@ -2,7 +2,10 @@
   <header class="comparison-intro">
     <div class="comparison-claim">
       <h2 id="comparison-title" class="section-title" tabindex="-1">Compare inputs</h2>
-      <p class="caption">Focus a field to check autofill.</p>
+      <p class="caption">
+        Check for unexpected values, then focus each field to see which password suggestions get in
+        the way.
+      </p>
     </div>
 
     <button id="reset-demo" class="text-button" type="button">Reset test</button>
@@ -88,7 +91,8 @@
             <dt>Limitations</dt>
             <dd>
               It prevents automatic fill in our tests, but still identifies a password field.
-              Focusing the fields can trigger password suggestions or password generation.
+              Focusing the fields can trigger password suggestions or password generation,
+              interrupting entry even though this form is not creating a password.
             </dd>
           </div>
         </dl>
@@ -180,7 +184,8 @@
             <dt>Why use it</dt>
             <dd>
               Keeps the real value in controller state and puts bullets in a text input.
-              Browser-written values cannot overwrite the application’s secret.
+              Browser-written values cannot overwrite the application’s secret. Text inputs and
+              autofill opt-out hints also reduce irrelevant password UI.
             </dd>
           </div>
           <div>
