@@ -14,6 +14,7 @@ beforeEach(() => {
   vi.resetModules();
   vi.doUnmock("../src/comparison.ts");
   vi.useFakeTimers();
+  history.replaceState(null, "", "/");
   const entries = new Map<string, string>();
   vi.stubGlobal("localStorage", {
     getItem: (key: string) => entries.get(key) ?? null,
@@ -71,11 +72,88 @@ describe("demo initialization", () => {
     element<HTMLInputElement>("#setup-password").value = "test-only";
     const submit = new Event("submit", { bubbles: true, cancelable: true });
     element("#credential-form").dispatchEvent(submit);
+    await vi.dynamicImportSettled();
     expect(submit.defaultPrevented).toBe(true);
     expect(element<HTMLElement>("#password-manager-warning").hidden).toBe(false);
     expect(element("#password-manager-warning").textContent).toContain("Allow site storage");
     expect(element<HTMLInputElement>("#setup-password").value).toBe("test-only");
     expect(localStorage.length).toBe(0);
+  });
+
+  it("warms comparison on focus and switches setup and reset within the same page", async () => {
+    const hero = element(".hero");
+    const reload = vi.spyOn(location, "reload");
+    await import("../src/demo.ts");
+    await vi.advanceTimersByTimeAsync(500);
+    element<HTMLInputElement>("#setup-username").focus();
+    await vi.dynamicImportSettled();
+    expect(document.querySelector("#masked-signing-secret")).toBeNull();
+
+    for (let round = 0; round < 2; round += 1) {
+      const form = element<HTMLFormElement>("#credential-form");
+      element<HTMLInputElement>("#setup-username").value = "disposable";
+      element<HTMLInputElement>("#setup-password").value = "test-only";
+      const submit = new Event("submit", { bubbles: true, cancelable: true });
+      form.dispatchEvent(submit);
+      expect(submit.defaultPrevented).toBe(true);
+      expect(element<HTMLButtonElement>("#continue-setup").disabled).toBe(true);
+      await vi.dynamicImportSettled();
+      expect(form.isConnected).toBe(false);
+      expect(element(".hero")).toBe(hero);
+      expect(document.activeElement).toBe(element("#comparison-title"));
+      expect(localStorage.getItem(storageKey)).toBe("true");
+      expect(location.hash).toBe("#compare");
+      expect(element("#demo-root").getAttribute("aria-busy")).toBe("false");
+      element<HTMLButtonElement>("#reset-demo").click();
+      expect(element(".hero")).toBe(hero);
+      expect(document.activeElement).toBe(element("#setup-title"));
+      expect(localStorage.getItem(storageKey)).toBeNull();
+      expect(location.hash).toBe("#try-it");
+      await vi.advanceTimersByTimeAsync(500);
+    }
+    expect(reload).not.toHaveBeenCalled();
+  });
+
+  it("keeps setup intact when comparison loading fails", async () => {
+    vi.doMock("../src/comparison.ts", () => {
+      throw new Error("Offline");
+    });
+    await import("../src/demo.ts");
+    await vi.advanceTimersByTimeAsync(500);
+    element<HTMLInputElement>("#setup-username").value = "disposable";
+    element<HTMLInputElement>("#setup-password").value = "test-only";
+    element("#credential-form").dispatchEvent(new Event("submit", { cancelable: true }));
+    await vi.dynamicImportSettled();
+    expect(element<HTMLInputElement>("#setup-password").value).toBe("test-only");
+    expect(element("#password-manager-warning").textContent).toContain("could not load");
+    expect(localStorage.getItem(storageKey)).toBeNull();
+    expect(element<HTMLButtonElement>("#continue-setup").disabled).toBe(false);
+    expect(element("#demo-root").getAttribute("aria-busy")).toBe("false");
+  });
+
+  it("rechecks the extension guard after waiting for the comparison", async () => {
+    let resolve!: () => void;
+    const gate = new Promise<void>((done) => {
+      resolve = done;
+    });
+    vi.doMock("../src/comparison.ts", async () => {
+      await gate;
+      return vi.importActual("../src/comparison.ts");
+    });
+    await import("../src/demo.ts");
+    await vi.advanceTimersByTimeAsync(500);
+    element<HTMLInputElement>("#setup-password").value = "test-only";
+    element("#credential-form").dispatchEvent(new Event("submit", { cancelable: true }));
+    expect(element("#demo-root").getAttribute("aria-busy")).toBe("true");
+    expect(element<HTMLInputElement>("#setup-password").value).toBe("test-only");
+    expect(localStorage.getItem(storageKey)).toBeNull();
+    document.body.append(document.createElement("com-1password-button"));
+    resolve();
+    await vi.dynamicImportSettled();
+    expect(element<HTMLButtonElement>("#continue-setup").disabled).toBe(true);
+    expect(element("#password-manager-warning").textContent).toContain("1Password");
+    expect(document.querySelector("#masked-signing-secret")).toBeNull();
+    expect(localStorage.getItem(storageKey)).toBeNull();
   });
 
   it("exposes comparison details to focus and click and can reset with blocked storage", async () => {

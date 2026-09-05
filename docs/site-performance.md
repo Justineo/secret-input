@@ -1,8 +1,16 @@
 # Home page performance
 
-The site stays on Vite with native HTML, CSS, and TypeScript. Product copy and the usage example render without JavaScript. The setup entry only handles stage selection and the extension guard; the comparison controller, template, stylesheet, support matrix, and browser icons load on demand. Native scrolling replaces the scrollbar runtime.
+The site stays on Vite with native HTML, CSS, and TypeScript. Product copy and the usage example render without JavaScript. The setup entry handles stage selection and the extension guard. The comparison module and stylesheet warm on the first setup focus, while its fields and browser icons appear only after submission. Native scrolling replaces the scrollbar runtime.
 
-The production build inlines the small home stylesheet to remove a render-blocking request. Geist remains a self-hosted variable font; the Geist Mono code sample uses a 5,980-byte regular-weight ASCII/bullet subset. Both use optional font display, with system fallbacks when a font arrives too late.
+The production build inlines the small home stylesheet to remove a render-blocking request. Geist remains a self-hosted variable font. The Geist Mono code sample uses a 5,980-byte regular-weight ASCII/bullet subset. Both use optional font display, with system fallbacks when a font arrives too late.
+
+## Setup transitions
+
+Setup uses a native form and cancels its POST. After the comparison is ready, it removes the login form and uses `history.replaceState()` to signal completion without a document navigation. This follows [Chromium’s password-form guidance](https://www.chromium.org/developers/design-documents/create-amazing-password-forms/). The page shell and loaded fonts remain intact. Reset also switches in place.
+
+Loading begins when a user focuses the setup form, so it normally finishes while they type. If loading is still pending at submission, the form stays visible with its values intact and the submit button is disabled. Failed imports or storage writes leave setup recoverable. Only the explicit recovery action for an initial failed comparison load reloads the document.
+
+Local Chrome diagnostics confirmed the password manager’s `SAME_DOCUMENT_NAVIGATION` success signal and save-prompt request. Firefox displayed its native Save notification and preserved the document through setup and reset. Safari’s native save prompt still needs manual verification. A production transition check recorded no new document or font requests and unchanged hero dimensions. The warmed setup-to-comparison DOM switch took about 6ms in one local run. This is a lab observation, not a timing guarantee.
 
 ## Local measurements
 

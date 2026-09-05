@@ -220,7 +220,7 @@ export function initializeComparison(root: HTMLElement, onReset: () => void): vo
     cssMasked.style.setProperty("-webkit-text-security", "disc");
   }
 
-  root.addEventListener("submit", (event) => {
+  requiredElement<HTMLElement>(".comparison-page").addEventListener("submit", (event) => {
     event.preventDefault();
   });
 
