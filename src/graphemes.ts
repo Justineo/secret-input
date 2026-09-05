@@ -54,3 +54,32 @@ export function nextWordBoundary(parts: readonly string[], caret: number): numbe
 
   return index;
 }
+
+export function graphemeIndexAtOffset(
+  graphemes: readonly string[],
+  offset: number,
+  roundUp = false,
+): number {
+  let currentOffset = 0;
+
+  for (const [index, grapheme] of graphemes.entries()) {
+    const nextOffset = currentOffset + grapheme.length;
+    if (offset < nextOffset) {
+      return roundUp && offset > currentOffset ? index + 1 : index;
+    }
+    if (offset === nextOffset) {
+      return index + 1;
+    }
+    currentOffset = nextOffset;
+  }
+
+  return graphemes.length;
+}
+
+export function offsetAtGraphemeIndex(graphemes: readonly string[], index: number): number {
+  let offset = 0;
+  for (let position = 0; position < Math.min(index, graphemes.length); position += 1) {
+    offset += graphemes[position]!.length;
+  }
+  return offset;
+}

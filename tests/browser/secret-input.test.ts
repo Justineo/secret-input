@@ -1,8 +1,8 @@
 import { afterEach, beforeEach, describe, expect, it } from "vite-plus/test";
 import { page, userEvent } from "vite-plus/test/browser/context";
 
-import { mask, secretInput } from "../../src/index.ts";
-import type { SecretInput, SecretInputState } from "../../src/index.ts";
+import { mask } from "../../src/index.ts";
+import type { SecretInput } from "../../src/index.ts";
 
 interface LoggedEvent {
   data: string | null;
@@ -26,7 +26,6 @@ let events: LoggedEvent[];
 let form: HTMLFormElement;
 let input: SecretInput;
 let other: HTMLButtonElement;
-let state: SecretInputState;
 
 function query<T extends Element>(selector: string): T {
   const element = document.querySelector<T>(selector);
@@ -37,9 +36,9 @@ function query<T extends Element>(selector: string): T {
 }
 
 function reset(value = "", redacted = true, maxLength = -1): void {
-  state.defaultValue = value;
-  state.value = value;
-  state.redacted = redacted;
+  input.defaultSecretValue = value;
+  input.secretValue = value;
+  input.redacted = redacted;
   input.disabled = false;
   input.readOnly = false;
   if (maxLength < 0) {
@@ -56,10 +55,10 @@ function snapshot(): Snapshot {
   return {
     domValue: input.value,
     events: [...events],
-    redacted: state.redacted,
+    redacted: input.redacted,
     selectionEnd: input.selectionEnd,
     selectionStart: input.selectionStart,
-    value: state.value,
+    value: input.secretValue,
   };
 }
 
@@ -118,7 +117,6 @@ describe("secret input browser contract", () => {
     form = query("#form");
     input = mask(query<HTMLInputElement>("#secret"));
     other = query("#other");
-    state = input[secretInput];
     events = [];
 
     for (const type of [
@@ -173,9 +171,9 @@ describe("secret input browser contract", () => {
     expect(page.getByRole("textbox", { name: "Secret" }).element()).toBe(input);
     expect(document.documentElement.outerHTML).not.toContain(value);
 
-    state.redacted = false;
+    input.redacted = false;
     expect(snapshot().domValue).toBe(value);
-    state.redacted = true;
+    input.redacted = true;
     expect(snapshot().domValue).toBe("••••");
   });
 
@@ -193,18 +191,18 @@ describe("secret input browser contract", () => {
     reset("a👩‍💻b");
     input.setSelectionRange(1, 2);
     await userEvent.type(input, "密", { skipClick: true });
-    expect(state.value).toBe("a密b");
+    expect(input.secretValue).toBe("a密b");
 
     reset("a👩‍💻b");
     input.setSelectionRange(2, 2);
     await userEvent.keyboard("{Backspace}");
-    expect(state.value).toBe("ab");
+    expect(input.secretValue).toBe("ab");
   });
 
   it("applies native maxlength units without splitting Unicode input", () => {
     reset("", true, 6);
     beforeInput("insertText", "a👩‍💻b");
-    expect(state.value).toBe("a👩‍💻");
+    expect(input.secretValue).toBe("a👩‍💻");
 
     reset("", true, 1);
     beforeInput("insertText", "🔐");
@@ -233,14 +231,14 @@ describe("secret input browser contract", () => {
     await userEvent.copy();
     await userEvent.cut();
 
-    expect(state.value).toBe("secret");
+    expect(input.secretValue).toBe("secret");
     expect(input.value).toBe("••••••");
     expect(events.find((event) => event.type === "copy")?.defaultPrevented).toBe(true);
     expect(events.find((event) => event.type === "cut")?.defaultPrevented).toBe(true);
 
     input.setSelectionRange(6, 6);
     paste("粘贴🔐");
-    expect(state.value).toBe("secret粘贴🔐");
+    expect(input.secretValue).toBe("secret粘贴🔐");
     expect(input.value).toBe("•••••••••");
   });
 
@@ -248,10 +246,10 @@ describe("secret input browser contract", () => {
     reset();
     await userEvent.type(input, "abc", { skipClick: true });
     await userEvent.keyboard(shortcut("z"));
-    expect(state.value).toBe("");
+    expect(input.secretValue).toBe("");
 
     await userEvent.keyboard(shortcut("z", true));
-    expect(state.value).toBe("abc");
+    expect(input.secretValue).toBe("abc");
 
     input.dispatchEvent(new MouseEvent("contextmenu", { bubbles: true, cancelable: true }));
     expect(events.findLast((event) => event.type === "contextmenu")?.defaultPrevented).toBe(false);
@@ -263,7 +261,7 @@ describe("secret input browser contract", () => {
       composition("compositionstart");
       for (const draft of ["h", "hha", "hhaha", "hhaha'hha'hha"]) {
         nativeCompositionDraft(draft);
-        expect(state.value).toBe("kept");
+        expect(input.secretValue).toBe("kept");
         expect(input.value).not.toContain("h");
       }
 
@@ -275,7 +273,7 @@ describe("secret input browser contract", () => {
         beforeInput("insertFromComposition", "好");
       }
 
-      expect(state.value).toBe("kept好");
+      expect(input.secretValue).toBe("kept好");
       expect(input.value).toBe("•••••");
       expect(events.filter((event) => event.type === "input" && event.data === "好")).toHaveLength(
         1,
@@ -286,7 +284,7 @@ describe("secret input browser contract", () => {
   it("rejects simulated autofill mutations and submits the actual value", async () => {
     reset("kept");
     beforeInput("insertReplacementText", "autofilled");
-    expect(state.value).toBe("kept");
+    expect(input.secretValue).toBe("kept");
     expect(input.value).toBe("••••");
 
     input.value = "browser-filled";
@@ -296,15 +294,15 @@ describe("secret input browser contract", () => {
         inputType: "insertReplacementText",
       }),
     );
-    expect(state.value).toBe("kept");
+    expect(input.secretValue).toBe("kept");
     expect(input.value).toBe("••••");
     expect(Array.from(new FormData(form).entries())).toEqual([["secret", "kept"]]);
 
-    state.defaultValue = "reset";
-    state.value = "changed";
+    input.defaultSecretValue = "reset";
+    input.secretValue = "changed";
     form.reset();
     await Promise.resolve();
-    expect(state.value).toBe("reset");
+    expect(input.secretValue).toBe("reset");
     expect(input.value).toBe("•••••");
   });
 
@@ -313,12 +311,12 @@ describe("secret input browser contract", () => {
     input.required = true;
     expect(input.validity.valueMissing).toBe(true);
 
-    state.value = "present";
+    input.secretValue = "present";
     expect(input.validity.valid).toBe(true);
 
     input.readOnly = true;
     beforeInput("insertText", "changed");
-    expect(state.value).toBe("present");
+    expect(input.secretValue).toBe("present");
 
     input.readOnly = false;
     const fieldset = document.createElement("fieldset");
@@ -334,9 +332,68 @@ describe("secret input browser contract", () => {
     await userEvent.type(input, "x", { skipClick: true });
     await userEvent.click(other);
 
-    expect(state.value).toBe("x");
+    expect(input.secretValue).toBe("x");
     expect(input.value).toBe("•");
     expect(events.filter((event) => event.type === "input")).toHaveLength(1);
     expect(events.filter((event) => event.type === "change")).toHaveLength(1);
+  });
+  it.each([true, false])(
+    "keeps joined grapheme edits and selection direction (redacted=%s)",
+    (redacted) => {
+      reset("ab", redacted);
+      input.setSelectionRange(1, 1);
+      beforeInput("insertText", "\u0301");
+      expect(input.selectionStart).toBe(redacted ? 1 : 2);
+      beforeInput("insertText", "x");
+      expect(input.secretValue).toBe("a\u0301xb");
+      beforeInput("historyUndo");
+      expect(input.secretValue).toBe("ab");
+      input.setSelectionRange(0, 1, "backward");
+      input.redacted = !redacted;
+      expect(input.selectionDirection).toBe("backward");
+    },
+  );
+
+  it.each(["detached", "shadow", "iframe"])(
+    "submits and resets secrets in %s forms",
+    async (location) => {
+      let targetDocument = document;
+      let host: HTMLElement | ShadowRoot | undefined;
+      if (location === "iframe") {
+        const frame = document.createElement("iframe");
+        document.body.append(frame);
+        targetDocument = frame.contentDocument!;
+        host = targetDocument.body;
+      } else if (location === "shadow") {
+        const element = document.createElement("div");
+        document.body.append(element);
+        host = element.attachShadow({ mode: "closed" });
+      }
+      const targetForm = targetDocument.createElement("form");
+      const targetInput = targetDocument.createElement("input");
+      targetInput.name = "token";
+      targetForm.append(targetInput);
+      host?.append(targetForm);
+      const masked = mask(targetInput, { value: "changed", defaultValue: "initial" });
+      expect(new FormData(targetForm).get("token")).toBe("changed");
+      targetForm.reset();
+      await Promise.resolve();
+      expect(masked.secretValue).toBe("initial");
+      expect(masked.value).toBe("•••••••");
+    },
+  );
+
+  it("ignores canceled, mismatched, and data-less edits", () => {
+    reset("kept");
+    input.select();
+    beforeInput("insertFromPaste");
+    expect(input.secretValue).toBe("kept");
+    beforeInput("insertText", "stale", false);
+    input.value = "browser-filled";
+    input.dispatchEvent(new InputEvent("input", { inputType: "insertReplacementText" }));
+    expect(input.secretValue).toBe("kept");
+    input.addEventListener("beforeinput", (event) => event.preventDefault(), { capture: true });
+    beforeInput("insertText", "rejected");
+    expect(input.secretValue).toBe("kept");
   });
 });

@@ -3,7 +3,7 @@ import { renderToString } from "vue/server-renderer";
 import { afterEach, beforeEach, describe, expect, it, vi } from "vite-plus/test";
 
 import { SecretInput } from "../src/vue.ts";
-import { beforeInput, formDataFor, insertText } from "./edit.ts";
+import { beforeInput, composition, formDataFor, insertText } from "./edit.ts";
 
 describe("Vue SecretInput", () => {
   let container: HTMLDivElement;
@@ -40,7 +40,7 @@ describe("Vue SecretInput", () => {
               name: "token",
               spellcheck: "true",
               onChange: change,
-              onInput: (event: Event) => {
+              onInput: (_value: string, event: Event) => {
                 if (event.currentTarget instanceof HTMLInputElement) {
                   presentedValues.push(event.currentTarget.value);
                 }
@@ -77,7 +77,7 @@ describe("Vue SecretInput", () => {
     expect(input?.value).toBe("••••••");
 
     input!.blur();
-    expect(change).toHaveBeenCalledOnce();
+    expect(change).toHaveBeenCalledWith("first!", expect.any(Event));
 
     input!.focus();
     beforeInput(input!, "historyUndo");
@@ -162,5 +162,65 @@ describe("Vue SecretInput", () => {
     expect(onChange).not.toHaveBeenCalled();
     expect(onInput).not.toHaveBeenCalled();
     expect(input.value).toBe("••••");
+  });
+  it("preserves a composition while synchronizing an unchanged model value", async () => {
+    const defaultValue = ref("ab");
+    const update = vi.fn();
+    const app = createApp(
+      defineComponent(
+        () => () =>
+          h(SecretInput, {
+            modelValue: "ab",
+            defaultValue: defaultValue.value,
+            "onUpdate:modelValue": update,
+          }),
+      ),
+    );
+    app.mount(container);
+    unmount = () => app.unmount();
+    const input = container.querySelector("input")!;
+    input.setSelectionRange(1, 2);
+    composition(input, "compositionstart");
+    beforeInput(input, "insertCompositionText", "ni");
+    defaultValue.value = "reset";
+    await nextTick();
+    expect(input.value).toBe("•••");
+    composition(input, "compositionend", "你");
+    await nextTick();
+    expect(update).toHaveBeenCalledExactlyOnceWith("a你");
+    expect(input.value).toBe("••");
+  });
+  it("keeps redo through model synchronization and discards it on a new branch", async () => {
+    const value = ref("base");
+    const app = createApp(
+      defineComponent(
+        () => () =>
+          h(SecretInput, {
+            modelValue: value.value,
+            "onUpdate:modelValue": (next: string) => (value.value = next),
+          }),
+      ),
+    );
+    app.mount(container);
+    unmount = () => app.unmount();
+    const input = container.querySelector("input")!;
+    insertText(input, "x");
+    await nextTick();
+    beforeInput(input, "historyUndo");
+    await nextTick();
+    expect(value.value).toBe("base");
+    beforeInput(input, "historyRedo");
+    await nextTick();
+    expect(value.value).toBe("basex");
+    beforeInput(input, "historyUndo");
+    await nextTick();
+    insertText(input, "y");
+    await nextTick();
+    beforeInput(input, "historyRedo");
+    await nextTick();
+    expect(value.value).toBe("basey");
+    beforeInput(input, "historyUndo");
+    await nextTick();
+    expect(value.value).toBe("base");
   });
 });

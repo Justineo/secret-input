@@ -1,4 +1,10 @@
-import { nextWordBoundary, previousWordBoundary, splitGraphemes } from "./graphemes.ts";
+import {
+  graphemeIndexAtOffset,
+  nextWordBoundary,
+  offsetAtGraphemeIndex,
+  previousWordBoundary,
+  splitGraphemes,
+} from "./graphemes.ts";
 import { passwordManagerAttributes } from "./password-manager.ts";
 
 const MASK = "•";
@@ -11,25 +17,32 @@ export function redact(value: string): string {
   return MASK.repeat(splitGraphemes(sanitize(value)).length);
 }
 
-export const secretInput = Symbol("secret-input");
-
-export interface SecretInputState {
+interface State {
   defaultValue: string;
   redacted: boolean;
   value: string;
 }
 
 export interface SecretInput extends HTMLInputElement {
-  readonly [secretInput]: SecretInputState;
+  /** Value restored by form reset. Assignments are quiet and do not edit the current value. */
+  defaultSecretValue: string;
+  /** Whether the DOM shows bullets. Explicitly set false to expose the secret as text. */
+  redacted: boolean;
+  /** Authoritative value. Assignments are quiet; changing it clears edit history and composition. */
+  secretValue: string;
 }
 
 export interface MaskOptions {
+  /** Reset value; also initializes the current value when value is omitted. */
   defaultValue?: string;
+  /** Initial presentation, true by default. */
   redacted?: boolean;
+  /** Initial secret; defaults to defaultValue, then the empty string. Never read from the DOM. */
   value?: string;
 }
 
 interface Selection {
+  direction?: "forward" | "backward" | "none";
   end: number;
   start: number;
 }
@@ -39,6 +52,8 @@ interface Snapshot extends Selection {
 }
 
 interface Edit extends Selection {
+  isComposing?: boolean;
+  source?: Event;
   data: string | null;
   inputType: string;
 }
@@ -48,50 +63,67 @@ interface CompositionState extends Selection {
   originalText: string;
 }
 
-interface HistoryGroup {
-  caret: number;
-  inputType: string;
+interface HistoryEntry {
+  readonly before: Snapshot;
+  after: Snapshot;
+  readonly inputType: string;
 }
 
 interface Controller {
-  readonly state: SecretInputState;
+  readonly state: State;
   reset(): void;
 }
 
 const controllers = new WeakMap<HTMLInputElement, Controller>();
-const installedDocuments = new WeakSet<Document>();
+const installedRoots = new WeakSet<Node>();
+const handledFormEvents = new WeakSet<Event>();
 
 function isFormDataEvent(event: Event): event is FormDataEvent {
-  return "formData" in event && event.formData instanceof FormData;
+  return "formData" in event;
 }
 
-function installDocumentHandlers(document: Document): void {
-  if (installedDocuments.has(document)) {
+function isForm(target: EventTarget | null): target is HTMLFormElement {
+  const element = target as Element | null;
+  return element?.localName === "form" && element.namespaceURI === "http://www.w3.org/1999/xhtml";
+}
+
+function installFormHandlers(input: HTMLInputElement): void {
+  for (const root of [input.ownerDocument, input.getRootNode(), input.form]) {
+    if (root) {
+      installRootHandlers(root);
+    }
+  }
+}
+
+function installRootHandlers(root: Node): void {
+  if (installedRoots.has(root)) {
     return;
   }
-  installedDocuments.add(document);
+  installedRoots.add(root);
 
-  document.addEventListener(
+  root.addEventListener(
     "formdata",
     (event) => {
-      if (!isFormDataEvent(event) || !(event.target instanceof HTMLFormElement)) {
+      if (!isFormDataEvent(event) || !isForm(event.target) || handledFormEvents.has(event)) {
         return;
       }
 
+      handledFormEvents.add(event);
       const byName = new Map<string, string[]>();
       for (const element of event.target.elements) {
-        if (!(element instanceof HTMLInputElement)) {
+        if (element.localName !== "input") {
           continue;
         }
 
-        const controller = controllers.get(element);
-        if (!controller || !element.name || isDisabled(element)) {
+        const input = element as HTMLInputElement;
+        const controller = controllers.get(input);
+        if (!controller || !input.name || isDisabled(input) || input.closest("datalist")) {
           continue;
         }
 
-        const group = byName.get(element.name) ?? [];
+        const group = byName.get(input.name) ?? [];
         group.push(controller.state.value);
-        byName.set(element.name, group);
+        byName.set(input.name, group);
       }
 
       for (const [name, group] of byName) {
@@ -104,13 +136,14 @@ function installDocumentHandlers(document: Document): void {
     true,
   );
 
-  document.addEventListener(
+  root.addEventListener(
     "reset",
     (event) => {
-      if (!(event.target instanceof HTMLFormElement)) {
+      if (!isForm(event.target) || handledFormEvents.has(event)) {
         return;
       }
 
+      handledFormEvents.add(event);
       const form = event.target;
       queueMicrotask(() => {
         if (event.defaultPrevented) {
@@ -118,8 +151,8 @@ function installDocumentHandlers(document: Document): void {
         }
 
         for (const element of form.elements) {
-          if (element instanceof HTMLInputElement) {
-            controllers.get(element)?.reset();
+          if (element.localName === "input") {
+            controllers.get(element as HTMLInputElement)?.reset();
           }
         }
       });
@@ -146,27 +179,6 @@ function collapsed(position: number): Selection {
   return { start: position, end: position };
 }
 
-function graphemeIndexAtOffset(graphemes: readonly string[], offset: number): number {
-  let currentOffset = 0;
-
-  for (const [index, grapheme] of graphemes.entries()) {
-    const nextOffset = currentOffset + grapheme.length;
-    if (offset < nextOffset) {
-      return index;
-    }
-    if (offset === nextOffset) {
-      return index + 1;
-    }
-    currentOffset = nextOffset;
-  }
-
-  return graphemes.length;
-}
-
-function offsetAtGraphemeIndex(graphemes: readonly string[], index: number): number {
-  return graphemes.slice(0, index).join("").length;
-}
-
 function createController(
   input: HTMLInputElement,
   initialValue: string,
@@ -176,17 +188,29 @@ function createController(
   let composition: CompositionState | undefined;
   let defaultValue = initialDefaultValue;
   let dirtySinceFocus = false;
-  let dispatchingChange = false;
-  let dispatchingInput = false;
-  let historyGroup: HistoryGroup | undefined;
+  let dispatchingChange: Event | undefined;
+  let dispatchingInput: InputEvent | undefined;
+  let historyGroup: HistoryEntry | undefined;
   let pendingEdit: Edit | undefined;
   let redacted = initialRedacted;
-  const redoStack: Snapshot[] = [];
+  const redoStack: HistoryEntry[] = [];
   let skipCompositionCommit = false;
-  const undoStack: Snapshot[] = [];
+  const undoStack: HistoryEntry[] = [];
   let value = initialValue;
+  let valueAtFocus = value;
+  let segmentedValue = value;
+  let valueParts = splitGraphemes(value);
+  let displayParts = valueParts;
 
-  const state: SecretInputState = {
+  function getParts(): readonly string[] {
+    if (segmentedValue !== value) {
+      segmentedValue = value;
+      valueParts = splitGraphemes(value);
+    }
+    return valueParts;
+  }
+
+  const state: State = {
     get value() {
       return value;
     },
@@ -221,12 +245,14 @@ function createController(
 
   input.addEventListener("beforeinput", handleBeforeInput);
   input.addEventListener("keydown", handleKeyDown);
-  input.addEventListener("input", handleNativeInput);
-  input.addEventListener("change", handleNativeChange);
+  input.addEventListener("input", handleNativeInput, true);
+  input.addEventListener("change", handleNativeChange, true);
   input.addEventListener("copy", preventExport);
   input.addEventListener("cut", preventExport);
   input.addEventListener("paste", handlePaste);
   input.addEventListener("pointerdown", breakHistoryGroup);
+  input.addEventListener("select", handleSelectionChange);
+  input.addEventListener("selectionchange", handleSelectionChange);
   input.addEventListener("dragstart", preventExport);
   input.addEventListener("drop", handleDrop);
   input.addEventListener("compositionstart", handleCompositionStart);
@@ -243,44 +269,50 @@ function createController(
   }
 
   function reset(): void {
+    composition = undefined;
+    pendingEdit = undefined;
+    skipCompositionCommit = false;
     setValue(defaultValue);
+    valueAtFocus = value;
     clearHistory();
     dirtySinceFocus = false;
   }
 
   function selection(): Selection {
-    const valueParts = splitGraphemes(value);
-    const length = valueParts.length;
+    const length = getParts().length;
     const startOffset = input.selectionStart ?? length;
     const endOffset = input.selectionEnd ?? startOffset;
-    const displayParts = redacted ? undefined : splitGraphemes(input.value);
-    const start = displayParts ? graphemeIndexAtOffset(displayParts, startOffset) : startOffset;
-    const end = displayParts ? graphemeIndexAtOffset(displayParts, endOffset) : endOffset;
+    const start = redacted ? startOffset : graphemeIndexAtOffset(displayParts, startOffset);
+    const end = redacted
+      ? endOffset
+      : graphemeIndexAtOffset(displayParts, endOffset, endOffset > startOffset);
     const safeStart = clamp(start, 0, length);
 
     return {
+      direction: input.selectionDirection ?? "none",
       start: safeStart,
       end: clamp(end, safeStart, length),
     };
   }
 
   function setValue(nextValue: string): void {
-    composition = undefined;
-    pendingEdit = undefined;
     if (nextValue === value) {
       render();
       return;
     }
 
+    composition = undefined;
+    pendingEdit = undefined;
+    skipCompositionCommit = false;
     clearHistory();
     value = nextValue;
-    const length = splitGraphemes(nextValue).length;
+    const length = getParts().length;
     render(collapsed(length));
   }
 
   function render(selection?: Selection): void {
     const currentComposition = composition;
-    const parts = splitGraphemes(value);
+    const parts = getParts();
     const revealedValue =
       currentComposition?.currentText === undefined
         ? value
@@ -289,29 +321,34 @@ function createController(
             currentComposition.currentText,
             ...parts.slice(currentComposition.end),
           ].join("");
-    const displayParts = splitGraphemes(revealedValue);
+    displayParts =
+      currentComposition?.currentText === undefined ? valueParts : splitGraphemes(revealedValue);
     const presentation = redacted ? MASK.repeat(displayParts.length) : revealedValue;
     if (input.value !== presentation) {
       input.value = presentation;
     }
 
-    if (!selection) {
-      return;
+    if (selection) {
+      renderSelection(selection);
     }
+  }
 
+  function renderSelection(selection: Selection): void {
     if (redacted) {
-      input.setSelectionRange(selection.start, selection.end);
+      input.setSelectionRange(selection.start, selection.end, selection.direction);
       return;
     }
 
     input.setSelectionRange(
       offsetAtGraphemeIndex(displayParts, selection.start),
       offsetAtGraphemeIndex(displayParts, selection.end),
+      selection.direction,
     );
   }
 
-  function replace(start: number, end: number, insertedText: string, inputType: string): void {
-    const parts = splitGraphemes(value);
+  function replace(edit: Edit, insertedText: string, start = edit.start, end = edit.end): void {
+    const { inputType } = edit;
+    const parts = getParts();
     const safeStart = clamp(start, 0, parts.length);
     const safeEnd = clamp(end, safeStart, parts.length);
     const normalizedText = sanitize(insertedText);
@@ -336,73 +373,104 @@ function createController(
       ...insertedParts,
       ...parts.slice(safeEnd),
     ].join("");
-    const nextCaret = safeStart + insertedParts.length;
+    // Segmentation can change across either splice boundary (combining marks,
+    // regional indicators, ZWJ sequences). Map the resulting UTF-16 offset.
+    const nextOffset = offsetAtGraphemeIndex(parts, safeStart) + insertedParts.join("").length;
+    const nextParts = splitGraphemes(nextValue);
+    const nextCaret = graphemeIndexAtOffset(nextParts, nextOffset, true);
 
     if (nextValue === value) {
+      breakHistoryGroup();
       render(collapsed(nextCaret));
       return;
     }
 
-    const continuesHistory =
-      historyGroup?.inputType === inputType &&
-      ((inputType === "insertText" && safeStart === safeEnd && safeStart === historyGroup.caret) ||
-        (inputType === "deleteContentBackward" && safeEnd === historyGroup.caret) ||
-        (inputType === "deleteContentForward" && safeStart === historyGroup.caret));
-
-    if (!continuesHistory) {
-      undoStack.push({ value, start: safeStart, end: safeEnd });
-      redoStack.length = 0;
-    } else {
-      const snapshot = undoStack.at(-1);
-      if (snapshot && inputType === "deleteContentBackward") {
-        snapshot.start = safeStart;
-      } else if (snapshot && inputType === "deleteContentForward") {
-        snapshot.end += safeEnd - safeStart;
-      }
-    }
-
-    value = nextValue;
-    dirtySinceFocus = true;
-    historyGroup =
+    const groupable =
       inputType === "insertText" ||
       inputType === "deleteContentBackward" ||
-      inputType === "deleteContentForward"
-        ? { caret: nextCaret, inputType }
-        : undefined;
+      inputType === "deleteContentForward";
+    const after = { value: nextValue, ...collapsed(nextCaret) };
+    if (
+      groupable &&
+      edit.start === edit.end &&
+      historyGroup?.inputType === inputType &&
+      edit.start === historyGroup.after.start
+    ) {
+      historyGroup.after = after;
+    } else {
+      const entry: HistoryEntry = {
+        before: {
+          value,
+          start: edit.start,
+          end: edit.end,
+          direction: edit.direction ?? "none",
+        },
+        after,
+        inputType,
+      };
+      undoStack.push(entry);
+      historyGroup = groupable ? entry : undefined;
+    }
+    redoStack.length = 0;
+
+    value = nextValue;
+    segmentedValue = value;
+    valueParts = nextParts;
+    dirtySinceFocus = true;
     render(collapsed(nextCaret));
     dispatchInput(inputType, insertedParts.length > 0 ? insertedParts.join("") : null);
   }
 
   function dispatchInput(inputType: string, data: string | null): void {
-    dispatchingInput = true;
+    const event = new InputEvent("input", {
+      bubbles: true,
+      composed: true,
+      data,
+      inputType,
+      isComposing: composition !== undefined,
+    });
+    const previous = dispatchingInput;
+    dispatchingInput = event;
     try {
-      input.dispatchEvent(
-        new InputEvent("input", {
-          bubbles: true,
-          composed: true,
-          data,
-          inputType,
-          isComposing: composition !== undefined,
-        }),
-      );
+      input.dispatchEvent(event);
     } finally {
-      dispatchingInput = false;
+      dispatchingInput = previous;
     }
   }
 
-  function restoreSnapshot(snapshot: Snapshot, destination: Snapshot[], inputType: string): void {
-    destination.push({ value, ...selection() });
+  function traverseHistory(inputType: "historyUndo" | "historyRedo", edit: Edit): void {
+    breakHistoryGroup();
+    pendingEdit = undefined;
+    if (composition || edit.isComposing || isDisabled(input) || input.readOnly) {
+      render();
+      return;
+    }
+
+    const undo = inputType === "historyUndo";
+    const source = undo ? undoStack : redoStack;
+    const destination = undo ? redoStack : undoStack;
+    const entry = source.pop();
+    if (!entry) {
+      render(edit);
+      return;
+    }
+
+    // Move the same transaction; later caret movement must not rewrite history.
+    destination.push(entry);
+    const snapshot = undo ? entry.before : entry.after;
     value = snapshot.value;
     dirtySinceFocus = true;
-    render({ start: snapshot.start, end: snapshot.end });
+    render(snapshot);
     dispatchInput(inputType, null);
   }
 
-  function beginComposition({ end, start }: Selection): CompositionState {
+  function beginComposition(selection: Selection): CompositionState {
+    const { start, end } = selection;
     const nextComposition = {
-      end,
       start,
-      originalText: splitGraphemes(value).slice(start, end).join(""),
+      end,
+      direction: selection.direction ?? "none",
+      originalText: getParts().slice(start, end).join(""),
     };
     composition = nextComposition;
     return nextComposition;
@@ -415,13 +483,23 @@ function createController(
     }
 
     composition = undefined;
-    replace(currentComposition.start, currentComposition.end, text, "insertFromComposition");
+    pendingEdit = undefined;
+    if (isDisabled(input) || input.readOnly) {
+      render(currentComposition);
+      return true;
+    }
+    replace({ ...currentComposition, data: text, inputType: "insertFromComposition" }, text);
     return true;
   }
 
   function executeEdit(edit: Edit): void {
     const { data, inputType } = edit;
     let { end, start } = edit;
+
+    if (inputType === "historyUndo" || inputType === "historyRedo") {
+      traverseHistory(inputType, edit);
+      return;
+    }
 
     if (historyGroup && historyGroup.inputType !== inputType) {
       breakHistoryGroup();
@@ -432,29 +510,17 @@ function createController(
       return;
     }
 
-    const parts = splitGraphemes(value);
+    const parts = getParts();
     let insertedText = "";
     switch (inputType) {
-      case "historyUndo": {
-        const snapshot = undoStack.pop();
-        if (snapshot) {
-          restoreSnapshot(snapshot, redoStack, inputType);
-        }
-        return;
-      }
-      case "historyRedo": {
-        const snapshot = redoStack.pop();
-        if (snapshot) {
-          restoreSnapshot(snapshot, undoStack, inputType);
-        }
-        return;
-      }
       case "insertCompositionText": {
-        const currentComposition = composition ?? beginComposition({ start, end });
-        currentComposition.currentText = data ?? "";
-        const draftLength = splitGraphemes(currentComposition.currentText).length;
-        const caret = currentComposition.start + draftLength;
-        render(collapsed(caret));
+        const currentComposition = composition ?? beginComposition(edit);
+        currentComposition.currentText = sanitize(data ?? "");
+        render();
+        const offset =
+          offsetAtGraphemeIndex(parts, currentComposition.start) +
+          currentComposition.currentText.length;
+        renderSelection(collapsed(graphemeIndexAtOffset(displayParts, offset, true)));
         return;
       }
       case "insertFromComposition": {
@@ -474,7 +540,11 @@ function createController(
       case "insertFromPasteAsQuotation":
       case "insertFromYank":
       case "insertText":
-        insertedText = data ?? "";
+        if (!data) {
+          render({ start, end });
+          return;
+        }
+        insertedText = data;
         break;
       case "deleteContentBackward":
         start = start === end ? Math.max(start - 1, 0) : start;
@@ -516,7 +586,7 @@ function createController(
         return;
     }
 
-    replace(start, end, insertedText, inputType);
+    replace(edit, insertedText, start, end);
   }
 
   function setPendingEdit(edit: Edit): void {
@@ -528,18 +598,32 @@ function createController(
     });
   }
 
-  function captureTransfer(data: string, inputType: "insertFromDrop" | "insertFromPaste"): void {
-    setPendingEdit({ ...selection(), data, inputType });
+  function captureTransfer(
+    data: string,
+    inputType: "insertFromDrop" | "insertFromPaste",
+    source: Event,
+  ): void {
+    setPendingEdit({ ...selection(), data, inputType, source });
   }
 
   function handleBeforeInput(event: InputEvent): void {
     const pending = pendingEdit;
+    pendingEdit = undefined;
+    if (event.defaultPrevented) {
+      breakHistoryGroup();
+      render();
+      return;
+    }
+    const transfer =
+      pending?.source && pending.inputType === event.inputType && !pending.source.defaultPrevented
+        ? pending.data
+        : null;
     const edit: Edit = {
       ...selection(),
-      data: event.dataTransfer?.getData("text/plain") ?? pending?.data ?? event.data,
+      data: event.dataTransfer?.getData("text/plain") ?? transfer ?? event.data,
       inputType: event.inputType,
+      isComposing: event.isComposing,
     };
-    pendingEdit = undefined;
 
     if (!event.cancelable) {
       setPendingEdit(edit);
@@ -564,7 +648,7 @@ function createController(
       breakHistoryGroup();
     }
 
-    if (event.defaultPrevented || event.isComposing || event.altKey) {
+    if (event.defaultPrevented || event.isComposing || composition || event.altKey) {
       return;
     }
 
@@ -585,7 +669,7 @@ function createController(
   }
 
   function handleNativeInput(event: InputEvent): void {
-    if (dispatchingInput) {
+    if (event === dispatchingInput) {
       return;
     }
 
@@ -593,7 +677,7 @@ function createController(
     const pending = pendingEdit;
     pendingEdit = undefined;
 
-    if (pending) {
+    if (pending && pending.inputType === event.inputType && !pending.source?.defaultPrevented) {
       executeEdit(pending);
       return;
     }
@@ -603,7 +687,7 @@ function createController(
   }
 
   function handleNativeChange(event: Event): void {
-    if (dispatchingChange) {
+    if (event === dispatchingChange) {
       return;
     }
 
@@ -618,26 +702,41 @@ function createController(
     }
   }
 
+  function handleSelectionChange(): void {
+    if (!historyGroup) {
+      return;
+    }
+    const { start, end } = selection();
+    if (start !== end || start !== historyGroup.after.start) {
+      breakHistoryGroup();
+    }
+  }
+
   function breakHistoryGroup(): void {
     historyGroup = undefined;
   }
 
   function handlePaste(event: ClipboardEvent): void {
     if (event.clipboardData) {
-      captureTransfer(event.clipboardData.getData("text/plain"), "insertFromPaste");
+      captureTransfer(event.clipboardData.getData("text/plain"), "insertFromPaste", event);
     }
   }
 
   function handleDrop(event: DragEvent): void {
     if (event.dataTransfer) {
-      captureTransfer(event.dataTransfer.getData("text/plain"), "insertFromDrop");
+      captureTransfer(event.dataTransfer.getData("text/plain"), "insertFromDrop", event);
     }
   }
 
   function handleCompositionStart(event: CompositionEvent): void {
     event.preventDefault();
     breakHistoryGroup();
-    beginComposition(selection());
+    pendingEdit = undefined;
+    skipCompositionCommit = false;
+    composition = undefined;
+    if (!event.defaultPrevented && !isDisabled(input) && !input.readOnly) {
+      beginComposition(selection());
+    }
   }
 
   function handleCompositionEnd(event: CompositionEvent): void {
@@ -655,7 +754,9 @@ function createController(
   }
 
   function handleFocus(): void {
-    installDocumentHandlers(input.ownerDocument);
+    installFormHandlers(input);
+    breakHistoryGroup();
+    valueAtFocus = value;
     dirtySinceFocus = false;
     render();
   }
@@ -666,16 +767,18 @@ function createController(
     skipCompositionCommit = false;
     breakHistoryGroup();
     render();
-    if (!dirtySinceFocus) {
+    const changed = dirtySinceFocus && value !== valueAtFocus;
+    dirtySinceFocus = false;
+    if (!changed) {
       return;
     }
-
-    dirtySinceFocus = false;
-    dispatchingChange = true;
+    const event = new Event("change", { bubbles: true });
+    const previous = dispatchingChange;
+    dispatchingChange = event;
     try {
-      input.dispatchEvent(new Event("change", { bubbles: true }));
+      input.dispatchEvent(event);
     } finally {
-      dispatchingChange = false;
+      dispatchingChange = previous;
     }
   }
 
@@ -685,9 +788,14 @@ function createController(
   };
 }
 
+/**
+ * Enhance and return the same native input. Options apply only on the first call;
+ * subsequent calls refresh form bindings without changing secret state.
+ */
 export function mask(input: HTMLInputElement, options: MaskOptions = {}): SecretInput {
   const masked = input as SecretInput;
   if (controllers.has(input)) {
+    installFormHandlers(input);
     return masked;
   }
 
@@ -709,9 +817,28 @@ export function mask(input: HTMLInputElement, options: MaskOptions = {}): Secret
   // mask characters and gives them password-style input-method protection.
   input.value = MASK.repeat(2);
   const controller = createController(input, value, defaultValue, redacted);
-  Object.defineProperty(masked, secretInput, { value: controller.state });
+  Object.defineProperties(masked, {
+    defaultSecretValue: {
+      get: () => controller.state.defaultValue,
+      set: (nextValue: string) => {
+        controller.state.defaultValue = nextValue;
+      },
+    },
+    redacted: {
+      get: () => controller.state.redacted,
+      set: (nextValue: boolean) => {
+        controller.state.redacted = nextValue;
+      },
+    },
+    secretValue: {
+      get: () => controller.state.value,
+      set: (nextValue: string) => {
+        controller.state.value = nextValue;
+      },
+    },
+  });
   controllers.set(input, controller);
 
-  installDocumentHandlers(input.ownerDocument);
+  installFormHandlers(input);
   return masked;
 }

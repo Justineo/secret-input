@@ -1,25 +1,26 @@
-import { createElement, useCallback, useLayoutEffect, useRef } from "react";
+import { createElement, useCallback, useLayoutEffect, useRef, useState } from "react";
 import type { ComponentPropsWithoutRef, InputEvent, Ref } from "react";
 
-import { mask, redact, secretInput } from "./secret-input.ts";
-import type { MaskOptions, SecretInputState } from "./secret-input.ts";
+import { mask, redact } from "./secret-input.ts";
+import type { MaskOptions, SecretInput as SecretInputElement } from "./secret-input.ts";
 import { passwordManagerAttributes } from "./password-manager.ts";
 
 export interface SecretInputProps extends Omit<
   ComponentPropsWithoutRef<"input">,
-  "children" | "defaultValue" | "onChange" | "type" | "value"
+  "children" | "defaultValue" | "onChange" | "onInput" | "type" | "value"
 > {
   defaultValue?: string;
-  onValueChange?: (value: string) => void;
+  onChange?: (value: string, event: Event) => void;
+  onInput?: (value: string, event: InputEvent<SecretInputElement>) => void;
   redacted?: boolean;
-  ref?: Ref<HTMLInputElement>;
+  ref?: Ref<SecretInputElement>;
   value?: string;
 }
 
 export function SecretInput({
   defaultValue,
+  onChange,
   onInput,
-  onValueChange,
   redacted = true,
   ref,
   value,
@@ -30,15 +31,23 @@ export function SecretInput({
     redacted,
     value: value ?? defaultValue ?? "",
   });
-  const initialPresentation = useRef(redact(initial.current.value));
-  const state = useRef<SecretInputState | null>(null);
+  const [initialPresentation] = useState(() => redact(initial.current.value));
+  const input = useRef<SecretInputElement | null>(null);
+  const changeHandler = useRef(onChange);
   const controlledValue = useRef(value);
+  changeHandler.current = onChange;
   controlledValue.current = value;
 
+  const handleChange = useCallback((event: Event) => {
+    if (input.current) {
+      changeHandler.current?.(input.current.secretValue, event);
+    }
+  }, []);
+
   const setInput = useCallback(
-    (input: HTMLInputElement | null) => {
-      if (!input) {
-        state.current = null;
+    (element: HTMLInputElement | null) => {
+      if (!element) {
+        input.current = null;
         if (typeof ref === "function") {
           ref(null);
         } else if (ref) {
@@ -47,14 +56,17 @@ export function SecretInput({
         return;
       }
 
-      state.current = mask(input, initial.current)[secretInput];
-      const cleanup = typeof ref === "function" ? ref(input) : undefined;
+      const masked = mask(element, initial.current);
+      masked.addEventListener("change", handleChange);
+      input.current = masked;
+      const cleanup = typeof ref === "function" ? ref(masked) : undefined;
       if (ref && typeof ref !== "function") {
-        ref.current = input;
+        ref.current = masked;
       }
 
       return () => {
-        state.current = null;
+        masked.removeEventListener("change", handleChange);
+        input.current = null;
         if (cleanup) {
           cleanup();
         } else if (typeof ref === "function") {
@@ -64,37 +76,36 @@ export function SecretInput({
         }
       };
     },
-    [ref],
+    [handleChange, ref],
   );
 
   useLayoutEffect(() => {
-    if (!state.current) {
+    if (!input.current) {
       return;
     }
     if (value !== undefined) {
-      state.current.value = value;
+      input.current.secretValue = value;
     }
     if (defaultValue !== undefined) {
-      state.current.defaultValue = defaultValue;
+      input.current.defaultSecretValue = defaultValue;
     }
-    state.current.redacted = redacted;
+    input.current.redacted = redacted;
   }, [defaultValue, redacted, value]);
 
   const handleInput = useCallback(
-    (event: InputEvent<HTMLInputElement>) => {
-      onInput?.(event);
-      if (!state.current) {
+    (event: InputEvent<SecretInputElement>) => {
+      if (!input.current) {
         return;
       }
 
-      onValueChange?.(state.current.value);
+      onInput?.(input.current.secretValue, event);
       queueMicrotask(() => {
-        if (state.current && controlledValue.current !== undefined) {
-          state.current.value = controlledValue.current;
+        if (input.current && controlledValue.current !== undefined) {
+          input.current.secretValue = controlledValue.current;
         }
       });
     },
-    [onInput, onValueChange],
+    [onInput],
   );
 
   return createElement("input", {
@@ -104,7 +115,7 @@ export function SecretInput({
     ...props,
     ...passwordManagerAttributes,
     autoComplete: "off",
-    defaultValue: initialPresentation.current,
+    defaultValue: initialPresentation,
     onInput: handleInput,
     ref: setInput,
     type: "text",

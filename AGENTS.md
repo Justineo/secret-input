@@ -1,7 +1,7 @@
 # Secret Input
 
-- `mask(input)` returns the same native input; its stable state is exposed only at the exported `secretInput` Symbol.
-- Keep the authoritative value in `input[secretInput].value`; `redacted` defaults to `true`.
+- `mask(input)` returns the same native input with `secretValue`, `defaultSecretValue`, and `redacted` accessors.
+- Keep the authoritative value in `input.secretValue`; `input.value` is presentation only.
 - `input.value` contains bullets while redacted and plaintext only after an explicit `redacted = false`.
 - Browser DOM/autofill mutations never implicitly become secret state.
 - Apply standard and known vendor ignore attributes to deter native and third-party autofill.

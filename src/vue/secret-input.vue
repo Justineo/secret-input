@@ -1,7 +1,7 @@
 <script setup lang="ts">
 import { nextTick, watch } from "vue";
 
-import { mask, redact, secretInput } from "../secret-input.ts";
+import { mask, redact } from "../secret-input.ts";
 import type { SecretInput } from "../secret-input.ts";
 
 defineOptions({
@@ -21,8 +21,8 @@ const props = withDefaults(
 );
 
 const emit = defineEmits<{
-  change: [event: Event];
-  input: [event: InputEvent];
+  change: [value: string, event: Event];
+  input: [value: string, event: InputEvent];
   "update:modelValue": [value: string];
 }>();
 const initialPresentation = redact(props.modelValue ?? props.defaultValue ?? "");
@@ -30,17 +30,16 @@ const initialPresentation = redact(props.modelValue ?? props.defaultValue ?? "")
 let input: SecretInput | undefined;
 
 function sync(): void {
-  const state = input?.[secretInput];
-  if (!state) {
+  if (!input) {
     return;
   }
   if (props.modelValue !== undefined) {
-    state.value = props.modelValue;
+    input.secretValue = props.modelValue;
   }
   if (props.defaultValue !== undefined) {
-    state.defaultValue = props.defaultValue;
+    input.defaultSecretValue = props.defaultValue;
   }
-  state.redacted = props.redacted;
+  input.redacted = props.redacted;
 }
 
 function setInput(element: unknown): void {
@@ -62,17 +61,18 @@ function setInput(element: unknown): void {
 }
 
 function handleChange(event: Event): void {
-  emit("change", event);
+  if (input) {
+    emit("change", input.secretValue, event);
+  }
 }
 
 function handleInput(event: InputEvent): void {
-  const state = input?.[secretInput];
-  if (!state) {
+  if (!input) {
     return;
   }
 
-  emit("update:modelValue", state.value);
-  emit("input", event);
+  emit("update:modelValue", input.secretValue);
+  emit("input", input.secretValue, event);
   void nextTick(sync);
 }
 

@@ -27,3 +27,13 @@ export function formDataFor(form: HTMLFormElement): FormData {
   form.dispatchEvent(event);
   return formData;
 }
+
+export function composition(
+  input: HTMLInputElement,
+  type: "compositionend" | "compositionstart",
+  data = "",
+): void {
+  const event = new CompositionEvent(type, { bubbles: true });
+  Object.defineProperty(event, "data", { value: data });
+  input.dispatchEvent(event);
+}

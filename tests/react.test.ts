@@ -1,10 +1,12 @@
 import { act, createElement, createRef, useState } from "react";
+import type { InputEvent } from "react";
 import { createRoot, hydrateRoot } from "react-dom/client";
 import { renderToString } from "react-dom/server";
 import { afterEach, beforeEach, describe, expect, it, vi } from "vite-plus/test";
 
 import { SecretInput } from "../src/react.ts";
-import { beforeInput, formDataFor, insertText } from "./edit.ts";
+import type { SecretInput as SecretInputElement } from "../src/index.ts";
+import { beforeInput, composition, formDataFor, insertText } from "./edit.ts";
 
 Object.defineProperty(globalThis, "IS_REACT_ACT_ENVIRONMENT", { value: true });
 
@@ -24,9 +26,11 @@ describe("React SecretInput", () => {
   });
 
   it("bridges controlled values and keeps the native input surface", async () => {
-    const inputRef = createRef<HTMLInputElement>();
-    const onValueChange = vi.fn();
+    const inputRef = createRef<SecretInputElement>();
     const presentedValues: string[] = [];
+    const onInput = vi.fn((_value: string, event: InputEvent<HTMLInputElement>) => {
+      presentedValues.push(event.currentTarget.value);
+    });
 
     await act(async () => {
       root.render(
@@ -39,8 +43,7 @@ describe("React SecretInput", () => {
             autoCorrect: "on",
             className: "field",
             name: "token",
-            onInput: (event) => presentedValues.push(event.currentTarget.value),
-            onValueChange,
+            onInput,
             ref: inputRef,
             spellCheck: true,
             value: "first",
@@ -66,7 +69,7 @@ describe("React SecretInput", () => {
     await act(async () => {
       insertText(input!, "!");
     });
-    expect(onValueChange).toHaveBeenCalledWith("first!");
+    expect(onInput).toHaveBeenCalledWith("first!", expect.anything());
     expect(presentedValues).toEqual(["••••••"]);
     expect(input?.value).toBe("•••••");
 
@@ -89,7 +92,7 @@ describe("React SecretInput", () => {
 
   it("server-renders the initial masked presentation and discards pre-hydration values", async () => {
     const value = "a👩‍💻e\u0301";
-    const ref = createRef<HTMLInputElement>();
+    const ref = createRef<SecretInputElement>();
     const element = createElement(SecretInput, { ref, value });
     const markup = renderToString(element);
     const serverContainer = document.createElement("div");
@@ -134,7 +137,7 @@ describe("React SecretInput", () => {
   it("preserves undo when a controlled owner accepts an edit", async () => {
     function Fixture() {
       const [value, setValue] = useState("first");
-      return createElement(SecretInput, { onValueChange: setValue, value });
+      return createElement(SecretInput, { onInput: setValue, value });
     }
 
     await act(async () => root.render(createElement(Fixture)));
@@ -148,18 +151,81 @@ describe("React SecretInput", () => {
   });
 
   it("does not surface browser-written DOM values", async () => {
+    const onChange = vi.fn();
     const onInput = vi.fn();
-    const onValueChange = vi.fn();
     await act(async () => {
-      root.render(createElement(SecretInput, { onInput, onValueChange, value: "kept" }));
+      root.render(createElement(SecretInput, { onChange, onInput, value: "kept" }));
     });
 
     const input = container.querySelector("input")!;
     input.value = "browser-filled";
     input.dispatchEvent(new InputEvent("input", { bubbles: true }));
 
-    expect(onValueChange).not.toHaveBeenCalled();
+    expect(onChange).not.toHaveBeenCalled();
     expect(onInput).not.toHaveBeenCalled();
     expect(input.value).toBe("••••");
+  });
+
+  it("reports input immediately and change on blur", async () => {
+    const onChange = vi.fn();
+    const onInput = vi.fn();
+    await act(async () => {
+      root.render(
+        createElement(SecretInput, {
+          defaultValue: "first",
+          onChange,
+          onInput,
+        }),
+      );
+    });
+
+    const input = container.querySelector("input")!;
+    input.focus();
+    await act(async () => insertText(input, "!"));
+
+    expect(onInput).toHaveBeenCalledWith("first!", expect.anything());
+    expect(onChange).not.toHaveBeenCalled();
+
+    input.blur();
+    expect(onChange).toHaveBeenCalledWith("first!", expect.any(Event));
+  });
+  it("preserves a composition while synchronizing an unchanged controlled value", async () => {
+    const ref = createRef<SecretInputElement>();
+    await act(async () => root.render(createElement(SecretInput, { ref, value: "ab" })));
+    const input = ref.current!;
+    input.setSelectionRange(1, 2);
+    composition(input, "compositionstart");
+    beforeInput(input, "insertCompositionText", "ni");
+    await act(async () =>
+      root.render(createElement(SecretInput, { ref, value: "ab", defaultValue: "reset" })),
+    );
+    expect(input.value).toBe("•••");
+    const received = vi.fn();
+    input.addEventListener("input", received);
+    await act(async () => {
+      composition(input, "compositionend", "你");
+    });
+    expect(received).toHaveBeenCalledOnce();
+    expect(input.secretValue).toBe("ab");
+  });
+  it("keeps redo through controlled renders and discards it on a new branch", async () => {
+    const ref = createRef<SecretInputElement>();
+    function Fixture() {
+      const [value, setValue] = useState("base");
+      return createElement(SecretInput, { ref, value, onInput: setValue });
+    }
+    await act(async () => root.render(createElement(Fixture)));
+    const input = ref.current!;
+    await act(async () => insertText(input, "x"));
+    await act(async () => beforeInput(input, "historyUndo"));
+    expect(input.secretValue).toBe("base");
+    await act(async () => beforeInput(input, "historyRedo"));
+    expect(input.secretValue).toBe("basex");
+    await act(async () => beforeInput(input, "historyUndo"));
+    await act(async () => insertText(input, "y"));
+    await act(async () => beforeInput(input, "historyRedo"));
+    expect(input.secretValue).toBe("basey");
+    await act(async () => beforeInput(input, "historyUndo"));
+    expect(input.secretValue).toBe("base");
   });
 });

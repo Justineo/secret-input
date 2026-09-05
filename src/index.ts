@@ -1,2 +1,2 @@
-export { mask, secretInput } from "./secret-input.ts";
-export type { MaskOptions, SecretInput, SecretInputState } from "./secret-input.ts";
+export { mask } from "./secret-input.ts";
+export type { MaskOptions, SecretInput } from "./secret-input.ts";

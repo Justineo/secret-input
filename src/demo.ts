@@ -1,6 +1,3 @@
-import "overlayscrollbars/styles/overlayscrollbars.scriptingenabled.css";
-import "./style.css";
-
 import { OverlayScrollbars } from "overlayscrollbars";
 import chromeIcon from "./assets/browser-logos/chrome.png";
 import edgeIcon from "./assets/browser-logos/edge.png";
@@ -213,11 +210,18 @@ const root = requiredElement<HTMLElement>("#demo-root");
 const setupTemplate = requiredElement<HTMLTemplateElement>("#setup-template");
 const comparisonTemplate = requiredElement<HTMLTemplateElement>("#comparison-template");
 
-if (localStorage.getItem(storageKey) === "true") {
-  root.append(comparisonTemplate.content.cloneNode(true));
+let credentialReady = false;
+try {
+  credentialReady = localStorage.getItem(storageKey) === "true";
+} catch {
+  // The setup remains available when the browser blocks site storage.
+}
+
+if (credentialReady) {
+  root.replaceChildren(comparisonTemplate.content.cloneNode(true));
   initializeComparison();
 } else {
-  root.append(setupTemplate.content.cloneNode(true));
+  root.replaceChildren(setupTemplate.content.cloneNode(true));
   initializeSetup();
 }
 
@@ -260,7 +264,14 @@ function initializeSetup(): void {
       return;
     }
 
-    localStorage.setItem(storageKey, "true");
+    try {
+      localStorage.setItem(storageKey, "true");
+    } catch {
+      warning.hidden = false;
+      warning.textContent =
+        "Allow site storage in your browser and try again. Your test credentials have not been stored by this page.";
+      return;
+    }
     location.reload();
   });
 }
@@ -285,13 +296,22 @@ function initializeComparison(): void {
   });
 
   requiredElement<HTMLButtonElement>("#reset-demo").addEventListener("click", () => {
-    localStorage.removeItem(storageKey);
+    try {
+      localStorage.removeItem(storageKey);
+    } catch {
+      // Returning to setup must also work if storage becomes unavailable.
+      root.replaceChildren(setupTemplate.content.cloneNode(true));
+      initializeSetup();
+      return;
+    }
     location.reload();
   });
 }
 
 function renderSupportMatrix(): void {
   const body = requiredElement<HTMLTableSectionElement>("#support-matrix");
+  const detailOutput = requiredElement<HTMLElement>("#support-detail");
+  const solutions = ["Autocomplete off", "New-password", "CSS masking", "Secret Input"];
 
   for (const row of supportMatrix) {
     const tableRow = document.createElement("tr");
@@ -307,9 +327,8 @@ function renderSupportMatrix(): void {
       }
 
       const group = document.createElement("span");
-      const descriptions: string[] = [];
-      group.className = "vbg-custom-browser-support";
-      group.setAttribute("role", "img");
+      group.className = "browser-support";
+      group.setAttribute("role", "group");
 
       for (const [browserIndex, [status, detail]] of statuses.entries()) {
         const browser = browsers[browserIndex];
@@ -319,18 +338,27 @@ function renderSupportMatrix(): void {
 
         const description = `${browser.name}: ${supportLabels[status]}. ${detail}`;
         const icon = document.createElement("img");
-        icon.className = "vbg-custom-browser";
+        icon.className = "browser-icon";
         icon.src = browser.icon;
         icon.alt = "";
         icon.width = 18;
         icon.height = 18;
         icon.dataset.support = status;
         icon.title = description;
-        descriptions.push(description);
-        group.append(icon);
+        const button = document.createElement("button");
+        button.type = "button";
+        button.className = "browser-detail";
+        button.setAttribute("aria-label", description);
+        button.append(icon);
+        const showDetail = () => {
+          detailOutput.textContent = `${row.label} · ${solutions[solutionIndex]} · ${description}`;
+        };
+        button.addEventListener("focus", showDetail);
+        button.addEventListener("click", showDetail);
+        group.append(button);
       }
 
-      group.setAttribute("aria-label", descriptions.join("; "));
+      group.setAttribute("aria-label", `${row.label}: ${solutions[solutionIndex]}`);
       cell.append(group);
       tableRow.append(cell);
     }
