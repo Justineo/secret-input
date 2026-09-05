@@ -1,0 +1,160 @@
+<section class="page-section comparison-page" aria-labelledby="comparison-title">
+  <header class="comparison-intro">
+    <div class="comparison-claim">
+      <h3 id="comparison-title" class="section-title">Four ways to handle a secret</h3>
+      <p class="caption">
+        Try the same fields in each implementation. Watch for automatic fill and password
+        suggestions.
+      </p>
+    </div>
+
+    <button id="reset-demo" class="text-button" type="button">Back to setup</button>
+  </header>
+
+  <div class="case-grid">
+    <article class="comparison-case">
+      <header class="case-summary">
+        <h4 class="section-title">Autocomplete off</h4>
+        <p class="caption">
+          A native password input with <code>autocomplete="off"</code>. Browsers may ignore the hint
+          and still classify the pair as login credentials.
+        </p>
+      </header>
+      <form class="case-form">
+        <div class="field">
+          <label class="label" for="native-webhook-url">Webhook URL</label>
+          <input id="native-webhook-url" type="text" autocomplete="off" />
+        </div>
+        <div class="field">
+          <label class="label" for="native-signing-secret">Signing secret</label>
+          <input id="native-signing-secret" type="password" autocomplete="off" />
+        </div>
+      </form>
+    </article>
+
+    <article class="comparison-case">
+      <header class="case-summary">
+        <h4 class="section-title">New-password</h4>
+        <p class="caption">
+          A native password input with <code>autocomplete="new-password"</code>. This common
+          workaround prevents silent saved-password fill, but still triggers password and
+          generated-password UI.
+        </p>
+      </header>
+      <form class="case-form">
+        <div class="field">
+          <label class="label" for="new-password-webhook-url">Webhook URL</label>
+          <input id="new-password-webhook-url" type="text" autocomplete="off" />
+        </div>
+        <div class="field">
+          <label class="label" for="new-password-signing-secret"> Signing secret </label>
+          <input id="new-password-signing-secret" type="password" autocomplete="new-password" />
+        </div>
+      </form>
+    </article>
+
+    <article class="comparison-case">
+      <header class="case-summary">
+        <h4 class="section-title">CSS masking</h4>
+        <p class="caption">
+          A text input with <code>-webkit-text-security: disc</code> when supported. It avoids
+          password UI in some browsers, but masks only visually and Safari still shows autofill UI.
+        </p>
+      </header>
+      <form class="case-form">
+        <div class="field">
+          <label class="label" for="css-webhook-url">Webhook URL</label>
+          <input id="css-webhook-url" type="text" autocomplete="off" />
+        </div>
+        <div class="field">
+          <label class="label" for="css-signing-secret">Signing secret</label>
+          <input
+            id="css-signing-secret"
+            type="text"
+            autocomplete="off"
+            autocapitalize="off"
+            autocorrect="off"
+            spellcheck="false"
+          />
+        </div>
+      </form>
+    </article>
+
+    <article class="comparison-case" data-recommended="true">
+      <header class="case-summary">
+        <h4 class="section-title">Secret Input</h4>
+        <p class="caption">
+          A text input passed to <code>mask(input)</code>. Its DOM value holds bullets while
+          browser-written text stays out of state. Native password accessibility cannot be
+          reproduced; undo/redo and IME handling are best effort.
+        </p>
+      </header>
+      <form class="case-form">
+        <div class="field">
+          <label class="label" for="masked-webhook-url">Webhook URL</label>
+          <input id="masked-webhook-url" type="text" autocomplete="off" />
+        </div>
+        <div class="field">
+          <label class="label" for="masked-signing-secret">Signing secret</label>
+          <input
+            id="masked-signing-secret"
+            type="text"
+            autocomplete="off"
+            autocapitalize="off"
+            autocorrect="off"
+            spellcheck="false"
+          />
+        </div>
+      </form>
+    </article>
+  </div>
+
+  <section class="compatibility" aria-labelledby="compatibility-title">
+    <header class="compatibility-header">
+      <h3 id="compatibility-title" class="section-title">Compatibility</h3>
+      <span id="compatibility-legend" class="legend">
+        <span>
+          <img class="browser-icon" data-support="supported" width="18" height="18" alt="" />
+          Supported
+        </span>
+        <span>
+          <img class="browser-icon" data-support="best-effort" width="18" height="18" alt="" />
+          Best effort
+        </span>
+        <span>
+          <img class="browser-icon" data-support="unsupported" width="18" height="18" alt="" />
+          Unsupported
+        </span>
+      </span>
+    </header>
+    <div
+      class="table-wrap"
+      tabindex="0"
+      role="region"
+      aria-labelledby="compatibility-title"
+      data-density="compact"
+      data-sticky-first="true"
+      data-variant="comparison"
+    >
+      <table
+        aria-label="Browser support by implementation and behavior"
+        aria-describedby="compatibility-legend"
+      >
+        <thead>
+          <tr>
+            <th scope="col">Behavior</th>
+            <th scope="col">Autocomplete off</th>
+            <th scope="col">New-password</th>
+            <th scope="col">CSS masking</th>
+            <th scope="col" data-recommended="true">Secret Input</th>
+          </tr>
+        </thead>
+        <tbody id="support-matrix"></tbody>
+      </table>
+    </div>
+    <p id="support-detail" class="caption support-detail" role="status">
+      Select a browser icon for details. Results reflect the tested desktop browsers; behavior can
+      vary by version and settings.
+    </p>
+  </section>
+</section>

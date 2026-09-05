@@ -47,7 +47,34 @@ export default defineConfig(({ mode }) => {
   const browserMode = mode === "browser";
 
   return {
-    plugins: [Vue()],
+    plugins: [
+      Vue(),
+      {
+        name: "inline-home-styles",
+        apply: "build",
+        generateBundle: {
+          order: "post",
+          handler(_options, bundle) {
+            const html = bundle["index.html"];
+            if (html?.type !== "asset" || typeof html.source !== "string") return;
+            // The small home stylesheet needs no extra request. Comparison CSS stays deferred.
+            html.source = html.source.replace(
+              /<link\b[^>]*rel="stylesheet"[^>]*href="([^"]+)"[^>]*>/g,
+              (tag: string, href: string) => {
+                const css = bundle[href.replace(/^\//, "")];
+                return css?.type === "asset" && typeof css.source === "string"
+                  ? `<style>${css.source}</style>`
+                  : tag;
+              },
+            );
+          },
+        },
+      },
+    ],
+    build: {
+      assetsInlineLimit: 0,
+      manifest: true,
+    },
     server: {
       host: "127.0.0.1",
     },

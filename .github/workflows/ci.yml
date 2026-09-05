@@ -52,6 +52,9 @@ jobs:
       - name: Build site
         run: vp build
 
+      - name: Check site performance budgets
+        run: vp run check:site
+
   browser:
     name: Browser / ${{ matrix.browser }}
     runs-on: ${{ matrix.os }}

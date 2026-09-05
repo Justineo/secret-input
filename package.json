@@ -42,7 +42,8 @@
     "test": "vp test",
     "test:browser": "vp test --run --mode browser",
     "check": "vp check && vue-tsc --noEmit",
-    "prepack": "vp pack"
+    "prepack": "vp pack",
+    "check:site": "node scripts/check-site.mjs"
   },
   "devDependencies": {
     "@types/react": "^19.2.18",
@@ -50,7 +51,6 @@
     "@vitest/browser-webdriverio": "catalog:",
     "bumpp": "catalog:",
     "happy-dom": "^20.12.0",
-    "overlayscrollbars": "^2.16.0",
     "publint": "catalog:",
     "react": "^19.2.8",
     "react-dom": "^19.2.8",
