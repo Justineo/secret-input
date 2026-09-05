@@ -50,6 +50,34 @@ export default defineConfig(({ mode }) => {
     plugins: [
       Vue(),
       {
+        name: "highlight-home-example",
+        async transformIndexHtml(html) {
+          const example = html.match(
+            /<pre data-highlight="javascript"><code>([\s\S]*?)<\/code><\/pre>/,
+          );
+          if (!example?.[1]) return html;
+          // Run only in Vite's Node process, for both development and production HTML.
+          const { codeToHtml } = await import("shiki");
+          const entities: Record<string, string> = {
+            "&amp;": "&",
+            "&lt;": "<",
+            "&gt;": ">",
+            "&quot;": '"',
+            "&#39;": "'",
+          };
+          const code = example[1].replace(
+            /&(amp|lt|gt|quot|#39);/g,
+            (entity) => entities[entity] ?? entity,
+          );
+          const highlighted = await codeToHtml(code, {
+            lang: "javascript",
+            themes: { light: "github-light", dark: "github-dark" },
+            defaultColor: false,
+          });
+          return html.replace(example[0], () => highlighted);
+        },
+      },
+      {
         name: "inline-home-styles",
         apply: "build",
         generateBundle: {

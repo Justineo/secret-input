@@ -51,13 +51,13 @@
               <span class="label">Works with your input</span
               ><span class="caption">JavaScript</span>
             </div>
-            <pre><code><span class="code-keyword">import</span> { mask } <span class="code-keyword">from</span> <span class="code-string">'secret-input'</span>;
+            <pre data-highlight="javascript"><code>import { mask } from 'secret-input';
 
-<span class="code-keyword">const</span> input = mask(element);
-input.secretValue = <span class="code-string">'sk_test_123'</span>;
+const input = mask(element);
+input.secretValue = 'sk_test_123';
 
-input.value;       <span class="code-comment">// '•••••••••••'</span>
-input.secretValue; <span class="code-comment">// 'sk_test_123'</span></code></pre>
+input.value;       // '•••••••••••'
+input.secretValue; // 'sk_test_123'</code></pre>
             <div class="install-command">
               <span aria-hidden="true">$</span><code>npm install secret-input</code>
             </div>

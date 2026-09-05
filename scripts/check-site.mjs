@@ -5,7 +5,13 @@ import { gzipSync } from "node:zlib";
 const html = await readFile(new URL("../dist/index.html", import.meta.url), "utf8");
 const firstPaintHTML = html.replace(/<template\b[^>]*>[\s\S]*?<\/template>/g, "");
 assert.match(firstPaintHTML, /<h1\b/, "The product heading must not depend on JavaScript.");
-assert.match(firstPaintHTML, /mask\(element\)/, "The usage example must be in the initial HTML.");
+const example = firstPaintHTML.match(/<pre\b[^>]*class="shiki\b[^>]*>([\s\S]*?)<\/pre>/);
+assert.ok(example?.[1], "Shiki must render the example before the HTML is served.");
+assert.match(
+  example[1].replace(/<[^>]+>/g, ""),
+  /mask\(element\)/,
+  "Highlighting must preserve the example text.",
+);
 assert.doesNotMatch(
   html,
   /<link\b[^>]*rel="stylesheet"/,

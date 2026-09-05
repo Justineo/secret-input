@@ -232,14 +232,9 @@ a:hover {
   background: none;
   font-size: inherit;
 }
-.code-keyword {
-  color: var(--text);
-}
-.code-string {
-  color: var(--ink);
-}
-.code-comment {
-  color: var(--muted);
+.integration .shiki,
+.integration .shiki span {
+  color: light-dark(var(--shiki-light), var(--shiki-dark));
 }
 .install-command {
   gap: var(--space-3);

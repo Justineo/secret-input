@@ -55,6 +55,7 @@
     "react": "^19.2.8",
     "react-dom": "^19.2.8",
     "releaselog": "catalog:",
+    "shiki": "^4.4.3",
     "typescript": "npm:typescript-native-bridge@6.0.3-bridge.16.tsgo.7.0.2",
     "unplugin-vue": "^7.2.0",
     "vite": "catalog:",
