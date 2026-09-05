@@ -1,36 +1,20 @@
 .comparison-intro {
   display: grid;
-  grid-template-columns: repeat(12, minmax(0, 1fr));
-  gap: var(--space-6);
-  align-items: start;
+  grid-template-columns: minmax(0, 1fr) auto;
+  gap: var(--space-3) var(--space-6);
+  align-items: center;
 }
 
-.comparison-claim {
-  display: grid;
-  grid-column: 1 / span 8;
-  gap: var(--space-3);
+.comparison-intro > .caption {
+  grid-column: 1 / -1;
+  max-width: 44rem;
 }
 
-.comparison-intro > .text-button {
-  grid-column: 10 / -1;
+.comparison-intro > .form-button {
+  grid-column: 2;
+  grid-row: 1;
   justify-self: end;
-}
-
-.text-button {
-  padding: 0;
-  border: 0;
-  background: transparent;
-  color: var(--muted);
-  font: inherit;
-  font-size: 0.875rem;
-  line-height: 1.4;
-  text-decoration: underline;
-  text-decoration-color: var(--stroke-strong);
-  text-underline-offset: 0.2em;
-}
-
-.text-button:hover {
-  color: var(--ink);
+  white-space: nowrap;
 }
 
 .case-grid {
@@ -274,24 +258,15 @@
 }
 
 @media (width <= 760px) {
-  .comparison-case,
-  .comparison-intro {
+  .comparison-case {
     grid-template-columns: 1fr;
   }
   .comparison-case {
     gap: var(--space-6);
   }
-  .comparison-intro {
-    gap: var(--space-4);
-  }
-  .comparison-claim,
-  .comparison-intro > .text-button,
   .case-summary,
   .case-content {
     grid-column: 1;
-  }
-  .comparison-intro > .text-button {
-    justify-self: start;
   }
   .case-form,
   .case-explanation {
@@ -307,9 +282,5 @@
   .table-wrap :is(th, td):first-child {
     width: clamp(8rem, 40vw, 10rem);
     white-space: normal;
-  }
-
-  .text-button {
-    min-height: 44px;
   }
 }
