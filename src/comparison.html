@@ -23,16 +23,39 @@
           </div>
         </dl>
       </header>
-      <form class="case-form">
-        <div class="field">
-          <label class="label" for="native-webhook-url">Webhook URL</label>
-          <input id="native-webhook-url" type="text" autocomplete="off" />
-        </div>
-        <div class="field">
-          <label class="label" for="native-signing-secret">Signing secret</label>
-          <input id="native-signing-secret" type="password" autocomplete="off" />
-        </div>
-      </form>
+      <div class="case-content">
+        <dl class="case-explanation">
+          <div>
+            <dt>Why use it</dt>
+            <dd>
+              Uses the
+              <a
+                href="https://html.spec.whatwg.org/multipage/form-control-infrastructure.html#autofilling-form-controls:-the-autocomplete-attribute"
+                >HTML autofill opt-out</a
+              >
+              to ask the browser not to remember or fill the field, while keeping native password
+              masking.
+            </dd>
+          </div>
+          <div>
+            <dt>Limitations</dt>
+            <dd>
+              Browsers deliberately ignore this hint for login-like fields. In our tests, Chrome,
+              Edge, and Firefox autofill anyway. Safari shows its password picker on focus.
+            </dd>
+          </div>
+        </dl>
+        <form class="case-form">
+          <div class="field">
+            <label class="label" for="native-webhook-url">Webhook URL</label>
+            <input id="native-webhook-url" type="text" autocomplete="off" />
+          </div>
+          <div class="field">
+            <label class="label" for="native-signing-secret">Signing secret</label>
+            <input id="native-signing-secret" type="password" autocomplete="off" />
+          </div>
+        </form>
+      </div>
     </article>
 
     <article class="comparison-case">
@@ -49,16 +72,37 @@
           </div>
         </dl>
       </header>
-      <form class="case-form">
-        <div class="field">
-          <label class="label" for="new-password-webhook-url">Webhook URL</label>
-          <input id="new-password-webhook-url" type="text" autocomplete="off" />
-        </div>
-        <div class="field">
-          <label class="label" for="new-password-signing-secret"> Signing secret </label>
-          <input id="new-password-signing-secret" type="password" autocomplete="new-password" />
-        </div>
-      </form>
+      <div class="case-content">
+        <dl class="case-explanation">
+          <div>
+            <dt>Why use it</dt>
+            <dd>
+              Repurposes the
+              <a
+                href="https://developer.mozilla.org/en-US/docs/Web/HTML/Reference/Attributes/autocomplete#new-password"
+                >new-password hint</a
+              >, intended for sign-up and password changes, to avoid inserting an existing password.
+            </dd>
+          </div>
+          <div>
+            <dt>Limitations</dt>
+            <dd>
+              It prevents automatic fill in our tests, but still identifies a password field.
+              Focusing the fields can trigger password suggestions or password generation.
+            </dd>
+          </div>
+        </dl>
+        <form class="case-form">
+          <div class="field">
+            <label class="label" for="new-password-webhook-url">Webhook URL</label>
+            <input id="new-password-webhook-url" type="text" autocomplete="off" />
+          </div>
+          <div class="field">
+            <label class="label" for="new-password-signing-secret"> Signing secret </label>
+            <input id="new-password-signing-secret" type="password" autocomplete="new-password" />
+          </div>
+        </form>
+      </div>
     </article>
 
     <article class="comparison-case">
@@ -75,23 +119,45 @@
           </div>
         </dl>
       </header>
-      <form class="case-form">
-        <div class="field">
-          <label class="label" for="css-webhook-url">Webhook URL</label>
-          <input id="css-webhook-url" type="text" autocomplete="off" />
-        </div>
-        <div class="field">
-          <label class="label" for="css-signing-secret">Signing secret</label>
-          <input
-            id="css-signing-secret"
-            type="text"
-            autocomplete="off"
-            autocapitalize="off"
-            autocorrect="off"
-            spellcheck="false"
-          />
-        </div>
-      </form>
+      <div class="case-content">
+        <dl class="case-explanation">
+          <div>
+            <dt>Why use it</dt>
+            <dd>
+              Uses a text input to avoid password-field heuristics, then hides its characters with
+              <a
+                href="https://developer.mozilla.org/en-US/docs/Web/CSS/Reference/Properties/-webkit-text-security"
+                >CSS masking</a
+              >.
+            </dd>
+          </div>
+          <div>
+            <dt>Limitations</dt>
+            <dd>
+              This nonstandard property only changes painting. Plaintext remains in the DOM and
+              accessibility APIs. Safari still shows autofill UI, and IME behavior varies by
+              browser.
+            </dd>
+          </div>
+        </dl>
+        <form class="case-form">
+          <div class="field">
+            <label class="label" for="css-webhook-url">Webhook URL</label>
+            <input id="css-webhook-url" type="text" autocomplete="off" />
+          </div>
+          <div class="field">
+            <label class="label" for="css-signing-secret">Signing secret</label>
+            <input
+              id="css-signing-secret"
+              type="text"
+              autocomplete="off"
+              autocapitalize="off"
+              autocorrect="off"
+              spellcheck="false"
+            />
+          </div>
+        </form>
+      </div>
     </article>
 
     <article class="comparison-case" data-recommended="true">
@@ -108,23 +174,42 @@
           </div>
         </dl>
       </header>
-      <form class="case-form">
-        <div class="field">
-          <label class="label" for="masked-webhook-url">Webhook URL</label>
-          <input id="masked-webhook-url" type="text" autocomplete="off" />
-        </div>
-        <div class="field">
-          <label class="label" for="masked-signing-secret">Signing secret</label>
-          <input
-            id="masked-signing-secret"
-            type="text"
-            autocomplete="off"
-            autocapitalize="off"
-            autocorrect="off"
-            spellcheck="false"
-          />
-        </div>
-      </form>
+      <div class="case-content">
+        <dl class="case-explanation">
+          <div>
+            <dt>Why use it</dt>
+            <dd>
+              Keeps the real value in controller state and puts bullets in a text input.
+              Browser-written values cannot overwrite the application’s secret.
+            </dd>
+          </div>
+          <div>
+            <dt>Limitations</dt>
+            <dd>
+              Native password accessibility cannot be recreated. Undo/redo and IME handling are best
+              effort. Revealing the value exposes plaintext.
+              <a href="https://github.com/Justineo/secret-input#boundaries">See limitations.</a>
+            </dd>
+          </div>
+        </dl>
+        <form class="case-form">
+          <div class="field">
+            <label class="label" for="masked-webhook-url">Webhook URL</label>
+            <input id="masked-webhook-url" type="text" autocomplete="off" />
+          </div>
+          <div class="field">
+            <label class="label" for="masked-signing-secret">Signing secret</label>
+            <input
+              id="masked-signing-secret"
+              type="text"
+              autocomplete="off"
+              autocapitalize="off"
+              autocorrect="off"
+              spellcheck="false"
+            />
+          </div>
+        </form>
+      </div>
     </article>
   </div>
 

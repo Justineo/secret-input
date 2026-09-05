@@ -83,9 +83,33 @@
   color: var(--text);
 }
 
-.case-form {
+.case-content {
   display: grid;
   grid-column: span 8;
+  gap: var(--space-5);
+  align-content: start;
+  min-width: 0;
+}
+.case-explanation {
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: var(--space-5);
+  margin: 0;
+  color: var(--text);
+  font-size: 0.875rem;
+  line-height: 20px;
+  text-wrap: pretty;
+}
+.case-explanation dt {
+  margin-block-end: var(--space-2);
+  color: var(--ink);
+  font-weight: 500;
+}
+.case-explanation dd {
+  margin: 0;
+}
+.case-form {
+  display: grid;
   grid-template-columns: repeat(2, minmax(0, 1fr));
   gap: var(--space-5);
   align-content: start;
@@ -254,15 +278,6 @@
   padding-inline-start: 1.25em;
 }
 
-@media (width <= 1000px) {
-  .case-summary {
-    grid-column: span 5;
-  }
-  .case-form {
-    grid-column: span 7;
-  }
-}
-
 @media (width <= 760px) {
   .comparison-case,
   .comparison-intro {
@@ -277,13 +292,14 @@
   .comparison-claim,
   .comparison-intro > .text-button,
   .case-summary,
-  .case-form {
+  .case-content {
     grid-column: 1;
   }
   .comparison-intro > .text-button {
     justify-self: start;
   }
-  .case-form {
+  .case-form,
+  .case-explanation {
     grid-template-columns: 1fr;
   }
   .compatibility-header {
