@@ -125,12 +125,8 @@ a:hover {
 .site-header,
 .site-nav,
 .brand,
-.hero-actions,
-.snippet-header,
 .install-command,
-.experiment-header,
-.site-footer,
-.site-footer > div {
+.site-footer {
   display: flex;
   align-items: center;
 }
@@ -190,31 +186,12 @@ a:hover {
   display: grid;
   gap: var(--space-5);
 }
-.eyebrow {
-  color: var(--muted);
-  font-size: 0.8125rem;
-  line-height: 20px;
-}
-.hero-actions {
-  flex-wrap: wrap;
-  gap: var(--space-6);
-  margin-block-start: var(--space-2);
-}
-.hero-actions .form-button {
-  gap: var(--space-4);
-  text-decoration: none;
-}
 .integration {
   min-width: 0;
   border: 1px solid var(--stroke);
   border-radius: 8px;
   background: var(--surface);
   overflow: hidden;
-}
-.snippet-header {
-  justify-content: space-between;
-  padding: var(--space-4) var(--space-6);
-  border-bottom: 1px solid var(--stroke);
 }
 .integration pre {
   margin: 0;
@@ -246,68 +223,13 @@ a:hover {
 .install-command > span {
   color: var(--muted);
 }
-.scope-note {
-  display: grid;
-  grid-template-columns: max-content minmax(0, 1fr) max-content;
-  gap: var(--space-6);
-  align-items: baseline;
-  padding-block: var(--space-6);
-  border-block: 1px solid var(--stroke);
-  font-size: 0.8125rem;
-  line-height: 20px;
-}
-.scope-note p {
-  margin: 0;
-  max-width: 40rem;
-  color: var(--muted);
-}
-.scope-label {
-  font-weight: 500;
-}
 .experiment {
-  margin-block-start: 48px;
+  padding-block-start: 48px;
+  border-top: 1px solid var(--stroke);
   scroll-margin-block-start: var(--space-6);
 }
-.experiment-header {
-  justify-content: space-between;
-  gap: var(--space-6);
-  margin-block-end: var(--space-8);
-}
-.experiment-header .eyebrow {
-  margin-block-end: var(--space-2);
-}
-.steps {
-  display: flex;
-  flex-wrap: wrap;
-  gap: var(--space-6);
-  margin: 0;
-  padding: 0;
-  list-style: none;
-  font-size: 0.8125rem;
-  color: var(--muted);
-}
-.steps li {
-  display: flex;
-  align-items: center;
-  gap: var(--space-2);
-}
-.steps li > span {
-  padding: 2px 5px;
-  border: 1px solid var(--stroke);
-  border-radius: 4px;
-  font-variant-numeric: tabular-nums;
-  font-size: 0.75rem;
-}
-.steps [aria-current] {
-  color: var(--ink);
-}
-.steps [aria-current] > span {
-  background: var(--ink);
-  color: var(--background);
-  border-color: transparent;
-}
 .demo-root {
-  min-height: 24rem;
+  min-height: 16rem;
 }
 .demo-root > .form-button {
   margin-block-start: var(--space-4);
@@ -323,28 +245,11 @@ a:hover {
 .setup-guide > .caption {
   margin-block-start: var(--space-3);
 }
-.setup-instructions {
-  display: grid;
-  gap: var(--space-3);
-  margin-block: var(--space-6);
-  padding-inline-start: 1.25em;
-  color: var(--text);
-  font-size: 0.875rem;
-  line-height: 1.5;
-}
-.setup-instructions li {
-  padding-inline-start: var(--space-2);
-}
-.setup-instructions li::marker {
-  color: var(--muted);
-  font-variant-numeric: tabular-nums;
-}
 .setup-form {
   align-content: start;
 }
 
 .page-title,
-.eyebrow,
 .section-title,
 .lede,
 .caption {
@@ -513,17 +418,13 @@ code {
 }
 
 .site-footer {
-  justify-content: space-between;
   flex-wrap: wrap;
-  gap: var(--space-4);
+  gap: var(--space-2);
   margin-block-start: 48px;
   padding-block: var(--space-6) var(--space-8);
   border-top: 1px solid var(--stroke);
   color: var(--muted);
   font-size: 0.8125rem;
-}
-.site-footer > div {
-  gap: var(--space-2);
 }
 @media (scripting: none) {
   .loading-message {
@@ -531,15 +432,6 @@ code {
   }
   .demo-root {
     min-height: auto;
-  }
-  .steps {
-    display: none;
-  }
-}
-@media (width <= 1000px) {
-  .scope-note {
-    grid-template-columns: 1fr;
-    gap: var(--space-2);
   }
 }
 @media (width <= 900px) {
@@ -575,15 +467,8 @@ code {
     max-width: 36rem;
     width: 100%;
   }
-  .scope-note {
-    padding-block: var(--space-5);
-  }
   .experiment {
-    margin-block-start: var(--space-8);
-  }
-  .experiment-header {
-    align-items: flex-start;
-    flex-direction: column;
+    padding-block-start: var(--space-8);
   }
   .field input {
     min-height: 44px;
@@ -600,19 +485,12 @@ code {
   .site-nav {
     gap: var(--space-4);
   }
-  .site-nav > a:first-child {
-    display: none;
-  }
-  .snippet-header,
   .install-command {
     padding-inline: var(--space-4);
   }
   .integration pre {
     padding-inline: var(--space-4);
     font-size: 0.75rem;
-  }
-  .hero-actions {
-    gap: var(--space-4);
   }
 }
 @media (prefers-reduced-motion: reduce) {

@@ -12,16 +12,6 @@ const storageKey = "secret-input:credential-ready";
 const root = requiredElement<HTMLElement>("#demo-root");
 const setupTemplate = requiredElement<HTMLTemplateElement>("#setup-template");
 
-function setStage(stage: "setup" | "compare"): void {
-  requiredElement<HTMLElement>("#try-it").dataset.stage = stage;
-  for (const name of ["setup", "compare"]) {
-    const step = requiredElement<HTMLElement>(`#${name}-step`);
-    if (name === stage) step.setAttribute("aria-current", "step");
-    else step.removeAttribute("aria-current");
-  }
-  root.setAttribute("aria-busy", "false");
-}
-
 let credentialReady = false;
 try {
   credentialReady = localStorage.getItem(storageKey) === "true";
@@ -36,7 +26,6 @@ if (credentialReady) {
 }
 
 async function showComparison(): Promise<void> {
-  setStage("compare");
   root.setAttribute("aria-busy", "true");
   try {
     const { initializeComparison } = await import("./comparison.ts");
@@ -50,7 +39,7 @@ async function showComparison(): Promise<void> {
       }
       location.reload();
     });
-    setStage("compare");
+    root.setAttribute("aria-busy", "false");
   } catch {
     root.setAttribute("aria-busy", "false");
     const message = document.createElement("p");
@@ -70,7 +59,7 @@ async function showComparison(): Promise<void> {
 
 function initializeSetup(): void {
   root.replaceChildren(setupTemplate.content.cloneNode(true));
-  setStage("setup");
+  root.setAttribute("aria-busy", "false");
   const form = requiredElement<HTMLFormElement>("#credential-form");
   const submit = requiredElement<HTMLButtonElement>("#continue-setup");
   const warning = requiredElement<HTMLElement>("#password-manager-warning");

@@ -1,11 +1,8 @@
 <section class="page-section comparison-page" aria-labelledby="comparison-title">
   <header class="comparison-intro">
     <div class="comparison-claim">
-      <h3 id="comparison-title" class="section-title">Four ways to handle a secret</h3>
-      <p class="caption">
-        Try the same fields in each implementation. Watch for automatic fill and password
-        suggestions.
-      </p>
+      <h2 id="comparison-title" class="section-title">Four ways to handle a secret</h2>
+      <p class="caption">Focus each field to check for autofill and password suggestions.</p>
     </div>
 
     <button id="reset-demo" class="text-button" type="button">Back to setup</button>
@@ -14,10 +11,9 @@
   <div class="case-grid">
     <article class="comparison-case">
       <header class="case-summary">
-        <h4 class="section-title">Autocomplete off</h4>
+        <h3 class="section-title">Autocomplete off</h3>
         <p class="caption">
-          A native password input with <code>autocomplete="off"</code>. Browsers may ignore the hint
-          and still classify the pair as login credentials.
+          <code>autocomplete="off"</code> on a password input. Browsers may ignore it.
         </p>
       </header>
       <form class="case-form">
@@ -34,11 +30,10 @@
 
     <article class="comparison-case">
       <header class="case-summary">
-        <h4 class="section-title">New-password</h4>
+        <h3 class="section-title">New-password</h3>
         <p class="caption">
-          A native password input with <code>autocomplete="new-password"</code>. This common
-          workaround prevents silent saved-password fill, but still triggers password and
-          generated-password UI.
+          <code>autocomplete="new-password"</code> prevents silent fill, but can show password
+          suggestions.
         </p>
       </header>
       <form class="case-form">
@@ -55,10 +50,10 @@
 
     <article class="comparison-case">
       <header class="case-summary">
-        <h4 class="section-title">CSS masking</h4>
+        <h3 class="section-title">CSS masking</h3>
         <p class="caption">
-          A text input with <code>-webkit-text-security: disc</code> when supported. It avoids
-          password UI in some browsers, but masks only visually and Safari still shows autofill UI.
+          <code>-webkit-text-security: disc</code> masks text visually. Safari still shows autofill
+          UI.
         </p>
       </header>
       <form class="case-form">
@@ -82,11 +77,9 @@
 
     <article class="comparison-case" data-recommended="true">
       <header class="case-summary">
-        <h4 class="section-title">Secret Input</h4>
+        <h3 class="section-title">Secret Input</h3>
         <p class="caption">
-          A text input passed to <code>mask(input)</code>. Its DOM value holds bullets while
-          browser-written text stays out of state. Native password accessibility cannot be
-          reproduced; undo/redo and IME handling are best effort.
+          <code>mask(input)</code> keeps bullets in the DOM and browser-written text out of state.
         </p>
       </header>
       <form class="case-form">
