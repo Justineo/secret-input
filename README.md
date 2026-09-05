@@ -2,17 +2,11 @@
 
 [![CI](https://github.com/Justineo/secret-input/actions/workflows/ci.yml/badge.svg)](https://github.com/Justineo/secret-input/actions/workflows/ci.yml)
 
-Keep aggressive browser autofill out of fields that are not passwords.
+Keep autofill out of API keys, tokens, and other non-login secrets.
 
-`secret-input` masks a native `input[type="text"]` while keeping its actual value in separate state. The DOM contains bullets, while autofill and extension writes remain untrusted and cannot silently replace the application value.
+`mask()` keeps the actual value in `input.secretValue` and renders bullets in a native text input. Browser and extension writes cannot silently replace that state. No wrapper, Shadow DOM, or CSS masking.
 
-[Live demo and browser comparison](https://secret-input.void.app/)
-
-```text
-input.type                  text
-input.value                 •••••••••
-input.secretValue           secret123
-```
+[Live demo and browser comparison](https://secret-input.void.app/) · [Limitations](#boundaries)
 
 ## Install
 
@@ -22,7 +16,7 @@ pnpm add secret-input
 
 ## Use
 
-Start with an ordinary text input. Do not put the secret in its markup, `value`, or `defaultValue`.
+Start with a text input. Pass secrets to `mask()`, never to HTML markup, native `value`, or `defaultValue`.
 
 ```html
 <form>
@@ -35,66 +29,67 @@ Start with an ordinary text input. Do not put the secret in its markup, `value`,
 import { mask } from "secret-input";
 
 const input = mask(document.querySelector<HTMLInputElement>("#api-key")!, {
-  value: applicationState.apiKey,
+  value: "sk_test_123",
 });
 
-input.addEventListener("input", () => {
-  applicationState.apiKey = input.secretValue;
-});
-
-showButton.addEventListener("click", () => {
-  input.redacted = !input.redacted;
-});
+input.value; // "•••••••••••"
+input.secretValue; // "sk_test_123"
 ```
 
-`mask()` returns the same native input. It adds no wrapper, Shadow DOM, CSS masking, or framework runtime, so labels, focus, form ownership, attributes, classes, styles, and input pseudo-elements continue to work normally.
-
-When the browser constructs a form entry list, it fires `formdata`. The controller replaces that input's masked entry in the resulting `FormData` with `secretValue`; it never assigns the secret to `input.value`. This works for both submission and `new FormData(form)`, including detached forms, forms inside Shadow DOM, and same-origin iframe inputs. Attach the input to its form/root before calling `mask()`. If it later moves to another document or shadow root, call `mask(input)` again before programmatic submission; focusing it also refreshes the bindings.
-
-Form reset restores `defaultSecretValue` at the next microtask checkpoint, after checking whether the reset was canceled. Await a microtask before reading the reset secret programmatically.
+The same native input retains its labels, styles, focus, selection, and form participation.
 
 ## API
 
 ```ts
-function mask(input: HTMLInputElement, options?: MaskOptions): SecretInput;
-
-interface MaskOptions {
-  value?: string;
-  defaultValue?: string;
-  redacted?: boolean;
-}
-
-interface SecretInput extends HTMLInputElement {
-  secretValue: string;
-  defaultSecretValue: string;
-  redacted: boolean;
-}
+declare function mask(
+  input: HTMLInputElement,
+  options?: {
+    value?: string;
+    defaultValue?: string;
+    redacted?: boolean;
+  },
+): SecretInput;
 ```
 
-`mask()` is idempotent: options apply only on the first call. It returns the input with three non-enumerable accessors; controller state remains private in a `WeakMap`. Subsequent calls refresh form bindings without replacing state.
+`SecretInput` extends `HTMLInputElement` with three accessors:
 
-The initial secret is `value`, then `defaultValue`, then `""`. The reset value is `defaultValue`, or the initial secret when omitted. Neither is read from native `value` or `defaultValue`.
+| Accessor             | Purpose                   | Assignment                                                                           |
+| -------------------- | ------------------------- | ------------------------------------------------------------------------------------ |
+| `secretValue`        | Actual secret             | A different value clears history and composition; the same value preserves both.     |
+| `defaultSecretValue` | Form-reset value          | Leaves the current secret unchanged.                                                 |
+| `redacted`           | Masking, initially `true` | `false` reveals plaintext; `true` restores bullets. Preserves selection and history. |
 
-- `secretValue` is the authoritative secret. Assigning a different value clears undo/redo history and composition; reassigning the current value preserves both.
-- `defaultSecretValue` supplies the form-reset value. Updating it does not change the current secret.
-- `redacted` defaults to `true`. Setting it to `false` deliberately places plaintext in `input.value`; setting it back to `true` restores bullets.
+Initial values:
 
-Property assignments do not emit events. User edits emit `input`; blurring emits `change` when user editing has left the secret different from its value at focus or form reset. Undoing back to that value does not emit `change`. Both events remain native, and their target's `value` remains presentation state. Read `secretValue` from the masked input instead.
+- Secret: `value ?? defaultValue ?? ""`.
+- Reset value: `defaultValue ?? initialSecret`.
 
-## React
+`mask()` returns the same input. Repeated calls refresh form bindings; options apply only on the first call. Property assignments emit no events.
+
+| Native event | When it fires                                                                                                    |
+| ------------ | ---------------------------------------------------------------------------------------------------------------- |
+| `input`      | Each accepted user edit, including undo/redo.                                                                    |
+| `change`     | Blur after user edits leave a net change from the focus/reset value. Undoing back to that value emits no change. |
+
+Read `input.secretValue` in handlers. The event target’s native `value` remains presentation only.
+
+## Frameworks
+
+### React
 
 ```tsx
 import { useState } from "react";
 import { SecretInput } from "secret-input/react";
 
-const [apiKey, setApiKey] = useState("");
-
-return <SecretInput name="apiKey" value={apiKey} onInput={setApiKey} />;
+export function ApiKeyField() {
+  const [apiKey, setApiKey] = useState("");
+  return <SecretInput aria-label="API key" name="apiKey" value={apiKey} onInput={setApiKey} />;
+}
 ```
 
-`SecretInput` supports controlled `value`, uncontrolled `defaultValue`, `redacted`, and a ref to the masked native input. Other input props pass through. `onInput(value, event)` reports every accepted edit. `onChange(value, event)` follows the native, lazier contract and fires on blur when editing has left a net value change. The event target still contains only the presentation value.
+Use `value` for controlled state or `defaultValue` for uncontrolled state. A `ref` exposes the masked native input.
 
-## Vue
+### Vue
 
 ```vue
 <script setup lang="ts">
@@ -105,57 +100,63 @@ const apiKey = ref("");
 </script>
 
 <template>
-  <SecretInput v-model="apiKey" name="apiKey" />
+  <SecretInput v-model="apiKey" aria-label="API key" name="apiKey" />
 </template>
 ```
 
-The Vue SFC supports `v-model`, `defaultValue`, and `redacted`. Attributes fall through to its single native input. Its `input` and `change` events use the same `(value, event)` arguments as the React callbacks.
+Both adapters support `defaultValue` and `redacted`, forward native attributes, and reuse the core controller. Their `input`/`change` callbacks receive `(value, event)` and follow the timing above; React uses `onInput`/`onChange`.
 
-React and Vue are optional peer dependencies. Both adapters reuse the same framework-independent controller and emit hydration-safe bullets during SSR; neither server-renders plaintext or a temporary password input.
+React and Vue are optional peers. SSR always renders bullets, even when `redacted` is `false`; reveal happens after attachment. [Integration details](docs/agents/framework-integrations.md).
 
 ## Behavior
 
-- The native input retains focus, selection, caret, pointer, and context-menu behavior.
-- Typing, deletion, paste, drop, IME composition, and selection replacement update the separate secret state.
-- Undo and redo operate on secret-state history. Contiguous typing and character deletion at a collapsed caret are grouped. Selection edits start a new group; paste/drop and IME commits are standalone transactions. Undo restores the original selection; redo restores the final caret.
-- Copy, cut, and dragging selected text are blocked while redacted; paste remains available.
-- Unicode is preserved exactly. Masked edits treat extended graphemes as atomic, while `maxlength` keeps native UTF-16 semantics.
-- `autocomplete="off"` and known ignore attributes for 1Password, Bitwarden, Dashlane, LastPass, and Proton Pass are applied automatically.
-- Autofill-shaped and otherwise unexpected DOM mutations are discarded instead of becoming secret state.
+| Area      | Contract                                                                                                                                                                            |
+| --------- | ----------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| Forms     | Submission and `new FormData(form)` receive the actual secret without exposing it in `input.value`.                                                                                 |
+| Reset     | Restores `defaultSecretValue` at the next microtask, unless canceled. Await a microtask before reading it.                                                                          |
+| Editing   | Typing, deletion, paste, drop, selection replacement, and committed IME input update secret state.                                                                                  |
+| History   | Contiguous typing/deletion are grouped; selection edits start a group, paste/drop and IME commits stand alone. Undo restores the original selection; redo restores the final caret. |
+| Clipboard | Copy, cut, and selection dragging are blocked while redacted. Paste remains available.                                                                                              |
+| Unicode   | One bullet per grapheme; no normalization. Native single-line CR/LF removal and UTF-16 `maxlength` semantics apply.                                                                 |
+| Autofill  | Unexpected DOM writes are rejected. Browser and known password-manager opt-out hints are applied automatically.                                                                     |
 
-Current Chrome, Edge, Firefox, and Safari are covered by browser tests. Real saved-credential autofill, platform IMEs, iOS interaction, and assistive-technology combinations remain manual compatibility tests because WebDriver cannot reliably automate them.
+Attach the input to its form/root before calling `mask()`. After moving it to another document or shadow root, call `mask()` again before programmatic submission; focus also refreshes bindings. Detached forms, shadow roots, and same-origin iframe inputs are supported.
+
+[Value and form model](docs/agents/architecture.md) · [Editing and browser details](docs/agents/platform-and-input.md)
 
 ## Boundaries
 
-This library reduces unwanted autofill and protects its state from browser-written DOM values; it is not a security boundary against same-origin JavaScript or a native password field replacement.
+Use native password inputs for login passwords. This library is **not a security boundary against same-origin JavaScript**.
 
-- Password managers may ignore their opt-out hints. State separation is the durable protection.
-- Assistive technology inspecting a redacted value should encounter bullets, but `input[type="text"]` has no native secure-field semantics. Typing echo depends on the assistive technology and user settings.
-- The browser may disable its native Undo/Redo menu items because controller edits do not populate native editing history. Keyboard shortcuts and dispatched history input operations use the controller history.
-- IME suppression is best effort. Composition text is buffered so phonetic keystrokes do not enter the secret, but some engines may expose plaintext transiently before the mask is restored.
-- Revealed state exposes plaintext through the DOM, accessibility APIs, selection, and clipboard.
-- `minlength` and `pattern` inspect the presentation value; validate the actual secret in application code and use `setCustomValidity()` when native constraint UI is needed.
-- Do not mix masked and ordinary successful controls with the same `name`; the masked group owns that `FormData` entry.
+| Area              | Limitation                                                                                                                  |
+| ----------------- | --------------------------------------------------------------------------------------------------------------------------- |
+| Password managers | May ignore opt-out hints. Separate secret state protects the application value.                                             |
+| Accessibility     | Redacted values expose bullets, but text inputs lack native secure-field semantics. Typing echo may announce input.         |
+| Undo/redo         | Uses controller history. Native menu items may be disabled; grouping and selection can differ by platform.                  |
+| IME               | Suppression is best effort. Drafts stay outside secret state, but engines may expose transient plaintext.                   |
+| Reveal            | Plaintext becomes available through the DOM, accessibility APIs, selection, and clipboard.                                  |
+| Validation        | `minlength` and `pattern` inspect presentation. Validate `secretValue`; use `setCustomValidity()` for native validation UI. |
+| Form names        | Do not mix masked and ordinary successful controls under one `name`; the masked group owns that entry.                      |
+
+Chrome, Edge, Firefox, and Safari have automated browser tests. Saved-credential autofill, real IMEs, iOS interaction, and assistive technology require manual checks. See the [live comparison](https://secret-input.void.app/) for observed behavior.
 
 ## Develop
 
 ```sh
 pnpm install
-vp dev
-vpr check
-vp test
-vp run test:browser
-vp build
-vp pack
+vp dev                 # Demo
+vpr check              # Formatting, lint, and types
+vp test                # Unit tests
+vp run test:browser    # Browser tests
+vp build               # Website
+vp pack                # Library
 ```
 
-Set `BROWSER=chrome`, `edge`, `firefox`, or `safari` to run one browser target. Safari requires **Develop → Allow Remote Automation** or `safaridriver --enable`.
+Set `BROWSER=chrome`, `edge`, `firefox`, or `safari` to select a browser. Safari requires **Develop → Allow Remote Automation**.
 
-GitHub Actions runs static checks, unit tests, package validation, the demo build, and all four browser targets. Deployment and tagged releases wait for the complete verification chain.
+For releases, version the relevant [changelog](CHANGELOG.md) entries, then run `pnpm release`. CI gates deployment and publishing on all checks.
 
-Before a release, move the relevant entries in [CHANGELOG.md](CHANGELOG.md) under a versioned heading, then run `pnpm release`. The tag workflow creates the GitHub release and publishes the matching npm dist-tag with provenance. See the [release guide](docs/agents/releasing.md) for first-publish setup.
-
-Detailed architecture and maintenance notes live in [`docs/agents/`](docs/agents/).
+[Testing](docs/agents/testing.md) · [Releasing](docs/agents/releasing.md) · [Maintenance notes](docs/agents/)
 
 ## License
 
