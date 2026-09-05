@@ -32,16 +32,12 @@
         <section class="hero" aria-labelledby="page-title">
           <div class="home-intro">
             <h1 id="page-title" class="page-title">
-              Stop <span class="autofill-highlight">autofill</span> from corrupting secret fields.
+              Keep <span class="autofill-highlight">autofill</span> out of secret fields.
             </h1>
-            <p class="lede">
-              Keep browser autofill out of API keys, access tokens, and other non-login secrets.
-            </p>
+            <p class="lede">For API keys, access tokens, and signing secrets.</p>
             <p class="caption">
-              Use native password inputs for login passwords.
-              <a href="https://github.com/Justineo/secret-input#boundaries"
-                >Read the limitations.</a
-              >
+              Login passwords need native password inputs.
+              <a href="https://github.com/Justineo/secret-input#boundaries">Limitations</a>
             </p>
           </div>
           <div class="integration" aria-label="JavaScript usage example">
@@ -68,16 +64,9 @@ input.secretValue; // 'sk_test_123'</code></pre>
             <div class="setup-layout">
               <section class="setup-guide" aria-labelledby="setup-title">
                 <h2 id="setup-title" class="section-title">Save a test login</h2>
-                <p class="caption">
-                  Use disposable credentials, never a real password. Submit and accept your
-                  browser’s save prompt to compare how four inputs handle autofill.
-                </p>
-                <p class="caption">
-                  Disable password-manager extensions to test the browser itself.
-                </p>
-                <p class="caption">
-                  This page never sends or stores your credentials—only a local completion flag.
-                </p>
+                <p class="caption">Use dummy credentials and accept your browser’s save prompt.</p>
+                <p class="caption">Disable password-manager extensions.</p>
+                <p class="caption">This page never sends or saves credentials.</p>
               </section>
               <form id="credential-form" class="setup-form" action="./" method="post">
                 <div class="field">

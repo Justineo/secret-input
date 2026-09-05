@@ -16,15 +16,15 @@ function requiredElement<T extends Element>(selector: string): T {
 }
 
 type Support = "supported" | "best-effort" | "unsupported";
-type Assessment = readonly [status: Support, detail: string];
+type Assessment = readonly [status: Support, detail: string, ...details: string[]];
 type BrowserSupport = readonly [Assessment, Assessment, Assessment, Assessment];
 type MatrixRow = {
   label: string;
   solutions: readonly [BrowserSupport, BrowserSupport, BrowserSupport, BrowserSupport];
 };
 
-function allBrowsers(status: Support, detail: string): BrowserSupport {
-  const assessment = [status, detail] as const;
+function allBrowsers(status: Support, ...details: [string, ...string[]]): BrowserSupport {
+  const assessment = [status, ...details] as const;
   return [assessment, assessment, assessment, assessment];
 }
 
@@ -54,17 +54,17 @@ const supportLabels: Record<Support, string> = {
 };
 
 const nativeValueProtection = [
-  ["supported", "The native password control is exposed as protected instead of plaintext."],
-  ["supported", "The native password control is exposed as protected instead of plaintext."],
-  ["supported", "The native password control exposes the protected password state."],
-  ["supported", "The native password control is exposed as AXSecureTextField with bullets."],
+  ["supported", "Protected value; no plaintext."],
+  ["supported", "Protected value; no plaintext."],
+  ["supported", "Protected password value."],
+  ["supported", "AXSecureTextField; value contains bullets."],
 ] as const satisfies BrowserSupport;
 
 const nativePasswordAccessibility = [
-  ["supported", "The native control provides platform password semantics and secure echo rules."],
-  ["supported", "The native control provides platform password semantics and secure echo rules."],
-  ["supported", "The native control exposes protected password-field semantics."],
-  ["supported", "The native control exposes AXSecureTextField semantics."],
+  ["supported", "Native password semantics and secure typing echo."],
+  ["supported", "Native password semantics and secure typing echo."],
+  ["supported", "Native protected-field semantics."],
+  ["supported", "Native AXSecureTextField semantics."],
 ] as const satisfies BrowserSupport;
 
 const supportMatrix = [
@@ -72,55 +72,51 @@ const supportMatrix = [
     label: "Stops automatic autofill",
     solutions: [
       [
-        ["unsupported", "Automatically fills both fields despite autocomplete=off."],
-        ["unsupported", "Automatically fills both fields despite autocomplete=off."],
-        ["unsupported", "Automatically fills both fields despite autocomplete=off."],
-        [
-          "supported",
-          "Safari does not fill automatically; it waits for interaction before showing a picker.",
-        ],
+        ["unsupported", "Both fields autofill despite autocomplete=off."],
+        ["unsupported", "Both fields autofill despite autocomplete=off."],
+        ["unsupported", "Both fields autofill despite autocomplete=off."],
+        ["supported", "No automatic fill.", "Interaction opens a password picker."],
       ],
       allBrowsers(
         "supported",
-        "No automatic fill was observed; interaction-triggered password UI is evaluated separately.",
+        "No automatic fill observed.",
+        "Password suggestions may still appear on interaction.",
       ),
       [
-        ["supported", "No automatic fill was observed."],
-        ["supported", "No automatic fill was observed."],
-        ["supported", "No automatic fill was observed."],
-        [
-          "supported",
-          "Safari does not fill automatically; it waits for interaction before showing a picker.",
-        ],
+        ["supported", "No automatic fill observed."],
+        ["supported", "No automatic fill observed."],
+        ["supported", "No automatic fill observed."],
+        ["supported", "No automatic fill.", "Interaction opens a password picker."],
       ],
-      allBrowsers("supported", "No automatic fill was observed."),
+      allBrowsers("supported", "No automatic fill observed."),
     ],
   },
   {
     label: "Avoids autofill UI",
     solutions: [
       [
-        ["unsupported", "The native password field remains eligible for password-manager UI."],
-        ["unsupported", "The native password field remains eligible for password-manager UI."],
-        ["unsupported", "The native password field remains eligible for password-manager UI."],
-        ["unsupported", "Focusing either field opens the password picker."],
+        ["unsupported", "Password suggestions remain available."],
+        ["unsupported", "Password suggestions remain available."],
+        ["unsupported", "Password suggestions remain available."],
+        ["unsupported", "Either field opens a password picker on focus."],
       ],
       [
-        ["unsupported", "Focusing the secret opens password-manager UI."],
-        ["unsupported", "Focusing the secret opens password-manager UI."],
+        ["unsupported", "Secret field opens password suggestions on focus."],
+        ["unsupported", "Secret field opens password suggestions on focus."],
         [
           "unsupported",
-          "Focusing either field opens password-manager UI; the secret gets a new-password picker.",
+          "Both fields show password suggestions on focus.",
+          "Secret field offers new passwords.",
         ],
-        ["unsupported", "Focusing the fields opens the new-password picker."],
+        ["unsupported", "Focus opens a new-password picker."],
       ],
       [
-        ["supported", "No password-manager UI was observed."],
-        ["supported", "No password-manager UI was observed."],
-        ["supported", "No password-manager UI was observed."],
-        ["unsupported", "Focusing either field opens the password picker."],
+        ["supported", "No password suggestions observed."],
+        ["supported", "No password suggestions observed."],
+        ["supported", "No password suggestions observed."],
+        ["unsupported", "Either field opens a password picker on focus."],
       ],
-      allBrowsers("supported", "No password-manager UI was observed."),
+      allBrowsers("supported", "No password suggestions observed."),
     ],
   },
   {
@@ -130,59 +126,56 @@ const supportMatrix = [
       nativeValueProtection,
       allBrowsers(
         "unsupported",
-        "CSS changes painting only; accessibility APIs still receive the text input's plaintext value.",
+        "Visual masking only.",
+        "Assistive technology receives plaintext.",
       ),
       allBrowsers(
         "supported",
-        "The accessible value contains bullets because the DOM value is masked; typing echo may still announce new input.",
+        "Accessible value contains bullets.",
+        "Typing echo may announce new input.",
       ),
     ],
   },
   {
     label: "Undo/redo",
     solutions: [
-      allBrowsers("supported", "Uses the browser's native editing history."),
-      allBrowsers("supported", "Uses the browser's native editing history."),
-      allBrowsers("supported", "Uses the browser's native editing history."),
+      allBrowsers("supported", "Native browser history."),
+      allBrowsers("supported", "Native browser history."),
+      allBrowsers("supported", "Native browser history."),
       allBrowsers(
         "best-effort",
-        "Keyboard and beforeinput undo/redo are simulated in controller state; grouping and context-menu integration can differ from native behavior.",
+        "Keyboard and beforeinput undo/redo supported.",
+        "Custom grouping; context menus may differ.",
       ),
     ],
   },
   {
     label: "Disables IME",
     solutions: [
-      allBrowsers("supported", "Native password-field behavior prevents normal IME composition."),
-      allBrowsers("supported", "Native password-field behavior prevents normal IME composition."),
+      allBrowsers("supported", "Native password behavior blocks composition."),
+      allBrowsers("supported", "Native password behavior blocks composition."),
       [
-        [
-          "best-effort",
-          "After text exists, Chrome treats the field as password-like and blocks IME switching; the first empty-field interaction is unreliable.",
-        ],
-        [
-          "unsupported",
-          "IME remains switchable; preventing compositionstart does not stop composition.",
-        ],
-        ["supported", "Firefox honors ime-mode: disabled and prevents composition."],
+        ["best-effort", "IME blocked after text is entered.", "Unreliable while empty."],
+        ["unsupported", "IME stays enabled.", "Canceling compositionstart has no effect."],
+        ["supported", "ime-mode: disabled blocks composition."],
         [
           "unsupported",
-          "Safari ignores ime-mode and preventing compositionstart does not stop composition.",
+          "IME stays enabled.",
+          "ime-mode and compositionstart cancellation have no effect.",
         ],
       ],
       [
-        [
-          "supported",
-          "The custom-password primer makes current Chrome block IME switching for the masked field.",
-        ],
+        ["supported", "Custom-password primer blocks IME switching."],
         [
           "best-effort",
-          "IME cannot be disabled, but composition drafts do not change the secret and the committed result is applied once.",
+          "IME stays enabled; drafts leave the secret unchanged.",
+          "Committed text applied once.",
         ],
-        ["supported", "Firefox honors ime-mode: disabled and prevents composition."],
+        ["supported", "ime-mode: disabled blocks composition."],
         [
           "best-effort",
-          "IME cannot be disabled, but composition drafts do not change the secret and the committed result is applied once.",
+          "IME stays enabled; drafts leave the secret unchanged.",
+          "Committed text applied once.",
         ],
       ],
     ],
@@ -194,11 +187,13 @@ const supportMatrix = [
       nativePasswordAccessibility,
       allBrowsers(
         "unsupported",
-        "The control remains an ordinary text field; visual CSS masking adds no secure accessibility semantics.",
+        "Ordinary text-field semantics.",
+        "CSS adds no secure accessibility behavior.",
       ),
       allBrowsers(
         "unsupported",
-        "The control remains an ordinary text field, and no standard ARIA role can restore native password semantics.",
+        "Ordinary text-field semantics.",
+        "ARIA cannot add native password behavior.",
       ),
     ],
   },
@@ -236,6 +231,7 @@ function renderSupportMatrix(): void {
   const body = requiredElement<HTMLTableSectionElement>("#support-matrix");
   const detailOutput = requiredElement<HTMLElement>("#support-detail");
   const solutions = ["Autocomplete off", "New-password", "CSS masking", "Secret Input"];
+  let selectedButton: HTMLButtonElement | undefined;
 
   for (const row of supportMatrix) {
     const tableRow = document.createElement("tr");
@@ -254,13 +250,13 @@ function renderSupportMatrix(): void {
       group.className = "browser-support";
       group.setAttribute("role", "group");
 
-      for (const [browserIndex, [status, detail]] of statuses.entries()) {
+      for (const [browserIndex, [status, ...details]] of statuses.entries()) {
         const browser = browsers[browserIndex];
         if (!browser) {
           throw new RangeError(`Missing browser at index ${browserIndex}.`);
         }
 
-        const description = `${browser.name}: ${supportLabels[status]}. ${detail}`;
+        const description = `${browser.name}: ${supportLabels[status]}`;
         const icon = document.createElement("img");
         icon.className = "browser-icon";
         icon.src = browser.icon;
@@ -268,14 +264,44 @@ function renderSupportMatrix(): void {
         icon.width = 18;
         icon.height = 18;
         icon.dataset.support = status;
-        icon.title = description;
+        icon.title = `${description}. ${details.join(" ")}`;
         const button = document.createElement("button");
         button.type = "button";
         button.className = "browser-detail";
         button.setAttribute("aria-label", description);
         button.append(icon);
         const showDetail = () => {
-          detailOutput.textContent = `${row.label} · ${solutions[solutionIndex]} · ${description}`;
+          if (selectedButton === button) return;
+          selectedButton?.removeAttribute("aria-current");
+          button.setAttribute("aria-current", "true");
+          selectedButton = button;
+
+          const title = document.createElement("p");
+          title.className = "support-detail-title";
+          title.textContent = row.label;
+          const context = document.createElement("dl");
+          context.className = "support-detail-context";
+          for (const [label, value] of [
+            ["Method", solutions[solutionIndex]],
+            ["Browser", browser.name],
+            ["Result", supportLabels[status]],
+          ] as const) {
+            const entry = document.createElement("div");
+            const term = document.createElement("dt");
+            term.textContent = label;
+            const definition = document.createElement("dd");
+            definition.textContent = value!;
+            entry.append(term, definition);
+            context.append(entry);
+          }
+          const notes = document.createElement("ul");
+          notes.className = "support-detail-notes";
+          for (const detail of details) {
+            const note = document.createElement("li");
+            note.textContent = detail;
+            notes.append(note);
+          }
+          detailOutput.replaceChildren(title, context, notes);
         };
         button.addEventListener("focus", showDetail);
         button.addEventListener("click", showDetail);

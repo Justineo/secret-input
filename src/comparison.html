@@ -1,20 +1,27 @@
 <section class="page-section comparison-page" aria-labelledby="comparison-title">
   <header class="comparison-intro">
     <div class="comparison-claim">
-      <h2 id="comparison-title" class="section-title">Four ways to handle a secret</h2>
-      <p class="caption">Focus each field to check for autofill and password suggestions.</p>
+      <h2 id="comparison-title" class="section-title">Compare inputs</h2>
+      <p class="caption">Focus a field to check autofill.</p>
     </div>
 
-    <button id="reset-demo" class="text-button" type="button">Back to setup</button>
+    <button id="reset-demo" class="text-button" type="button">Reset test</button>
   </header>
 
   <div class="case-grid">
     <article class="comparison-case">
       <header class="case-summary">
         <h3 class="section-title">Autocomplete off</h3>
-        <p class="caption">
-          <code>autocomplete="off"</code> on a password input. Browsers may ignore it.
-        </p>
+        <dl class="case-spec caption">
+          <div>
+            <dt>Type</dt>
+            <dd><code>password</code></dd>
+          </div>
+          <div>
+            <dt>Setup</dt>
+            <dd><code>autocomplete="off"</code></dd>
+          </div>
+        </dl>
       </header>
       <form class="case-form">
         <div class="field">
@@ -31,10 +38,16 @@
     <article class="comparison-case">
       <header class="case-summary">
         <h3 class="section-title">New-password</h3>
-        <p class="caption">
-          <code>autocomplete="new-password"</code> prevents silent fill, but can show password
-          suggestions.
-        </p>
+        <dl class="case-spec caption">
+          <div>
+            <dt>Type</dt>
+            <dd><code>password</code></dd>
+          </div>
+          <div>
+            <dt>Setup</dt>
+            <dd><code>autocomplete="new-password"</code></dd>
+          </div>
+        </dl>
       </header>
       <form class="case-form">
         <div class="field">
@@ -51,10 +64,16 @@
     <article class="comparison-case">
       <header class="case-summary">
         <h3 class="section-title">CSS masking</h3>
-        <p class="caption">
-          <code>-webkit-text-security: disc</code> masks text visually. Safari still shows autofill
-          UI.
-        </p>
+        <dl class="case-spec caption">
+          <div>
+            <dt>Type</dt>
+            <dd><code>text</code></dd>
+          </div>
+          <div>
+            <dt>Setup</dt>
+            <dd><code>-webkit-text-security: disc</code></dd>
+          </div>
+        </dl>
       </header>
       <form class="case-form">
         <div class="field">
@@ -78,9 +97,16 @@
     <article class="comparison-case" data-recommended="true">
       <header class="case-summary">
         <h3 class="section-title">Secret Input</h3>
-        <p class="caption">
-          <code>mask(input)</code> keeps bullets in the DOM and browser-written text out of state.
-        </p>
+        <dl class="case-spec caption">
+          <div>
+            <dt>Type</dt>
+            <dd><code>text</code></dd>
+          </div>
+          <div>
+            <dt>Setup</dt>
+            <dd><code>mask(input)</code></dd>
+          </div>
+        </dl>
       </header>
       <form class="case-form">
         <div class="field">
@@ -145,9 +171,9 @@
         <tbody id="support-matrix"></tbody>
       </table>
     </div>
-    <p id="support-detail" class="caption support-detail" role="status">
-      Select a browser icon for details. Results reflect the tested desktop browsers; behavior can
-      vary by version and settings.
-    </p>
+    <p class="caption compatibility-note">Desktop results; versions and settings may differ.</p>
+    <div id="support-detail" class="support-detail caption" role="status" aria-atomic="true">
+      <p>Select a browser for details.</p>
+    </div>
   </section>
 </section>

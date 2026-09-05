@@ -61,6 +61,28 @@
   min-width: 0;
 }
 
+.case-spec {
+  display: grid;
+  gap: var(--space-1);
+  margin: 0;
+}
+.case-spec > div {
+  display: grid;
+  grid-template-columns: 2.5rem minmax(0, 1fr);
+  gap: var(--space-2);
+  align-items: baseline;
+}
+.case-spec dd {
+  margin: 0;
+  overflow-wrap: anywhere;
+}
+.case-spec code {
+  padding: 0;
+  border: 0;
+  background: none;
+  color: var(--text);
+}
+
 .case-form {
   display: grid;
   grid-column: span 8;
@@ -206,9 +228,42 @@
 .browser-detail:hover {
   background: var(--hover);
 }
-.support-detail {
-  min-height: 3em;
+.browser-detail[aria-current] {
+  background: var(--hover);
+  box-shadow: inset 0 0 0 1px var(--stroke-strong);
+}
+.compatibility-note {
   margin-block-start: var(--space-3);
+}
+.support-detail {
+  margin-block-start: var(--space-5);
+}
+.support-detail p {
+  margin: 0;
+}
+.support-detail-title {
+  color: var(--ink);
+}
+.support-detail-context {
+  display: flex;
+  flex-wrap: wrap;
+  gap: var(--space-3) var(--space-8);
+  margin-block: var(--space-3);
+}
+.support-detail-context > div {
+  display: grid;
+  grid-template-columns: 4rem minmax(0, 1fr);
+  gap: var(--space-2);
+}
+.support-detail-context dd {
+  margin: 0;
+  color: var(--text);
+}
+.support-detail-notes {
+  display: grid;
+  gap: var(--space-1);
+  margin: 0;
+  padding-inline-start: 1.25em;
 }
 
 @media (width <= 1000px) {
@@ -255,6 +310,10 @@
     white-space: normal;
   }
 
+  .support-detail-context {
+    display: grid;
+    gap: var(--space-1);
+  }
   .text-button {
     min-height: 44px;
   }

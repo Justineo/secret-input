@@ -86,14 +86,27 @@ describe("demo initialization", () => {
     expect(document.querySelectorAll("#support-matrix tr")).toHaveLength(6);
     const button = element<HTMLButtonElement>(".browser-detail");
     button.focus();
-    expect(element("#support-detail").textContent).toContain(
-      "Stops automatic autofill · Autocomplete off · Chrome: Unsupported",
+    expect(element(".support-detail-title").textContent).toBe("Stops automatic autofill");
+    expect(
+      [...document.querySelectorAll(".support-detail-context dd")].map((item) => item.textContent),
+    ).toEqual(["Autocomplete off", "Chrome", "Unsupported"]);
+    expect(element(".support-detail-notes li").textContent).toBe(
+      "Both fields autofill despite autocomplete=off.",
     );
+    expect(button.getAttribute("aria-current")).toBe("true");
     const last = document.querySelector<HTMLButtonElement>(
       ".browser-support .browser-detail:last-child",
     )!;
     last.click();
-    expect(element("#support-detail").textContent).toContain("Safari: Supported");
+    expect(
+      [...document.querySelectorAll(".support-detail-context dd")].map((item) => item.textContent),
+    ).toEqual(["Autocomplete off", "Safari", "Supported"]);
+    expect(
+      [...document.querySelectorAll(".support-detail-notes li")].map((item) => item.textContent),
+    ).toEqual(["No automatic fill.", "Interaction opens a password picker."]);
+    expect(button.hasAttribute("aria-current")).toBe(false);
+    expect(last.getAttribute("aria-current")).toBe("true");
+    expect(document.querySelectorAll(".browser-detail[aria-current]")).toHaveLength(1);
     vi.spyOn(localStorage, "removeItem").mockImplementation(() => {
       throw new DOMException("Blocked", "SecurityError");
     });
