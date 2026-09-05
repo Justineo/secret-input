@@ -55,16 +55,16 @@ declare function mask(
 
 | Accessor             | Purpose                   | Assignment                                                                           |
 | -------------------- | ------------------------- | ------------------------------------------------------------------------------------ |
-| `secretValue`        | Actual secret             | A different value clears history and composition; the same value preserves both.     |
+| `secretValue`        | Actual secret             | A different value clears history and composition. The same value preserves both.     |
 | `defaultSecretValue` | Form-reset value          | Leaves the current secret unchanged.                                                 |
-| `redacted`           | Masking, initially `true` | `false` reveals plaintext; `true` restores bullets. Preserves selection and history. |
+| `redacted`           | Masking, initially `true` | `false` reveals plaintext. `true` restores bullets. Preserves selection and history. |
 
 Initial values:
 
 - Secret: `value ?? defaultValue ?? ""`.
 - Reset value: `defaultValue ?? initialSecret`.
 
-`mask()` returns the same input. Repeated calls refresh form bindings; options apply only on the first call. Property assignments emit no events.
+`mask()` returns the same input. Repeated calls refresh form bindings. Options apply only on the first call. Property assignments emit no events.
 
 | Native event | When it fires                                                                                                    |
 | ------------ | ---------------------------------------------------------------------------------------------------------------- |
@@ -104,9 +104,9 @@ const apiKey = ref("");
 </template>
 ```
 
-Both adapters support `defaultValue` and `redacted`, forward native attributes, and reuse the core controller. Their `input`/`change` callbacks receive `(value, event)` and follow the timing above; React uses `onInput`/`onChange`.
+Both adapters support `defaultValue` and `redacted`, forward native attributes, and reuse the core controller. Their `input`/`change` callbacks receive `(value, event)` and follow the timing above. React uses `onInput`/`onChange`.
 
-React and Vue are optional peers. SSR always renders bullets, even when `redacted` is `false`; reveal happens after attachment. [Integration details](docs/agents/framework-integrations.md).
+React and Vue are optional peers. SSR always renders bullets, even when `redacted` is `false`. Reveal happens after attachment. [Integration details](docs/agents/framework-integrations.md).
 
 ## Behavior
 
@@ -115,12 +115,12 @@ React and Vue are optional peers. SSR always renders bullets, even when `redacte
 | Forms     | Submission and `new FormData(form)` receive the actual secret without exposing it in `input.value`.                                                                                 |
 | Reset     | Restores `defaultSecretValue` at the next microtask, unless canceled. Await a microtask before reading it.                                                                          |
 | Editing   | Typing, deletion, paste, drop, selection replacement, and committed IME input update secret state.                                                                                  |
-| History   | Contiguous typing/deletion are grouped; selection edits start a group, paste/drop and IME commits stand alone. Undo restores the original selection; redo restores the final caret. |
+| History   | Contiguous typing/deletion are grouped. Selection edits start a group, paste/drop and IME commits stand alone. Undo restores the original selection. Redo restores the final caret. |
 | Clipboard | Copy, cut, and selection dragging are blocked while redacted. Paste remains available.                                                                                              |
-| Unicode   | One bullet per grapheme; no normalization. Native single-line CR/LF removal and UTF-16 `maxlength` semantics apply.                                                                 |
+| Unicode   | One bullet per grapheme. No normalization. Native single-line CR/LF removal and UTF-16 `maxlength` semantics apply.                                                                 |
 | Autofill  | Unexpected DOM writes are rejected. Browser and known password-manager opt-out hints are applied automatically.                                                                     |
 
-Attach the input to its form/root before calling `mask()`. After moving it to another document or shadow root, call `mask()` again before programmatic submission; focus also refreshes bindings. Detached forms, shadow roots, and same-origin iframe inputs are supported.
+Attach the input to its form/root before calling `mask()`. After moving it to another document or shadow root, call `mask()` again before programmatic submission. Focus also refreshes bindings. Detached forms, shadow roots, and same-origin iframe inputs are supported.
 
 [Value and form model](docs/agents/architecture.md) · [Editing and browser details](docs/agents/platform-and-input.md)
 
@@ -132,11 +132,11 @@ Use native password inputs for login passwords. This library is **not a security
 | ----------------- | --------------------------------------------------------------------------------------------------------------------------- |
 | Password managers | May ignore opt-out hints. Separate secret state protects the application value.                                             |
 | Accessibility     | Redacted values expose bullets, but text inputs lack native secure-field semantics. Typing echo may announce input.         |
-| Undo/redo         | Uses controller history. Native menu items may be disabled; grouping and selection can differ by platform.                  |
+| Undo/redo         | Uses controller history. Native menu items may be disabled. Grouping and selection can differ by platform.                  |
 | IME               | Suppression is best effort. Drafts stay outside secret state, but engines may expose transient plaintext.                   |
 | Reveal            | Plaintext becomes available through the DOM, accessibility APIs, selection, and clipboard.                                  |
-| Validation        | `minlength` and `pattern` inspect presentation. Validate `secretValue`; use `setCustomValidity()` for native validation UI. |
-| Form names        | Do not mix masked and ordinary successful controls under one `name`; the masked group owns that entry.                      |
+| Validation        | `minlength` and `pattern` inspect presentation. Validate `secretValue`. Use `setCustomValidity()` for native validation UI. |
+| Form names        | Do not mix masked and ordinary successful controls under one `name`. The masked group owns that entry.                      |
 
 Chrome, Edge, Firefox, and Safari have automated browser tests. Saved-credential autofill, real IMEs, iOS interaction, and assistive technology require manual checks. See the [live comparison](https://secret-input.void.app/) for observed behavior.
 

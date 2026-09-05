@@ -86,11 +86,7 @@ describe("demo initialization", () => {
     expect(document.querySelectorAll("#support-matrix tr")).toHaveLength(6);
     const button = element<HTMLButtonElement>(".browser-detail");
     button.focus();
-    expect(element(".support-detail-title").textContent).toBe("Stops automatic autofill");
-    expect(
-      [...document.querySelectorAll(".support-detail-context dd")].map((item) => item.textContent),
-    ).toEqual(["Autocomplete off", "Chrome", "Unsupported"]);
-    expect(element(".support-detail-notes li").textContent).toBe(
+    expect(element("#support-detail").textContent).toBe(
       "Both fields autofill despite autocomplete=off.",
     );
     expect(button.getAttribute("aria-current")).toBe("true");
@@ -98,9 +94,6 @@ describe("demo initialization", () => {
       ".browser-support .browser-detail:last-child",
     )!;
     last.click();
-    expect(
-      [...document.querySelectorAll(".support-detail-context dd")].map((item) => item.textContent),
-    ).toEqual(["Autocomplete off", "Safari", "Supported"]);
     expect(
       [...document.querySelectorAll(".support-detail-notes li")].map((item) => item.textContent),
     ).toEqual(["No automatic fill.", "Interaction opens a password picker."]);

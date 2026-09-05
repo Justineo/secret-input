@@ -54,10 +54,10 @@ const supportLabels: Record<Support, string> = {
 };
 
 const nativeValueProtection = [
-  ["supported", "Protected value; no plaintext."],
-  ["supported", "Protected value; no plaintext."],
+  ["supported", "Protected value without plaintext."],
+  ["supported", "Protected value without plaintext."],
   ["supported", "Protected password value."],
-  ["supported", "AXSecureTextField; value contains bullets."],
+  ["supported", "AXSecureTextField with bullets."],
 ] as const satisfies BrowserSupport;
 
 const nativePasswordAccessibility = [
@@ -145,7 +145,7 @@ const supportMatrix = [
       allBrowsers(
         "best-effort",
         "Keyboard and beforeinput undo/redo supported.",
-        "Custom grouping; context menus may differ.",
+        "Grouping and context menus may differ.",
       ),
     ],
   },
@@ -168,13 +168,13 @@ const supportMatrix = [
         ["supported", "Custom-password primer blocks IME switching."],
         [
           "best-effort",
-          "IME stays enabled; drafts leave the secret unchanged.",
+          "IME stays enabled. Drafts leave the secret unchanged.",
           "Committed text applied once.",
         ],
         ["supported", "ime-mode: disabled blocks composition."],
         [
           "best-effort",
-          "IME stays enabled; drafts leave the secret unchanged.",
+          "IME stays enabled. Drafts leave the secret unchanged.",
           "Committed text applied once.",
         ],
       ],
@@ -276,24 +276,6 @@ function renderSupportMatrix(): void {
           button.setAttribute("aria-current", "true");
           selectedButton = button;
 
-          const title = document.createElement("p");
-          title.className = "support-detail-title";
-          title.textContent = row.label;
-          const context = document.createElement("dl");
-          context.className = "support-detail-context";
-          for (const [label, value] of [
-            ["Method", solutions[solutionIndex]],
-            ["Browser", browser.name],
-            ["Result", supportLabels[status]],
-          ] as const) {
-            const entry = document.createElement("div");
-            const term = document.createElement("dt");
-            term.textContent = label;
-            const definition = document.createElement("dd");
-            definition.textContent = value!;
-            entry.append(term, definition);
-            context.append(entry);
-          }
           const notes = document.createElement("ul");
           notes.className = "support-detail-notes";
           for (const detail of details) {
@@ -301,7 +283,7 @@ function renderSupportMatrix(): void {
             note.textContent = detail;
             notes.append(note);
           }
-          detailOutput.replaceChildren(title, context, notes);
+          detailOutput.replaceChildren(notes);
         };
         button.addEventListener("focus", showDetail);
         button.addEventListener("click", showDetail);
