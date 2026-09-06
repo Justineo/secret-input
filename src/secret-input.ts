@@ -102,78 +102,102 @@ function installFormHandlers(input: HTMLInputElement): void {
   }
 }
 
+// Count native entries only to locate managed fields; keep their values, files,
+// and order from the browser's FormData rather than serializing the form again.
+function entryCount(element: Element): number {
+  if (element.matches(":disabled") || element.closest("datalist")) return 0;
+  if (element.localName === "textarea") return 1;
+  if (element.localName === "select") {
+    return Array.from((element as HTMLSelectElement).selectedOptions).filter(
+      (option) => !option.matches(":disabled"),
+    ).length;
+  }
+  if (element.localName !== "input") return 0;
+  const input = element as HTMLInputElement;
+  switch (input.type) {
+    case "button":
+    case "reset":
+    case "submit":
+    case "image":
+      return 0;
+    case "checkbox":
+    case "radio":
+      return Number(input.checked);
+    case "file":
+      return Math.max(input.files?.length ?? 0, 1);
+    default:
+      return 1;
+  }
+}
+
 function installRootHandlers(root: Node): void {
-  if (installedRoots.has(root)) {
+  if (installedRoots.has(root)) return;
+  installedRoots.add(root);
+  root.addEventListener("formdata", handleFormData, true);
+  root.addEventListener("reset", handleFormReset, true);
+}
+
+function handleFormData(event: Event): void {
+  if (!isFormDataEvent(event) || !isForm(event.target) || handledFormEvents.has(event)) {
     return;
   }
-  installedRoots.add(root);
 
-  root.addEventListener(
-    "formdata",
-    (event) => {
-      if (!isFormDataEvent(event) || !isForm(event.target) || handledFormEvents.has(event)) {
-        return;
+  handledFormEvents.add(event);
+  const byName = new Map<string, (Controller | undefined)[]>();
+  for (const element of event.target.elements) {
+    const name = element.getAttribute("name");
+    if (!name) continue;
+    const count = entryCount(element);
+    if (!count) continue;
+    const group = byName.get(name) ?? [];
+    const controller = controllers.get(element as HTMLInputElement);
+    for (let index = 0; index < count; index++) group.push(controller);
+    byName.set(name, group);
+  }
+
+  for (const [name, group] of byName) {
+    if (!group.some(Boolean) || event.formData.getAll(name).length !== group.length) {
+      // Submitters, dirname, custom elements, and earlier formdata listeners
+      // must use separate names: their entries cannot be mapped to inputs.
+      byName.delete(name);
+    }
+  }
+  if (!byName.size) return;
+
+  const entries = Array.from(event.formData, ([name, value]) => {
+    const controller = byName.get(name)?.shift();
+    return [name, controller?.value ?? value] as const;
+  });
+  for (const name of new Set(event.formData.keys())) event.formData.delete(name);
+  for (const [name, value] of entries) event.formData.append(name, value);
+}
+
+function handleFormReset(event: Event): void {
+  if (!isForm(event.target) || handledFormEvents.has(event)) {
+    return;
+  }
+
+  handledFormEvents.add(event);
+  const form = event.target;
+  const finishReset = (): void => {
+    if (event.defaultPrevented) {
+      return;
+    }
+
+    // Native activation can run microtasks between reset listeners. Wait for
+    // dispatch and the browser's own reset before restoring secret state.
+    if (event.eventPhase !== Event.NONE) {
+      setTimeout(finishReset, 0);
+      return;
+    }
+
+    for (const element of form.elements) {
+      if (element.localName === "input") {
+        controllers.get(element as HTMLInputElement)?.reset();
       }
-
-      handledFormEvents.add(event);
-      const byName = new Map<string, string[]>();
-      for (const element of event.target.elements) {
-        if (element.localName !== "input") {
-          continue;
-        }
-
-        const input = element as HTMLInputElement;
-        const controller = controllers.get(input);
-        if (!controller || !input.name || isDisabled(input) || input.closest("datalist")) {
-          continue;
-        }
-
-        const group = byName.get(input.name) ?? [];
-        group.push(controller.value);
-        byName.set(input.name, group);
-      }
-
-      for (const [name, group] of byName) {
-        event.formData.delete(name);
-        for (const value of group) {
-          event.formData.append(name, value);
-        }
-      }
-    },
-    true,
-  );
-
-  root.addEventListener(
-    "reset",
-    (event) => {
-      if (!isForm(event.target) || handledFormEvents.has(event)) {
-        return;
-      }
-
-      handledFormEvents.add(event);
-      const form = event.target;
-      const finishReset = (): void => {
-        if (event.defaultPrevented) {
-          return;
-        }
-
-        // Native activation can run microtasks between reset listeners. Wait for
-        // dispatch and the browser's own reset before restoring secret state.
-        if (event.eventPhase !== Event.NONE) {
-          setTimeout(finishReset, 0);
-          return;
-        }
-
-        for (const element of form.elements) {
-          if (element.localName === "input") {
-            controllers.get(element as HTMLInputElement)?.reset();
-          }
-        }
-      };
-      queueMicrotask(finishReset);
-    },
-    true,
-  );
+    }
+  };
+  queueMicrotask(finishReset);
 }
 
 function isDisabled(input: HTMLInputElement): boolean {
@@ -212,6 +236,7 @@ function createController(input: HTMLInputElement, options: SecretInputOptions):
     pattern: options.pattern,
     minLength: options.minLength,
     maxLength: options.maxLength,
+    validationMessages: options.validationMessages,
   };
   const validate = createValidation(input);
   input.required = options.required ?? false;
@@ -249,6 +274,7 @@ function createController(input: HTMLInputElement, options: SecretInputOptions):
     if ("pattern" in options) rules.pattern = options.pattern;
     if ("minLength" in options) rules.minLength = options.minLength;
     if ("maxLength" in options) rules.maxLength = options.maxLength;
+    if ("validationMessages" in options) rules.validationMessages = options.validationMessages;
     installFormHandlers(input);
     render(valueChanged ? collapsed(getParts().length) : currentSelection);
   }

@@ -48,7 +48,18 @@ export default defineConfig(({ mode }) => {
 
   return {
     ...(browserMode
-      ? { optimizeDeps: { include: ["react", "react-dom", "react-dom/client", "vue"] } }
+      ? {
+          optimizeDeps: {
+            include: [
+              "react",
+              "react-dom",
+              "react-dom/client",
+              "react-dom/server",
+              "vue",
+              "vue/server-renderer",
+            ],
+          },
+        }
       : {}),
     plugins: [
       Vue(),

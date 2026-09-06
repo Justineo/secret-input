@@ -3,6 +3,7 @@ import type { ComponentPropsWithoutRef, InputEvent, Ref } from "react";
 
 import { createSecretInput, redact } from "./secret-input.ts";
 import type { SecretInputController } from "./secret-input.ts";
+import type { ValidationMessages } from "./validation.ts";
 import { passwordManagerAttributes } from "./password-manager.ts";
 
 type ValueProps =
@@ -17,6 +18,7 @@ export type SecretInputProps = Omit<
     onChange?: (value: string) => void;
     revealed?: boolean;
     customValidity?: string | undefined;
+    validationMessages?: ValidationMessages | undefined;
     ref?: Ref<HTMLInputElement>;
   };
 
@@ -25,6 +27,7 @@ export function SecretInput({
   defaultValue,
   minLength,
   maxLength,
+  validationMessages,
   required,
   onChange,
   onInput,
@@ -43,6 +46,7 @@ export function SecretInput({
         revealed,
         minLength,
         maxLength,
+        validationMessages,
         pattern,
         required,
         customValidity,
@@ -51,6 +55,7 @@ export function SecretInput({
     };
   });
   const controller = useRef<SecretInputController | null>(null);
+  const [ready, setReady] = useState(false);
   const controlledValue = useRef(value);
 
   const setInput = useCallback(
@@ -60,6 +65,7 @@ export function SecretInput({
       }
 
       controller.current = createSecretInput(element, initial.options);
+      setReady(true);
       const cleanup = typeof ref === "function" ? ref(element) : undefined;
       if (ref && typeof ref !== "function") {
         ref.current = element;
@@ -90,6 +96,7 @@ export function SecretInput({
       pattern,
       minLength,
       maxLength,
+      validationMessages,
       required,
       customValidity,
     });
@@ -118,6 +125,7 @@ export function SecretInput({
     autoCorrect: "off",
     spellCheck: false,
     ...props,
+    readOnly: !ready || props.readOnly,
     required,
     ...passwordManagerAttributes,
     autoComplete: "off",

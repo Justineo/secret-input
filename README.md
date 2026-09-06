@@ -7,7 +7,7 @@ Keep autofill out of API keys, tokens, and other non-login secrets.
 - **Wrong values.** Browser heuristics can pair unrelated fields as a login, even when they are far apart. Autofill can then replace configuration values with a saved username and password. Changes to fields outside the viewport, or to masked secrets, are easy to miss. Submitting the form can send a login password where an API key was expected and break a production integration.
 - **Repeated interruptions.** Saved-password and password-generation menus can cover controls and reappear on focus. Users have to dismiss irrelevant suggestions while entering or reviewing configuration.
 
-`createSecretInput()` keeps the actual value in a controller and renders bullets in a native text input. Browser and extension writes cannot silently replace that state. No wrapper, Shadow DOM, or CSS masking.
+`createSecretInput()` keeps the actual value in a controller and renders bullets in a native text input. Browser and extension writes cannot silently replace that state. No wrapper or Shadow DOM. The goal is avoiding unwanted autofill and password suggestions, not keeping plaintext out of DOM APIs. Bullet presentation is the current implementation choice.
 
 [Live demo and browser comparison](https://secret-input.void.app/) · [Limitations](#boundaries)
 
@@ -19,7 +19,7 @@ pnpm add secret-input
 
 ## Use
 
-Start with a text input. Pass secrets to `createSecretInput()`, never to HTML markup, native `value`, or `defaultValue`.
+Start with a text input. Initialize the application value through `createSecretInput()` options; this API does not adopt an existing DOM `value` or `defaultValue`.
 
 ```html
 <form>
@@ -46,6 +46,8 @@ The same native input retains its labels, styles, focus, selection, and form par
 ## API
 
 ```ts
+import type { ValidationMessages } from "secret-input";
+
 interface SecretInputOptions {
   value?: string | undefined;
   defaultValue?: string | undefined;
@@ -54,6 +56,7 @@ interface SecretInputOptions {
   pattern?: string | undefined;
   minLength?: number | undefined;
   maxLength?: number | undefined;
+  validationMessages?: ValidationMessages | undefined;
   customValidity?: string | undefined;
 }
 
@@ -73,13 +76,14 @@ declare function createSecretInput(
 
 Use `field.update()` for synchronous patches. Omitted keys retain their settings; explicit `undefined` clears a rule or application error, resets value/defaultValue to an empty string, or resets a boolean to false. A patch updates the value, presentation, and rules together before returning, without emitting input/change events.
 
-| Setting                                         | Update behavior                                                                                      |
-| ----------------------------------------------- | ---------------------------------------------------------------------------------------------------- |
-| `value`                                         | A different value clears history and composition; the same value preserves them.                     |
-| `customValidity`                                | Sets an application error; empty string or undefined clears it and exposes any remaining rule error. |
-| `defaultValue`                                  | Changes the form-reset baseline without overwriting the current edit.                                |
-| `revealed`                                      | True reveals plaintext; false restores bullets. Preserves the value, history, and logical selection. |
-| `required`, `pattern`, `minLength`, `maxLength` | Revalidates immediately without replacing the node, changing the value, or clearing history.         |
+| Setting                                         | Update behavior                                                                                         |
+| ----------------------------------------------- | ------------------------------------------------------------------------------------------------------- |
+| `value`                                         | A different value clears history and composition; the same value preserves them.                        |
+| `customValidity`                                | Sets an application error; empty string or undefined clears it and exposes any remaining rule error.    |
+| `validationMessages`                            | Replaces the rule-message map; undefined restores all defaults. Does not change rules or editing state. |
+| `defaultValue`                                  | Changes the form-reset baseline without overwriting the current edit.                                   |
+| `revealed`                                      | True reveals plaintext; false restores bullets. Preserves the value, history, and logical selection.    |
+| `required`, `pattern`, `minLength`, `maxLength` | Revalidates immediately without replacing the node, changing the value, or clearing history.            |
 
 Initially, the secret is `value ?? defaultValue ?? ""` and the reset baseline is `defaultValue ?? initialSecret`. Length limits must be integers from 0 through 2147483647; use undefined to remove a bound. Invalid length configuration throws before changing the field.
 
@@ -129,6 +133,10 @@ Vue uses `defineModel<string>()`: `modelValue` / `update:modelValue` is its only
 
 Neither component exposes a `type` prop; both use a text input. Both adapters support `revealed` (default `false`), forward native attributes, and reuse the core controller. React's standard `onInput(event)` remains an observer; Vue's `@input` and `@change` receive native events, not a separate value-first callback. Vue model updates happen on each accepted edit.
 
+SSR fields are readonly until the controller attaches, then the author's readonly setting takes effect. They remain readonly if JavaScript never loads. This avoids a pre-hydration input window without adding CSS masking, which has triggered Safari password suggestions in the existing comparison.
+
+For form libraries, connect the component value and callback/model, and pass application errors through `customValidity`. Secret Input does not promise compatibility with integrations that assume a raw native input value or own its custom-validity slot.
+
 React and Vue are optional peers. SSR always renders bullets, even when `revealed` is `true`. Reveal happens after attachment. [Integration details](docs/agents/framework-integrations.md).
 
 ## Validation
@@ -142,9 +150,25 @@ input.reportValidity(); // The new rules are already active.
 field.update({ pattern: undefined, minLength: undefined });
 ```
 
-Core validates the actual UTF-16 length and pattern. It mirrors requiredness onto the visible input and calls native `setCustomValidity()` for derived failures, preserving `:invalid`, native messages, and submission blocking. There are no rule data attributes, attribute observers, or custom-validity method overrides. Existing native pattern/minlength/maxlength attributes are removed at creation rather than adopted; supply rules explicitly through options.
+Core validates the actual UTF-16 length and pattern. It mirrors requiredness onto the visible input and calls native `setCustomValidity()` for derived failures, preserving `:invalid`, native error presentation, and submission blocking. There are no rule data attributes, attribute observers, or custom-validity method overrides. Existing native pattern/minlength/maxlength attributes are removed at creation rather than adopted; supply rules explicitly through options.
 
-React uses ordinary `pattern`, `minLength`, `maxLength`, and `required` props; Vue uses `pattern`, `minlength`, `maxlength`, and `required`. Both accept `customValidity` for application errors (Vue templates can use `:custom-validity="error"`). Adapters pass committed prop updates to the controller, including undefined to remove rules. Applications need no manual refresh after framework updates.
+Required and pattern messages default to browser wording. Length failures default to `The value is too short.` or `The value is too long.`. Override any supported rule through `validationMessages`, using validity-style keys and strings or synchronous formatters:
+
+```ts
+field.update({
+  validationMessages: {
+    valueMissing: "Please enter a secret.",
+    patternMismatch: "Use the required secret format.",
+    tooShort: ({ valueLength, minLength }) =>
+      `Length ${valueLength} is below the required ${minLength}.`,
+    tooLong: ({ maxLength }) => `The secret exceeds the length limit of ${maxLength}.`,
+  },
+});
+```
+
+`ValidationMessages` and `ValidationMessageContext` are exported from `secret-input`. Formatters receive `type`, `defaultMessage`, `valueLength` (UTF-16), `minLength` (0 when unset), `maxLength`, and `pattern`; no plaintext value is passed. Missing entries, empty strings, undefined results, and formatter exceptions preserve default errors. A formatter exception is treated as unavailable wording; it does not propagate or interrupt editing. The map replaces the previous map on update; undefined removes all overrides. Only the active rule's formatter runs, and messages disappear when that rule passes. See [message behavior and localization](docs/validation.md#customizing-validation-messages).
+
+React uses ordinary `pattern`, `minLength`, `maxLength`, and `required` props; Vue uses `pattern`, `minlength`, `maxlength`, and `required`. Both also accept `validationMessages` (Vue templates: `:validation-messages="messages"`). Both accept `customValidity` for application errors (Vue templates can use `:custom-validity="error"`). Adapters pass committed prop updates to the controller, including undefined to remove rules. Applications need no manual refresh after framework updates.
 
 Set application errors through the controller or framework props:
 
@@ -160,7 +184,7 @@ The application message takes precedence over derived rule messages and persists
 
 | Area      | Contract                                                                                                                                                                            |
 | --------- | ----------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
-| Forms     | Submission and `new FormData(form)` receive the actual secret without exposing it in `input.value`.                                                                                 |
+| Forms     | Submission and `new FormData(form)` receive actual secrets, preserving ordinary field values, files, and entry order.                                                               |
 | Reset     | Restores the controller's `defaultValue` after reset dispatch, unless canceled. Scripted `form.reset()` settles in a microtask; native reset buttons may need the next task.        |
 | Editing   | Typing, deletion, paste, drop, selection replacement, and committed IME input update secret state.                                                                                  |
 | History   | Contiguous typing/deletion are grouped. Selection edits start a group, paste/drop and IME commits stand alone. Undo restores the original selection. Redo restores the final caret. |
@@ -183,8 +207,8 @@ Use native password inputs for login passwords. This library is **not a security
 | Undo/redo         | Uses controller history. Native menu items may be disabled. Grouping and selection can differ by platform.                                        |
 | IME               | Suppression is best effort. Drafts are removed from the DOM without updating secret state; engines may expose transient plaintext before cleanup. |
 | Reveal            | Plaintext becomes available through the DOM, accessibility APIs, selection, and clipboard.                                                        |
-| Validation        | Derived failures use `customError`. Length errors use the browser’s localized format message, not native `tooShort` / `tooLong`.                  |
-| Form names        | Do not mix masked and ordinary successful controls under one `name`. The masked group owns that entry.                                            |
+| Validation        | Derived failures use `customError`. Length errors use customizable English defaults; native `tooShort` / `tooLong` flags are not emulated.        |
+| Form names        | Ordinary inputs, textareas, and selects may share secret names. Submitters, `dirname`, and custom form elements must use distinct names.          |
 
 Chrome, Edge, Firefox, and Safari have automated browser tests. Saved-credential autofill, real IMEs, iOS interaction, and assistive technology require manual checks. See the [live comparison](https://secret-input.void.app/) for observed behavior.
 

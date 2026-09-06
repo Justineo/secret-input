@@ -1,6 +1,6 @@
 # Secret Input public API design
 
-Status: controller-based design implemented on 2026-09-06. The core exposes explicit state and update operations while retaining native input interaction. React uses value/onChange with controlled and uncontrolled modes; Vue uses defineModel. There is no React onCommit.
+Status: controller-based design implemented on 2026-09-06. The goal is avoiding unwanted browser autofill and password suggestions, not removing plaintext from DOM value. Component capability coverage does not require drop-in native-input or arbitrary form-library compatibility. The core exposes explicit state and update operations while retaining native input interaction. React uses value/onChange with controlled and uncontrolled modes; Vue uses defineModel. There is no React onCommit.
 
 ## Start with actual tasks
 
@@ -11,6 +11,8 @@ Every new interface must serve an actual task. Do not add synonyms for problems 
 ## Native core
 
 ```ts
+import type { ValidationMessages } from "secret-input";
+
 interface SecretInputOptions {
   value?: string | undefined;
   defaultValue?: string | undefined;
@@ -19,6 +21,7 @@ interface SecretInputOptions {
   pattern?: string | undefined;
   minLength?: number | undefined;
   maxLength?: number | undefined;
+  validationMessages?: ValidationMessages | undefined;
   customValidity?: string | undefined;
 }
 
@@ -65,11 +68,11 @@ Core emits native input for accepted edits and change when Enter or blur confirm
 
 Rules belong to controller options, not a DOM configuration protocol. Existing native pattern/minlength/maxlength attributes are removed at creation without adoption or migration. No MutationObserver is needed. React/Vue pass their committed rule props directly to controller.update(), including undefined for removal.
 
-Requiredness is mirrored onto the visible input to preserve native valueMissing and accessible requiredness. Core compares UTF-16 length directly. A lazy detached password input obtains actual-value pattern messages and a localized generic format message for failing length bounds; its temporary value is always cleared. Core calls the visible input's original setCustomValidity() method to retain :invalid, reportValidity(), and native submission blocking. It never overrides that method or emulates patternMismatch/tooShort/tooLong; derived errors use customError and localized generic format messages for length failures.
+Requiredness is mirrored onto the visible input to preserve native valueMissing and accessible requiredness. Core compares UTF-16 length directly. A lazy detached password input obtains actual-value pattern messages; its temporary value is always cleared. Length failures use explicit English defaults without a probe. validationMessages maps valueMissing/patternMismatch/tooShort/tooLong to strings or synchronous functions. Empty/undefined overrides or results, including formatter exceptions, restore default wording and do not disable validation or interrupt input processing. Formatters receive type, defaultMessage, valueLength in UTF-16 units, minLength (default 0), maxLength, and pattern. Required formatters obtain defaultMessage from an empty native probe. Core calls the visible input's original setCustomValidity() method to retain :invalid, reportValidity(), and native submission blocking. It never overrides that method or emulates patternMismatch/tooShort/tooLong; derived errors use customError. Message overrides appear only while the corresponding rule fails and are consumed by both adapters without DOM attributes or SSR markup. A supplied validationMessages map replaces the previous map; undefined restores all defaults. Default failures are cached separately from formatting, so an active formatter runs on synchronization without repeating unchanged native checks. Requiredness remains native; a valueMissing override adds a custom error until the field is filled or the override is removed.
 
 The customValidity option stores application errors separately from the derived rule result. Core is the sole native writer, selecting a nonempty application message before the derived message. Clearing customValidity with an empty string or explicit undefined reveals any remaining rule failure. It persists through edits, history, reveal, reset, and unrelated renders until the application explicitly clears it. Both adapters consume the corresponding prop without emitting an HTML attribute.
 
-Derived messages are cached by value, rules, title/lang, and owner document; every synchronization projects current owned state. update({}) still repairs presentation and refreshes form bindings after relocation. Direct input.setCustomValidity() calls remain unmodified platform operations but are not a supported second source of managed error state. Applications own server-error expiration, async request revisions, and display timing. See [validation details](validation.md) and the [architecture review](architecture-review.md).
+Default failures are cached by value, rules, required-message context, title/lang, and owner document; every synchronization reevaluates the active formatter and projects current owned state. update({}) still repairs presentation and refreshes form bindings after relocation. Direct input.setCustomValidity() calls remain unmodified platform operations but are not a supported second source of managed error state. Applications own server-error expiration, async request revisions, and display timing. See [validation details](validation.md) and the [architecture review](architecture-review.md).
 
 ## React: value / onChange
 
@@ -96,7 +99,7 @@ The decision follows from the difference between the component's application val
 | Controlled   | value + onChange                | Parent component state | Retains parent state; the application resets the field by updating state |
 | Uncontrolled | defaultValue, optional onChange | Controller             | Restores defaultValue                                                    |
 
-Ordinary attributes such as readOnly and disabled use native types and pass through the props spread, without separate type branches or state modes. onChange is optional; editable controlled usage uses it to update parent state.
+Ordinary attributes such as readOnly and disabled use native types. The adapter holds readonly until its controller attaches, then applies the author's readOnly setting. onChange is optional; editable controlled usage uses it to update parent state.
 
 Types prevent combining value and defaultValue. Keep the same mode throughout the component's lifetime and use an empty string for an empty controlled value. Later uncontrolled defaultValue changes update only the reset baseline, leaving the current edit intact.
 
@@ -142,7 +145,7 @@ The component ref exposes a read-only input reference to the same native element
 
 React retains stable initial defaultValue markup; Vue uses :value.attr for the initial HTML attribute. Ordinary class, error-description, or style changes must not write stale bullets back into the live value. Ref reattachment and React Strict Mode must not reinitialize the secret or duplicate application callbacks.
 
-SSR outputs only bullets matching the initial grapheme count. Even when revealed is true, plaintext appears only after client attachment. Hydration discards DOM writes made before attachment and never infers the secret from browser values. The component cannot control secrets serialized by the application elsewhere in page data.
+SSR outputs a readonly text input with bullets matching the initial grapheme count. Attachment releases the readonly guard according to the author's prop; failed JS loading leaves it readonly. Even when revealed is true, plaintext appears only after client attachment. Hydration discards DOM writes made before attachment and never infers the secret from browser values. The component cannot control secrets serialized by the application elsewhere in page data.
 
 Do not depend on React's private value tracker, bypass setters to trick React into emitting change, or implement separate editing engines for React and Vue.
 
@@ -152,7 +155,7 @@ Neither the React nor Vue component exposes a type prop; the runtime type is fix
 
 Ordinary name, form, disabled, readOnly, required, placeholder, class/style, label, ARIA, focus, and selection use native interfaces. The component owns type=text, autocomplete, and password-manager ignore attributes.
 
-The maxLength option limits the actual string in UTF-16 units without splitting graphemes during editing. Pattern and length rules stay in controller state, and requiredness is mirrored to the native input. Adapters update all rules through the same synchronous patch API as values. No attribute migration, data-rule attributes, attribute observers, or custom-validity overrides are involved. FormData outputs actual values; the restriction on mixing ordinary and masked fields under the same name remains.
+The maxLength option limits the actual string in UTF-16 units without splitting graphemes during editing. Pattern and length rules stay in controller state, and requiredness is mirrored to the native input. Adapters update all rules through the same synchronous patch API as values. No attribute migration, data-rule attributes, attribute observers, or custom-validity overrides are involved. FormData outputs actual values while retaining ordinary same-name inputs, textareas, selects, files, and global entry order. Submitters, dirname companion entries, custom form elements, and earlier formdata mutations must not share managed names.
 
 IME handling retains the existing approach: disable it where possible; otherwise clean up incidental input and protect the actual value. Add no public configuration for it.
 
@@ -160,7 +163,7 @@ IME handling retains the existing approach: disable it where possible; otherwise
 
 | Observation                                                                                   | Decision                                                                         |
 | --------------------------------------------------------------------------------------------- | -------------------------------------------------------------------------------- |
-| autocomplete off does not protect values, and CSS masking retains plaintext DOM values        | Keep actual value separate from presentation                                     |
+| autocomplete off can be ignored, and CSS masking has triggered Safari password suggestions    | Keep actual value separate from presentation                                     |
 | Symbol and augmented native properties hide a distinct state model                            | Expose a separate controller with read-only state and explicit updates           |
 | Writing back equal controlled values previously damaged selection and history                 | Keep core writes idempotent and reuse them in adapters                           |
 | Reset microtasks can precede later cancellation listeners                                     | Internally wait for complete dispatch without adding a reset-completion callback |

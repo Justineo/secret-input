@@ -3,6 +3,7 @@ import { nextTick, shallowRef, watch } from "vue";
 
 import { createSecretInput, redact } from "../secret-input.ts";
 import type { SecretInputController, SecretInputOptions } from "../secret-input.ts";
+import type { ValidationMessages } from "../validation.ts";
 import { passwordManagerAttributes } from "../password-manager.ts";
 
 defineOptions({
@@ -16,7 +17,9 @@ const props = defineProps<{
   minlength?: number | string;
   maxlength?: number | string;
   required?: boolean;
+  readonly?: boolean;
   customValidity?: string | undefined;
+  validationMessages?: ValidationMessages | undefined;
   value?: never;
   defaultValue?: never;
 }>();
@@ -45,6 +48,7 @@ function getOptions(): SecretInputOptions {
     maxLength: props.maxlength === undefined ? undefined : Number(props.maxlength),
     required: props.required,
     customValidity: props.customValidity,
+    validationMessages: props.validationMessages && { ...props.validationMessages },
   };
 }
 
@@ -61,6 +65,7 @@ function setInput(element: unknown): void {
   }
 
   controller.value = createSecretInput(element, getOptions());
+  element.readOnly = props.readonly;
   sync();
   element.addEventListener("change", handleChange);
   element.addEventListener("input", handleInput);
@@ -90,6 +95,7 @@ watch(getOptions, sync, { flush: "post" });
     autocorrect="off"
     spellcheck="false"
     v-bind="{ ...$attrs, ...passwordManagerAttributes }"
+    :readonly="!controller || props.readonly"
     :required="props.required"
     :value.attr="initialPresentation"
     type="text"

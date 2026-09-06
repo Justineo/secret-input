@@ -4,6 +4,7 @@ import { afterEach, beforeEach, describe, expect, it, vi } from "vite-plus/test"
 
 import { SecretInput } from "../src/vue.ts";
 import { createSecretInput } from "../src/index.ts";
+import type { ValidationMessages } from "../src/index.ts";
 import { beforeInput, composition, formDataFor, insertText } from "./edit.ts";
 
 describe("Vue SecretInput", () => {
@@ -134,7 +135,11 @@ describe("Vue SecretInput", () => {
 
   it("server-renders the initial masked presentation and discards pre-hydration values", async () => {
     const value = "a👩‍💻e\u0301";
-    const props = { modelValue: value, customValidity: "Server error" };
+    const props = {
+      modelValue: value,
+      customValidity: "Server error",
+      validationMessages: { tooShort: "Minimum length message", tooLong: "Maximum length message" },
+    };
     const markup = await renderToString(createSSRApp(SecretInput, props));
     container.innerHTML = markup;
     const input = container.querySelector("input")!;
@@ -146,6 +151,8 @@ describe("Vue SecretInput", () => {
     expect(input.getAttribute("value")).toBe("•••");
     expect(markup).not.toContain(value);
     expect(markup).not.toContain("Server error");
+    expect(markup).not.toContain("Minimum length message");
+    expect(markup).not.toContain("Maximum length message");
 
     input.value = "browser-filled";
     const app = createSSRApp(SecretInput, props);
@@ -173,6 +180,27 @@ describe("Vue SecretInput", () => {
 
     expect(container.querySelector("input")?.value).toBe(value);
   });
+
+  it.each([false, true])(
+    "protects pending SSR input and restores readonly=%s",
+    async (readonly) => {
+      const locked = ref(readonly);
+      const fixture = () => h(SecretInput, { readonly: locked.value, modelValue: "" });
+      container.innerHTML = await renderToString(createSSRApp(fixture));
+      const input = container.querySelector("input")!;
+      expect(input.readOnly).toBe(true);
+      expect(input.type).toBe("text");
+      const app = createSSRApp(fixture);
+      app.mount(container);
+      unmount = () => app.unmount();
+      await nextTick();
+      expect(container.querySelector("input")).toBe(input);
+      expect(input.readOnly).toBe(readonly);
+      locked.value = !readonly;
+      await nextTick();
+      expect(input.readOnly).toBe(!readonly);
+    },
+  );
 
   it("does not surface browser-written DOM values", async () => {
     const onChange = vi.fn();
@@ -374,6 +402,31 @@ describe("Vue SecretInput", () => {
       expect(input.checkValidity()).toBe(true);
     },
   );
+
+  it("synchronizes reactive message-map entries and formatter changes", async () => {
+    const messages = ref<ValidationMessages>({ tooShort: "First" });
+    const app = createApp(() =>
+      h(SecretInput, {
+        modelValue: "👩‍💻",
+        minlength: 6,
+        validationMessages: messages.value,
+      }),
+    );
+    app.mount(container);
+    unmount = () => app.unmount();
+    const input = container.querySelector("input")!;
+    expect(input.validationMessage).toBe("First");
+    expect(input.hasAttribute("validationmessages")).toBe(false);
+    input.setSelectionRange(0, 1, "backward");
+    messages.value.tooShort = ({ valueLength, minLength }) => `${valueLength}/${minLength}`;
+    await nextTick();
+    expect(input.validationMessage).toBe("5/6");
+    expect(container.querySelector("input")).toBe(input);
+    expect(input.selectionDirection).toBe("backward");
+    delete messages.value.tooShort;
+    await nextTick();
+    expect(input.validationMessage).toBe("The value is too short.");
+  });
 
   it("lets the model callback clear an application error without suppressing remaining rules", async () => {
     const value = ref("AB");

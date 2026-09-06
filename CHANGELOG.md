@@ -6,6 +6,8 @@ All notable changes to this project are documented here. The format follows [Kee
 
 ### Changed
 
+- Replace generic format errors for length failures with clear English defaults. Add a `validationMessages` map for required, pattern, and length errors in core, React, and Vue, with string or synchronous function overrides. Length-only validation no longer creates a detached input.
+
 - Replaced the element-augmentation API with `createSecretInput(input, options)`, returning an explicit controller with read-only state and synchronous `update()` patches. Values, reveal state, reset defaults, and validation rules share this update path.
 - Removed validation attribute migration, attribute observers, and the `setCustomValidity()` override. Core calls the native method to preserve messages, invalid styling, and submission blocking. React and Vue pass rule props directly to the controller and expose plain native input refs.
 
@@ -20,7 +22,11 @@ All notable changes to this project are documented here. The format follows [Kee
 
 ### Fixed
 
-- Keep application errors in a `customValidity` option/prop across core updates, edits, reset, and unrelated React/Vue renders. Clearing it exposes any remaining rule error. Cache derived validation and compare UTF-16 lengths directly, using a fixed non-secret probe for localized format messages.
+- Hold SSR inputs readonly until their controller attaches, then restore the author's readonly setting without changing input type or introducing CSS masking.
+- Fall back to default validation messages when a formatter throws, preserving validation and editing.
+- Preserve ordinary same-name form controls, file entries, and global FormData order when projecting secret values.
+
+- Keep application errors in a `customValidity` option/prop across core updates, edits, reset, and unrelated React/Vue renders. Clearing it exposes any remaining rule error. Cache derived validation and compare UTF-16 lengths directly.
 
 - Preserve pending edit metadata through native-event microtask checkpoints. Accept interrupted composition confirmation at its original selection without duplicate edits or stale draft presentation.
 

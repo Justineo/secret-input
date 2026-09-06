@@ -408,6 +408,91 @@ describe("secret input browser contract", () => {
     expect(field.value).toBe("kept");
   });
 
+  it("keeps mixed same-name controls, files, submitters, and entry order", async () => {
+    form.innerHTML = `
+      <input name="before" value="first">
+      <input name="token" value="•••">
+      <input name="token" data-secret dirname="direction">
+      <input name="token" type="checkbox" value="unchecked">
+      <input name="token" type="checkbox" value="checked" checked>
+      <select name="token" multiple>
+        <option selected>first option</option>
+        <option selected disabled>disabled option</option>
+        <optgroup disabled><option selected>disabled group</option></optgroup>
+        <option selected>last option</option>
+      </select>
+      <input name="token" type="file" multiple>
+      <fieldset disabled><input name="token" value="disabled"></fieldset>
+      <input name="token" data-secret>
+      <input name="after" value="last">
+      <button name="action" value="save">Save</button>
+    `;
+    const inputs = form.querySelectorAll<HTMLInputElement>("[data-secret]");
+    createSecretInput(inputs[0]!, { value: "one" });
+    createSecretInput(inputs[1]!, { value: "two" });
+    const transfer = new DataTransfer();
+    transfer.items.add(new File(["first contents"], "first.txt", { type: "text/plain" }));
+    transfer.items.add(new File(["last contents"], "last.txt", { type: "text/plain" }));
+    form.querySelector<HTMLInputElement>("[type=file]")!.files = transfer.files;
+    const data = new FormData(form, form.querySelector("button")!);
+    expect(
+      Array.from(data, ([name, value]) => [name, value instanceof File ? value.name : value]),
+    ).toEqual([
+      ["before", "first"],
+      ["token", "•••"],
+      ["token", "one"],
+      ["direction", "ltr"],
+      ["token", "checked"],
+      ["token", "first option"],
+      ["token", "last option"],
+      ["token", "first.txt"],
+      ["token", "last.txt"],
+      ["token", "two"],
+      ["after", "last"],
+      ["action", "save"],
+    ]);
+    const files = data.getAll("token").filter((value): value is File => value instanceof File);
+    expect(await Promise.all(files.map((file) => file.text()))).toEqual([
+      "first contents",
+      "last contents",
+    ]);
+    expect(files.every((file) => file.type === "text/plain")).toBe(true);
+    expect(inputs[0]!.value).toBe("•••");
+  });
+
+  it("preserves rule enforcement and accepted edits when a message formatter throws", async () => {
+    field.update({
+      value: "ABC",
+      defaultValue: "123",
+      pattern: "[A-Z]+",
+      validationMessages: {
+        patternMismatch: () => {
+          throw new Error("Message formatting failed");
+        },
+      },
+    });
+    let submitted = false;
+    form.addEventListener("submit", (event) => {
+      event.preventDefault();
+      submitted = true;
+    });
+    field.update({ value: "123" });
+    expect(input.checkValidity()).toBe(false);
+    expect(input.validationMessage).not.toBe("");
+    input.focus();
+    await userEvent.keyboard("4");
+    expect(field.value).toBe("1234");
+    expect(events.some((event) => event.type === "input" && event.data === "4")).toBe(true);
+    form.requestSubmit();
+    expect(submitted).toBe(false);
+    field.update({ value: "ABC" });
+    form.requestSubmit();
+    expect(submitted).toBe(true);
+    form.reset();
+    await expect.poll(() => field.value).toBe("123");
+    expect(input.checkValidity()).toBe(false);
+  });
+
   it("preserves native readonly, disabled, and required behavior", () => {
     reset();
     field.update({ required: true });
@@ -490,10 +575,14 @@ describe("secret input browser contract", () => {
     await expect.poll(() => input.checkValidity()).toBe(false);
     expect(field.value).toBe("👩‍💻");
     expect(input.matches(":invalid")).toBe(true);
+    expect(input.validationMessage).toBe("The value is too long.");
+    field.update({ validationMessages: { tooLong: "内容超过允许长度" } });
+    expect(input.validationMessage).toBe("内容超过允许长度");
+    expect(input.reportValidity()).toBe(false);
+    expect(document.activeElement).toBe(input);
+    field.update({ validationMessages: undefined });
+    expect(input.validationMessage).toBe("The value is too long.");
     const native = document.createElement("input");
-    native.pattern = "(?!)";
-    native.value = "xxxxx";
-    expect(input.validationMessage).toBe(native.validationMessage);
     field.update({ minLength: undefined });
     field.update({ maxLength: undefined });
     await expect.poll(() => input.checkValidity()).toBe(true);
@@ -503,6 +592,9 @@ describe("secret input browser contract", () => {
     expect(input.checkValidity()).toBe(true);
     field.update({ minLength: 3 });
     await expect.poll(() => input.checkValidity()).toBe(false);
+    expect(input.validationMessage).toBe("The value is too short.");
+    field.update({ validationMessages: { tooShort: "内容长度不足" } });
+    expect(input.validationMessage).toBe("内容长度不足");
     field.update({ value: "ABC" });
     expect(input.checkValidity()).toBe(true);
     field.update({ value: "" });
@@ -513,6 +605,22 @@ describe("secret input browser contract", () => {
     native.removeAttribute("pattern");
     native.value = "";
     native.required = true;
+    expect(input.validationMessage).toBe(native.validationMessage);
+    field.update({
+      validationMessages: {
+        valueMissing: ({ defaultMessage }) => `Required: ${defaultMessage}`,
+        patternMismatch: ({ pattern }) => `Use ${pattern}`,
+      },
+    });
+    expect(input.validationMessage).toBe(`Required: ${native.validationMessage}`);
+    expect(input.validity.valueMissing).toBe(true);
+    expect(input.reportValidity()).toBe(false);
+    field.update({ value: "123" });
+    expect(input.validationMessage).toBe("Use [A-Z]+");
+    field.update({ validationMessages: undefined });
+    native.required = false;
+    native.pattern = "[A-Z]+";
+    native.value = "123";
     expect(input.validationMessage).toBe(native.validationMessage);
   });
 

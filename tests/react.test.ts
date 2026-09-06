@@ -6,6 +6,7 @@ import { afterEach, beforeEach, describe, expect, it, vi } from "vite-plus/test"
 
 import { SecretInput } from "../src/react.ts";
 import { createSecretInput } from "../src/index.ts";
+import type { ValidationMessages } from "../src/index.ts";
 import { beforeInput, composition, formDataFor, insertText } from "./edit.ts";
 
 Object.defineProperty(globalThis, "IS_REACT_ACT_ENVIRONMENT", { value: true });
@@ -103,6 +104,7 @@ describe("React SecretInput", () => {
       value,
       readOnly: true,
       customValidity: "Server error",
+      validationMessages: { tooShort: "Minimum length message", tooLong: "Maximum length message" },
     });
     const markup = renderToString(element);
     const serverContainer = document.createElement("div");
@@ -117,6 +119,8 @@ describe("React SecretInput", () => {
     expect(input.getAttribute("value")).toBe("•••");
     expect(markup).not.toContain(value);
     expect(markup).not.toContain("Server error");
+    expect(markup).not.toContain("Minimum length message");
+    expect(markup).not.toContain("Maximum length message");
 
     input.value = "browser-filled";
     const hydratedRoot = hydrateRoot(serverContainer, element);
@@ -145,6 +149,27 @@ describe("React SecretInput", () => {
     expect(serverContainer.querySelector("input")?.value).toBe(value);
     await act(async () => hydratedRoot.unmount());
   });
+
+  it.each([false, true])(
+    "protects pending SSR input and restores readOnly=%s",
+    async (readOnly) => {
+      const render = (readOnly: boolean) =>
+        createElement(SecretInput, { readOnly, defaultValue: "" });
+      const serverContainer = document.createElement("div");
+      serverContainer.innerHTML = renderToString(render(readOnly));
+      document.body.append(serverContainer);
+      const input = serverContainer.querySelector("input")!;
+      expect(input.readOnly).toBe(true);
+      expect(input.type).toBe("text");
+      const hydratedRoot = hydrateRoot(serverContainer, render(readOnly));
+      await act(async () => {});
+      expect(serverContainer.querySelector("input")).toBe(input);
+      expect(input.readOnly).toBe(readOnly);
+      await act(async () => hydratedRoot.render(render(!readOnly)));
+      expect(input.readOnly).toBe(!readOnly);
+      await act(async () => hydratedRoot.unmount());
+    },
+  );
 
   it("preserves undo when a controlled owner accepts an edit", async () => {
     function Fixture() {
@@ -386,6 +411,36 @@ describe("React SecretInput", () => {
       expect(input.checkValidity()).toBe(true);
     },
   );
+
+  it("refreshes formatter messages on renders without forwarding the map to the DOM", async () => {
+    let label = "First";
+    const messages: ValidationMessages = {
+      tooShort: ({ valueLength, minLength }) => `${label}: ${valueLength}/${minLength}`,
+    };
+    const render = async (validationMessages?: ValidationMessages) => {
+      await act(async () =>
+        root.render(
+          createElement(SecretInput, {
+            defaultValue: "👩‍💻",
+            minLength: 6,
+            validationMessages,
+          }),
+        ),
+      );
+    };
+    await render(messages);
+    const input = container.querySelector("input")!;
+    expect(input.validationMessage).toBe("First: 5/6");
+    expect(input.hasAttribute("validationmessages")).toBe(false);
+    input.setSelectionRange(0, 1, "backward");
+    label = "Second";
+    await render(messages);
+    expect(input.validationMessage).toBe("Second: 5/6");
+    expect(container.querySelector("input")).toBe(input);
+    expect(input.selectionDirection).toBe("backward");
+    await render();
+    expect(input.validationMessage).toBe("The value is too short.");
+  });
 
   it("lets the value callback clear an application error without suppressing remaining rules", async () => {
     function Fixture() {

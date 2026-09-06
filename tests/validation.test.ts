@@ -1,6 +1,6 @@
 import { beforeEach, describe, expect, it, vi } from "vite-plus/test";
 import { createSecretInput } from "../src/index.ts";
-import type { SecretInputOptions } from "../src/index.ts";
+import type { SecretInputOptions, ValidationMessageContext } from "../src/index.ts";
 import { beforeInput } from "./edit.ts";
 
 function createField(options: SecretInputOptions = {}) {
@@ -204,6 +204,137 @@ describe("controller validation", () => {
     expect(input.checkValidity()).toBe(true);
   });
 
+  it.each([
+    ["minLength", "tooShort", 6, "The value is too short."],
+    ["maxLength", "tooLong", 4, "The value is too long."],
+  ] as const)(
+    "customizes %s messages without changing rules or editing state",
+    (rule, option, limit, fallback) => {
+      const { field, input, form } = createField({
+        value: "👩‍💻",
+        [rule]: limit,
+        validationMessages: { [option]: "Initial length message" },
+      });
+      input.setSelectionRange(0, 1, "backward");
+      const listener = vi.fn();
+      input.addEventListener("input", listener);
+      expect(input.validationMessage).toBe("Initial length message");
+      field.update({ validationMessages: { [option]: "本地化长度提示" } });
+      expect(input.validationMessage).toBe("本地化长度提示");
+      expect(field.value).toBe("👩‍💻");
+      expect(input.value).toBe("•");
+      expect([input.selectionStart, input.selectionEnd, input.selectionDirection]).toEqual([
+        0,
+        1,
+        "backward",
+      ]);
+      expect(listener).not.toHaveBeenCalled();
+      field.update({ revealed: true });
+      expect(input.validationMessage).toBe("本地化长度提示");
+      field.update({ [rule]: 5 });
+      expect(input.checkValidity()).toBe(true);
+      field.update({ [rule]: limit, customValidity: "Server error" });
+      expect(input.validationMessage).toBe("Server error");
+      field.update({ validationMessages: { [option]: "Updated length message" } });
+      expect(input.validationMessage).toBe("Server error");
+      field.update({ customValidity: "" });
+      expect(input.validationMessage).toBe("Updated length message");
+      for (const message of ["", undefined]) {
+        field.update({ validationMessages: { [option]: message } });
+        expect(input.validationMessage).toBe(fallback);
+        expect(form.checkValidity()).toBe(false);
+      }
+      field.update({ [rule]: undefined });
+      expect(input.checkValidity()).toBe(true);
+    },
+  );
+
+  it("keeps native required and pattern messages ahead of length messages", () => {
+    const { field, input } = createField({
+      required: true,
+      pattern: "[0-9]+",
+      minLength: 4,
+      validationMessages: { tooShort: "Too short" },
+    });
+    const native = document.createElement("input");
+    native.type = "password";
+    native.required = true;
+    native.pattern = "[0-9]+";
+    expect(input.validationMessage).toBe(native.validationMessage);
+    expect(input.validity.valueMissing).toBe(true);
+    expect(input.validity.customError).toBe(false);
+    field.update({ value: "AB" });
+    native.value = "AB";
+    expect(input.validationMessage).toBe(native.validationMessage);
+    field.update({ value: "12" });
+    expect(input.validationMessage).toBe("Too short");
+    field.update({ value: "1234" });
+    expect(input.validationMessage).toBe("");
+  });
+
+  it.each<{ type: ValidationMessageContext["type"]; options: SecretInputOptions }>([
+    { type: "valueMissing", options: { required: true } },
+    { type: "patternMismatch", options: { value: "AB", pattern: "[0-9]+" } },
+    { type: "tooShort", options: { value: "🔐", minLength: 3 } },
+    { type: "tooLong", options: { value: "👩‍💻", maxLength: 4 } },
+  ])("supports strings, formatters, and fallback for $type", ({ type, options }) => {
+    const { field, input } = createField(options);
+    const defaultMessage = input.validationMessage;
+    expect(defaultMessage).not.toBe("");
+    field.update({ validationMessages: { [type]: "Custom message" } });
+    expect(input.validationMessage).toBe("Custom message");
+    let label = "First";
+    const formatter = vi.fn(
+      (context: ValidationMessageContext) => `${label}: ${context.defaultMessage}`,
+    );
+    field.update({ validationMessages: { [type]: formatter } });
+    expect(formatter).toHaveBeenLastCalledWith({
+      type,
+      defaultMessage,
+      valueLength: field.value.length,
+      minLength: options.minLength ?? 0,
+      maxLength: options.maxLength,
+      pattern: options.pattern,
+    });
+    expect(input.validationMessage).toBe(`First: ${defaultMessage}`);
+    label = "Second";
+    field.update({});
+    expect(input.validationMessage).toBe(`Second: ${defaultMessage}`);
+    field.update({ customValidity: "Server error" });
+    formatter.mockClear();
+    field.update({});
+    expect(formatter).not.toHaveBeenCalled();
+    expect(input.validationMessage).toBe("Server error");
+    field.update({ customValidity: undefined });
+    expect(input.validationMessage).toBe(`Second: ${defaultMessage}`);
+    for (const override of ["", undefined, () => "", () => undefined]) {
+      field.update({ validationMessages: { [type]: override } });
+      expect(input.validationMessage).toBe(defaultMessage);
+      expect(input.checkValidity()).toBe(false);
+      if (type === "valueMissing") {
+        expect(input.validity.valueMissing).toBe(true);
+        expect(input.validity.customError).toBe(false);
+      }
+    }
+    field.update({ validationMessages: { [type]: "Custom message" } });
+    field.update({ validationMessages: {} });
+    expect(input.validationMessage).toBe(defaultMessage);
+    field.update({ validationMessages: { [type]: "Custom message" } });
+    field.update({ validationMessages: undefined });
+    expect(input.validationMessage).toBe(defaultMessage);
+    field.update({
+      required: false,
+      pattern: undefined,
+      minLength: undefined,
+      maxLength: undefined,
+      validationMessages: { [type]: formatter },
+    });
+    formatter.mockClear();
+    field.update({});
+    expect(formatter).not.toHaveBeenCalled();
+    expect(input.checkValidity()).toBe(true);
+  });
+
   it("preserves application errors through updates, edits, history, and reset", async () => {
     const { field, input, form } = createField({
       value: "AB",
@@ -237,6 +368,62 @@ describe("controller validation", () => {
     expect(input.checkValidity()).toBe(false);
     field.update({ value: "RESET" });
     expect(input.checkValidity()).toBe(true);
+  });
+
+  it.each<{ type: ValidationMessageContext["type"]; options: SecretInputOptions }>([
+    { type: "valueMissing", options: { required: true } },
+    { type: "patternMismatch", options: { value: "AB", pattern: "[0-9]+" } },
+    { type: "tooShort", options: { value: "AB", minLength: 3 } },
+    { type: "tooLong", options: { value: "AB", maxLength: 1 } },
+  ])("falls back to the default when a $type formatter throws", ({ type, options }) => {
+    const baseline = createField(options).input.validationMessage;
+    const { field, input } = createField({
+      ...options,
+      validationMessages: {
+        [type]: () => {
+          throw new Error("Message formatting failed");
+        },
+      },
+    });
+    expect(input.checkValidity()).toBe(false);
+    expect(input.validationMessage).toBe(baseline);
+    field.update({});
+    expect(input.validationMessage).toBe(baseline);
+    field.update({ customValidity: "Server error" });
+    expect(input.validationMessage).toBe("Server error");
+    field.update({ customValidity: undefined });
+    expect(input.validationMessage).toBe(baseline);
+  });
+
+  it("finishes updates, edits, history, and reset when a formatter throws", async () => {
+    const { field, input, form } = createField({
+      value: "ABC",
+      defaultValue: "123",
+      pattern: "[A-Z]+",
+      validationMessages: {
+        patternMismatch: () => {
+          throw new Error("Message formatting failed");
+        },
+      },
+    });
+    const changes: string[] = [];
+    input.addEventListener("input", () => {
+      expect(input.checkValidity()).toBe(false);
+      changes.push(field.value);
+    });
+    field.update({ value: "123" });
+    expect(input.checkValidity()).toBe(false);
+    expect(input.validationMessage).not.toBe("");
+    beforeInput(input, "insertText", "4");
+    beforeInput(input, "historyUndo");
+    beforeInput(input, "historyRedo");
+    expect(changes).toEqual(["1234", "123", "1234"]);
+    field.update({ value: "ABC" });
+    expect(input.checkValidity()).toBe(true);
+    form.reset();
+    await Promise.resolve();
+    expect(field.value).toBe("123");
+    expect(input.checkValidity()).toBe(false);
   });
 
   it("preserves stored errors when native validation messages are unavailable", () => {
@@ -288,6 +475,11 @@ describe("controller validation", () => {
     try {
       field.update({ required: true });
       expect(createElement).not.toHaveBeenCalled();
+      field.update({ minLength: 4, validationMessages: { tooShort: "Too short" } });
+      expect(field.input.validationMessage).toBe("Too short");
+      field.update({ validationMessages: undefined });
+      expect(field.input.validationMessage).toBe("The value is too short.");
+      expect(createElement).not.toHaveBeenCalled();
       field.update({ pattern: "[A-Z]+" });
       const probe = createElement.mock.results[0]?.value as HTMLInputElement;
       expect(probe.type).toBe("password");
@@ -327,6 +519,14 @@ describe("controller validation", () => {
         input.blur();
         expect(writes).not.toHaveBeenCalled();
         expect(input.checkValidity()).toBe(false);
+        const format = vi.fn(
+          ({ defaultMessage }: ValidationMessageContext) => `Custom: ${defaultMessage}`,
+        );
+        field.update({ validationMessages: { patternMismatch: format } });
+        field.update({});
+        expect(format).toHaveBeenCalledTimes(2);
+        expect(input.validationMessage).toMatch(/^Custom: /);
+        expect(writes).not.toHaveBeenCalled();
         input.title = "Use digits";
         input.lang = "fr";
         field.update({});

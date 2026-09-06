@@ -855,6 +855,34 @@ describe("createSecretInput", () => {
     expect(formDataFor(form).has("token")).toBe(false);
   });
 
+  it("preserves ordinary same-name fields and global FormData order", () => {
+    const form = document.createElement("form");
+    form.innerHTML = `
+      <input name="before" value="first">
+      <input name="token" value="•••">
+      <input name="token" data-secret>
+      <input name="token" type="checkbox" value="unchecked">
+      <input name="token" type="checkbox" value="checked" checked>
+      <input name="token" value="disabled" disabled>
+      <textarea name="token">ordinary</textarea>
+      <input name="token" data-secret>
+      <input name="after" value="last">
+    `;
+    document.body.append(form);
+    const inputs = form.querySelectorAll<HTMLInputElement>("[data-secret]");
+    createSecretInput(inputs[0]!, { value: "one" });
+    createSecretInput(inputs[1]!, { value: "two" });
+    expect(Array.from(formDataFor(form))).toEqual([
+      ["before", "first"],
+      ["token", "•••"],
+      ["token", "one"],
+      ["token", "checked"],
+      ["token", "ordinary"],
+      ["token", "two"],
+      ["after", "last"],
+    ]);
+  });
+
   it("resets to the current default value without emitting input", async () => {
     const { form, input } = createFormInput();
     const currentState = createSecretInput(input, {

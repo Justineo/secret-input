@@ -1,11 +1,14 @@
 import { createElement, useState } from "react";
 import type { FormEvent } from "react";
 import { flushSync } from "react-dom";
-import { createRoot } from "react-dom/client";
-import { createApp, h, nextTick, ref } from "vue";
+import { createRoot, hydrateRoot } from "react-dom/client";
+import { renderToString as renderReactToString } from "react-dom/server";
+import { createApp, createSSRApp, h, nextTick, ref } from "vue";
+import { renderToString as renderVueToString } from "vue/server-renderer";
 import { afterEach, beforeEach, describe, expect, it } from "vite-plus/test";
 import { page, userEvent } from "vite-plus/test/browser/context";
 
+import type { ValidationMessages } from "../../src/index.ts";
 import { SecretInput as ReactSecretInput } from "../../src/react.ts";
 import { SecretInput as VueSecretInput } from "../../src/vue.ts";
 
@@ -27,6 +30,50 @@ describe("framework input browser contract", () => {
   });
 
   it.each(["React", "Vue"])(
+    "%s blocks editing until hydration attaches the controller",
+    async (framework) => {
+      const changes: string[] = [];
+      let hydrate: () => void;
+      unmount = () => {};
+      if (framework === "React") {
+        const element = createElement(ReactSecretInput, {
+          defaultValue: "",
+          onChange: (value) => changes.push(value),
+        });
+        container.innerHTML = renderReactToString(element);
+        hydrate = () => {
+          const root = hydrateRoot(container, element);
+          unmount = () => root.unmount();
+        };
+      } else {
+        const props = {
+          "onUpdate:modelValue": (value: string | undefined) => changes.push(value ?? ""),
+        };
+        container.innerHTML = await renderVueToString(createSSRApp(VueSecretInput, props));
+        hydrate = () => {
+          const app = createSSRApp(VueSecretInput, props);
+          app.mount(container);
+          unmount = () => app.unmount();
+        };
+      }
+      const input = field();
+      expect(input.readOnly).toBe(true);
+      expect(input.type).toBe("text");
+      await page.elementLocator(input).click();
+      await userEvent.keyboard("before");
+      expect(input.value).toBe("");
+      expect(changes).toEqual([]);
+      hydrate();
+      await expect.poll(() => input.readOnly).toBe(false);
+      expect(field()).toBe(input);
+      expect(document.activeElement).toBe(input);
+      await userEvent.keyboard("after");
+      expect(input.value).toBe("•••••");
+      expect(changes.at(-1)).toBe("after");
+    },
+  );
+
+  it.each(["React", "Vue"])(
     "%s updates, removes, and revalidates rule props without replacing the field or its history",
     async (framework) => {
       type Rules = {
@@ -35,6 +82,7 @@ describe("framework input browser contract", () => {
         maxlength?: number;
         required?: boolean;
         customValidity?: string;
+        validationMessages?: ValidationMessages;
         class?: string;
       };
       const initial: Rules = { pattern: "[A-F0-9]+", minlength: 4, maxlength: 8, required: true };
@@ -64,6 +112,7 @@ describe("framework input browser contract", () => {
                 maxLength: rules.maxlength,
                 required: rules.required,
                 customValidity: rules.customValidity,
+                validationMessages: rules.validationMessages,
                 className: rules.class,
               }),
             ),
@@ -117,6 +166,19 @@ describe("framework input browser contract", () => {
       await update({ minlength: 6, maxlength: 8, required: true });
       expect(input.hasAttribute("data-secret-pattern")).toBe(false);
       expect(input.checkValidity()).toBe(false);
+      expect(input.validationMessage).toBe("The value is too short.");
+      await update({ minlength: 6, validationMessages: { tooShort: "内容长度不足" } });
+      expect(input.validationMessage).toBe("内容长度不足");
+      expect(input.hasAttribute("validationmessages")).toBe(false);
+      await update({
+        minlength: 6,
+        validationMessages: {
+          tooShort: ({ valueLength, minLength }) => `Length ${valueLength}/${minLength}`,
+        },
+      });
+      expect(input.validationMessage).toBe("Length 5/6");
+      await update({ minlength: 6 });
+      expect(input.validationMessage).toBe("The value is too short.");
       await update({ maxlength: 8, required: true });
       expect(input.hasAttribute("data-secret-minlength")).toBe(false);
       expect(input.checkValidity()).toBe(true);
@@ -125,6 +187,12 @@ describe("framework input browser contract", () => {
       await update({ maxlength: 3, required: true });
       expect(new FormData(input.form!).get("secret")).toBe("ABCDE");
       expect(input.checkValidity()).toBe(false);
+      expect(input.validationMessage).toBe("The value is too long.");
+      await update({ maxlength: 3, validationMessages: { tooLong: "内容超过允许长度" } });
+      expect(input.validationMessage).toBe("内容超过允许长度");
+      expect(input.hasAttribute("validationmessages")).toBe(false);
+      await update({ maxlength: 3 });
+      expect(input.validationMessage).toBe("The value is too long.");
       await update({});
       expect(input.maxLength).toBe(-1);
       expect(input.required).toBe(false);

@@ -17,6 +17,14 @@ createElement(SecretInput, { value: "", onChange: (_event: Event) => {} });
 
 createElement(SecretInput, { revealed: true });
 createElement(SecretInput, { pattern: "[A-Z]+", minLength: 3, maxLength: 8, required: true });
+createElement(SecretInput, {
+  validationMessages: {
+    tooShort: "Too short",
+    tooLong: ({ maxLength }) => `Maximum: ${maxLength}`,
+  },
+});
+// @ts-expect-error Only supported rule errors can be customized.
+createElement(SecretInput, { validationMessages: { rangeOverflow: "Too high" } });
 // @ts-expect-error The component owns its text-input type.
 createElement(SecretInput, { type: "password" });
 // @ts-expect-error The visibility API is revealed, defaulting to false.
@@ -42,6 +50,17 @@ controller.update({
 controller.input.focus();
 controller.update({ customValidity: "Server error" });
 controller.update({ customValidity: undefined });
+controller.update({
+  validationMessages: {
+    valueMissing: "Required",
+    patternMismatch: ({ defaultMessage }) => defaultMessage,
+    tooShort: undefined,
+    tooLong: () => undefined,
+  },
+});
+controller.update({ validationMessages: undefined });
+// @ts-expect-error Message overrides are strings or formatters, not flags.
+controller.update({ validationMessages: { tooShort: false } });
 controller.input.reportValidity();
 // @ts-expect-error Application validity is a message, not a validation callback.
 controller.update({ customValidity: () => "Error" });
