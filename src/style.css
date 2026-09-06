@@ -84,7 +84,8 @@ body {
 }
 
 button,
-input {
+input,
+textarea {
   color: inherit;
   font: inherit;
 }
@@ -112,7 +113,7 @@ a:hover {
   display: none !important;
 }
 
-:where(a, button, input, [tabindex]):focus-visible {
+:where(a, button, input, textarea, [tabindex]):focus-visible {
   outline: 2px solid var(--focus);
   outline-offset: 3px;
 }
@@ -328,7 +329,7 @@ a:hover {
   line-height: 1.2308;
 }
 
-.field input {
+.field :is(input, textarea) {
   width: 100%;
   min-height: 36px;
   padding: var(--space-2) var(--space-3);
@@ -339,7 +340,7 @@ a:hover {
   line-height: 1.4;
 }
 
-.field input:hover {
+.field :is(input, textarea):hover {
   border-color: var(--stroke-strong);
 }
 
@@ -470,7 +471,7 @@ code {
   .experiment {
     padding-block-start: var(--space-8);
   }
-  .field input {
+  .field :is(input, textarea) {
     min-height: 44px;
     font-size: 1rem;
   }

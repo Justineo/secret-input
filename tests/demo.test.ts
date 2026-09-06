@@ -165,6 +165,14 @@ describe("demo initialization", () => {
     });
     expect(document.querySelector("#setup-username")).toBeNull();
     expect(document.querySelectorAll("#support-matrix tr")).toHaveLength(6);
+    expect(document.querySelectorAll(".comparison-case")).toHaveLength(5);
+    const candidate = element<HTMLTextAreaElement>("#textarea-signing-secret");
+    expect(candidate.getAttribute("rows")).toBe("1");
+    expect(candidate.hasAttribute("name")).toBe(false);
+    const pending = element<HTMLButtonElement>(
+      "#support-matrix tr:first-child td:nth-of-type(4) .browser-detail",
+    );
+    expect(pending.getAttribute("aria-label")).toBe("Chrome: Not tested");
     const button = element<HTMLButtonElement>(".browser-detail");
     button.focus();
     expect(element("#support-detail").textContent).toBe("Both fields are filled automatically.");
@@ -197,6 +205,14 @@ describe("demo initialization", () => {
     element("#credential-form").dispatchEvent(submit);
     expect(submit.defaultPrevented).toBe(true);
     expect(localStorage.getItem(storageKey)).toBeNull();
+  });
+
+  it("leaves the textarea experiment read-only when CSS masking is unavailable", async () => {
+    vi.stubGlobal("CSS", { supports: () => false, escape: CSS.escape });
+    const { initializeComparison } = await import("../src/comparison.ts");
+    initializeComparison(element<HTMLElement>("#demo-root"), () => {});
+    expect(element<HTMLTextAreaElement>("#textarea-signing-secret").readOnly).toBe(true);
+    expect(element("#textarea-status").textContent).toContain("CSS masking is unavailable");
   });
 
   it("keeps the saved stage recoverable if its deferred module cannot load", async () => {

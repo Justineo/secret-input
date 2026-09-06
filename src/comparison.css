@@ -126,7 +126,7 @@
 
 .table-wrap table {
   width: 100%;
-  min-width: 64rem;
+  min-width: 72rem;
   border-collapse: collapse;
   table-layout: fixed;
   font-size: 0.875rem;
@@ -283,4 +283,26 @@
     width: clamp(8rem, 40vw, 10rem);
     white-space: normal;
   }
+}
+
+#textarea-signing-secret {
+  resize: none;
+  overflow: hidden;
+  white-space: pre;
+}
+
+.browser-icon[data-support="untested"] {
+  opacity: 0.5;
+  outline: 1px dashed var(--muted);
+  outline-offset: 2px;
+  border-radius: 50%;
+}
+
+.untested-icon {
+  display: inline-grid;
+  place-items: center;
+  width: 18px;
+  height: 18px;
+  border: 1px dashed var(--muted);
+  border-radius: 50%;
 }

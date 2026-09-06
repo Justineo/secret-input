@@ -162,6 +162,63 @@
       </div>
     </article>
 
+    <article class="comparison-case" data-experimental="true">
+      <header class="case-summary">
+        <h3 class="section-title">Textarea + CSS</h3>
+        <dl class="case-spec caption">
+          <div>
+            <dt>Type</dt>
+            <dd><code>textarea rows="1"</code></dd>
+          </div>
+          <div>
+            <dt>Setup</dt>
+            <dd><code>-webkit-text-security: disc</code></dd>
+          </div>
+        </dl>
+      </header>
+      <div class="case-content">
+        <dl class="case-explanation">
+          <div>
+            <dt>Why try it</dt>
+            <dd>
+              Tests whether a textarea avoids password suggestions while CSS hides its text. The
+              browser owns the real value, editing history, and form submission.
+            </dd>
+          </div>
+          <div>
+            <dt>Experimental</dt>
+            <dd>
+              Password suggestions still need visual verification, including in Safari. Enter
+              submits this test form; line breaks and multiline paste or drop are rejected. Copying
+              still copies the real text.
+            </dd>
+          </div>
+        </dl>
+        <form class="case-form">
+          <div class="field">
+            <label class="label" for="textarea-webhook-url">Webhook URL</label>
+            <input id="textarea-webhook-url" type="text" autocomplete="off" />
+          </div>
+          <div class="field">
+            <label class="label" for="textarea-signing-secret">Signing secret</label>
+            <textarea
+              id="textarea-signing-secret"
+              rows="1"
+              wrap="off"
+              enterkeyhint="go"
+              autocomplete="off"
+              autocapitalize="off"
+              autocorrect="off"
+              spellcheck="false"
+              readonly
+              aria-describedby="textarea-status"
+            ></textarea>
+          </div>
+        </form>
+        <p id="textarea-status" class="caption" role="status">Checking CSS masking support.</p>
+      </div>
+    </article>
+
     <article class="comparison-case" data-recommended="true">
       <header class="case-summary">
         <h3 class="section-title">Secret Input</h3>
@@ -230,6 +287,7 @@
           <img class="browser-icon" data-support="best-effort" width="18" height="18" alt="" />
           Best effort
         </span>
+        <span><span class="untested-icon" aria-hidden="true">?</span> Not tested</span>
         <span>
           <img class="browser-icon" data-support="unsupported" width="18" height="18" alt="" />
           Unsupported
@@ -255,6 +313,7 @@
             <th scope="col">Autocomplete off</th>
             <th scope="col">New-password</th>
             <th scope="col">CSS masking</th>
+            <th scope="col">Textarea + CSS</th>
             <th scope="col" data-recommended="true">Secret Input</th>
           </tr>
         </thead>

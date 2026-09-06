@@ -5,6 +5,8 @@ import firefoxIcon from "./assets/browser-logos/firefox.png";
 import safariIcon from "./assets/browser-logos/safari.png";
 import { createSecretInput } from "./index.ts";
 
+import { initializeTextareaExperiment } from "./textarea-experiment.ts";
+
 import comparisonHTML from "./comparison.html?raw";
 
 function requiredElement<T extends Element>(selector: string): T {
@@ -15,12 +17,18 @@ function requiredElement<T extends Element>(selector: string): T {
   return element;
 }
 
-type Support = "supported" | "best-effort" | "unsupported";
+type Support = "supported" | "best-effort" | "unsupported" | "untested";
 type Assessment = readonly [status: Support, detail: string, ...details: string[]];
 type BrowserSupport = readonly [Assessment, Assessment, Assessment, Assessment];
 type MatrixRow = {
   label: string;
-  solutions: readonly [BrowserSupport, BrowserSupport, BrowserSupport, BrowserSupport];
+  solutions: readonly [
+    BrowserSupport,
+    BrowserSupport,
+    BrowserSupport,
+    BrowserSupport,
+    BrowserSupport,
+  ];
 };
 
 function allBrowsers(status: Support, ...details: [string, ...string[]]): BrowserSupport {
@@ -51,6 +59,7 @@ const supportLabels: Record<Support, string> = {
   supported: "Supported",
   "best-effort": "Best effort",
   unsupported: "Unsupported",
+  untested: "Not tested",
 };
 
 const nativeValueProtection = allBrowsers(
@@ -85,6 +94,15 @@ const supportMatrix = [
         ["supported", "No automatic fill observed."],
         ["supported", "No automatic fill observed.", "Password suggestions appear on interaction."],
       ],
+      [
+        ["untested", "Saved-credential autofill has not been verified."],
+        ["untested", "Saved-credential autofill has not been verified."],
+        ["untested", "Saved-credential autofill has not been verified."],
+        [
+          "supported",
+          "No automatic fill observed after saving a disposable login and reloading in Safari 26.4.",
+        ],
+      ],
       allBrowsers("supported", "No automatic fill observed."),
     ],
   },
@@ -113,6 +131,16 @@ const supportMatrix = [
         ["supported", "No password suggestions observed."],
         ["unsupported", "Both fields show password suggestions on focus."],
       ],
+      [
+        ["untested", "Password suggestions have not been verified."],
+        ["untested", "Password suggestions have not been verified."],
+        ["untested", "Password suggestions have not been verified."],
+        [
+          "untested",
+          "No native password AutoFill control found during Safari 26.4 accessibility checks of either field.",
+          "Visual confirmation is still pending because desktop capture was unavailable.",
+        ],
+      ],
       allBrowsers("supported", "No password suggestions observed."),
     ],
   },
@@ -126,6 +154,15 @@ const supportMatrix = [
         "Visual masking only.",
         "Assistive technology can read the actual value.",
       ),
+      [
+        ["untested", "Assistive-technology value exposure has not been verified."],
+        ["untested", "Assistive-technology value exposure has not been verified."],
+        ["untested", "Assistive-technology value exposure has not been verified."],
+        [
+          "unsupported",
+          "Safari 26.4 exposes the actual value through the accessibility interface.",
+        ],
+      ],
       allBrowsers(
         "supported",
         "Assistive technology reads masked characters.",
@@ -139,6 +176,15 @@ const supportMatrix = [
       allBrowsers("supported", "Standard browser undo/redo."),
       allBrowsers("supported", "Standard browser undo/redo."),
       allBrowsers("supported", "Standard browser undo/redo."),
+      [
+        ["supported", "Native keyboard undo/redo verified for typing."],
+        ["supported", "Native keyboard undo/redo verified for typing."],
+        ["supported", "Native keyboard undo/redo verified for typing."],
+        [
+          "supported",
+          "Native typing undo/redo verified with Command-Z and Command-Shift-Z in Safari 26.4.",
+        ],
+      ],
       allBrowsers(
         "best-effort",
         "Keyboard undo/redo supported.",
@@ -161,6 +207,7 @@ const supportMatrix = [
         ["supported", "IME input is disabled."],
         ["unsupported", "IME input remains available."],
       ],
+      allBrowsers("untested", "Experimental textarea: this behavior has not been verified."),
       [
         ["supported", "IME input is disabled."],
         [
@@ -187,6 +234,15 @@ const supportMatrix = [
         "Recognized as a regular text field by assistive technology.",
         "Password-specific screen reader settings may not apply.",
       ),
+      [
+        ["untested", "Password-field accessibility semantics have not been verified."],
+        ["untested", "Password-field accessibility semantics have not been verified."],
+        ["untested", "Password-field accessibility semantics have not been verified."],
+        [
+          "unsupported",
+          "Safari 26.4 exposes a regular text entry area, without native secure text-field semantics.",
+        ],
+      ],
       allBrowsers(
         "unsupported",
         "Recognized as a regular text field by assistive technology.",
@@ -206,6 +262,9 @@ export function initializeComparison(root: HTMLElement, onReset: () => void): vo
   renderSupportMatrix();
 
   createSecretInput(requiredElement<HTMLInputElement>("#masked-signing-secret"));
+  const textarea = requiredElement<HTMLTextAreaElement>("#textarea-signing-secret");
+  const textareaStatus = requiredElement<HTMLElement>("#textarea-status");
+  initializeTextareaExperiment(textarea, textareaStatus);
   const cssMasked = requiredElement<HTMLInputElement>("#css-signing-secret");
 
   cssMasked.style.setProperty("ime-mode", "disabled");
@@ -219,6 +278,9 @@ export function initializeComparison(root: HTMLElement, onReset: () => void): vo
 
   requiredElement<HTMLElement>(".comparison-page").addEventListener("submit", (event) => {
     event.preventDefault();
+    if (event.target === textarea.form) {
+      textareaStatus.textContent = "Test form submitted. Nothing was sent.";
+    }
   });
 
   requiredElement<HTMLButtonElement>("#reset-demo").addEventListener("click", onReset);
@@ -227,7 +289,13 @@ export function initializeComparison(root: HTMLElement, onReset: () => void): vo
 function renderSupportMatrix(): void {
   const body = requiredElement<HTMLTableSectionElement>("#support-matrix");
   const detailOutput = requiredElement<HTMLElement>("#support-detail");
-  const solutions = ["Autocomplete off", "New-password", "CSS masking", "Secret Input"];
+  const solutions = [
+    "Autocomplete off",
+    "New-password",
+    "CSS masking",
+    "Textarea + CSS",
+    "Secret Input",
+  ];
   let selectedButton: HTMLButtonElement | undefined;
 
   for (const row of supportMatrix) {
