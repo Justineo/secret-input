@@ -113,7 +113,10 @@ A seventh browser regression covers software-keyboard-shaped `beforeinput` submi
 `keydown`, native required validation, the visible confirmation, and composition exclusion.
 Actual iOS and Android keyboard behavior remains subject to device testing.
 
-The Safari CI runner did not translate WebdriverIO's `Ctrl` alias into the native macOS
-shortcut for these textarea tests. The regression uses explicit `Command` on macOS and
-`Control` elsewhere, matching the successful desktop accessibility check. This changes
-the test driver input, not the prototype's editing implementation.
+Safari CI keyboard actions did not invoke native textarea undo with either the `Ctrl`
+alias or explicit `Command`. The Safari regression therefore invokes the browser's
+native `execCommand("undo"/"redo")` and asserts both command success and the resulting
+value, preserving coverage of the native editing stack and transfer rejection. Other
+browsers exercise the keyboard shortcut. Safari OS keyboard shortcuts were verified
+separately through desktop accessibility above; the CI test does not establish that
+WebDriver can reproduce them. No undo handling was added to the prototype.
