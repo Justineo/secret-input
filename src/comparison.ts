@@ -3,7 +3,7 @@ import chromeIcon from "./assets/browser-logos/chrome.png";
 import edgeIcon from "./assets/browser-logos/edge.png";
 import firefoxIcon from "./assets/browser-logos/firefox.png";
 import safariIcon from "./assets/browser-logos/safari.png";
-import { mask } from "./index.ts";
+import { createSecretInput } from "./index.ts";
 
 import comparisonHTML from "./comparison.html?raw";
 
@@ -53,29 +53,26 @@ const supportLabels: Record<Support, string> = {
   unsupported: "Unsupported",
 };
 
-const nativeValueProtection = [
-  ["supported", "Protected value without plaintext."],
-  ["supported", "Protected value without plaintext."],
-  ["supported", "Protected password value."],
-  ["supported", "AXSecureTextField with bullets."],
-] as const satisfies BrowserSupport;
+const nativeValueProtection = allBrowsers(
+  "supported",
+  "Assistive technology cannot read the actual value.",
+);
 
-const nativePasswordAccessibility = [
-  ["supported", "Native password semantics and secure typing echo."],
-  ["supported", "Native password semantics and secure typing echo."],
-  ["supported", "Native protected-field semantics."],
-  ["supported", "Native AXSecureTextField semantics."],
-] as const satisfies BrowserSupport;
+const nativePasswordAccessibility = allBrowsers(
+  "supported",
+  "Recognized as a password field by assistive technology.",
+  "Typing feedback depends on the screen reader and its settings.",
+);
 
 const supportMatrix = [
   {
     label: "Stops automatic autofill",
     solutions: [
       [
-        ["unsupported", "Both fields autofill despite autocomplete=off."],
-        ["unsupported", "Both fields autofill despite autocomplete=off."],
-        ["unsupported", "Both fields autofill despite autocomplete=off."],
-        ["supported", "No automatic fill.", "Interaction opens a password picker."],
+        ["unsupported", "Both fields are filled automatically."],
+        ["unsupported", "Both fields are filled automatically."],
+        ["unsupported", "Both fields are filled automatically."],
+        ["supported", "No automatic fill observed.", "Password suggestions appear on interaction."],
       ],
       allBrowsers(
         "supported",
@@ -86,7 +83,7 @@ const supportMatrix = [
         ["supported", "No automatic fill observed."],
         ["supported", "No automatic fill observed."],
         ["supported", "No automatic fill observed."],
-        ["supported", "No automatic fill.", "Interaction opens a password picker."],
+        ["supported", "No automatic fill observed.", "Password suggestions appear on interaction."],
       ],
       allBrowsers("supported", "No automatic fill observed."),
     ],
@@ -98,23 +95,23 @@ const supportMatrix = [
         ["unsupported", "Password suggestions remain available."],
         ["unsupported", "Password suggestions remain available."],
         ["unsupported", "Password suggestions remain available."],
-        ["unsupported", "Either field opens a password picker on focus."],
+        ["unsupported", "Both fields show password suggestions on focus."],
       ],
       [
-        ["unsupported", "Secret field opens password suggestions on focus."],
-        ["unsupported", "Secret field opens password suggestions on focus."],
+        ["unsupported", "Secret field shows password suggestions on focus."],
+        ["unsupported", "Secret field shows password suggestions on focus."],
         [
           "unsupported",
           "Both fields show password suggestions on focus.",
           "Secret field offers new passwords.",
         ],
-        ["unsupported", "Focus opens a new-password picker."],
+        ["unsupported", "New-password suggestions appear on focus."],
       ],
       [
         ["supported", "No password suggestions observed."],
         ["supported", "No password suggestions observed."],
         ["supported", "No password suggestions observed."],
-        ["unsupported", "Either field opens a password picker on focus."],
+        ["unsupported", "Both fields show password suggestions on focus."],
       ],
       allBrowsers("supported", "No password suggestions observed."),
     ],
@@ -127,55 +124,55 @@ const supportMatrix = [
       allBrowsers(
         "unsupported",
         "Visual masking only.",
-        "Assistive technology receives plaintext.",
+        "Assistive technology can read the actual value.",
       ),
       allBrowsers(
         "supported",
-        "Accessible value contains bullets.",
-        "Typing echo may announce new input.",
+        "Assistive technology reads masked characters.",
+        "Newly typed characters may still be announced.",
       ),
     ],
   },
   {
     label: "Undo/redo",
     solutions: [
-      allBrowsers("supported", "Native browser history."),
-      allBrowsers("supported", "Native browser history."),
-      allBrowsers("supported", "Native browser history."),
+      allBrowsers("supported", "Standard browser undo/redo."),
+      allBrowsers("supported", "Standard browser undo/redo."),
+      allBrowsers("supported", "Standard browser undo/redo."),
       allBrowsers(
         "best-effort",
-        "Keyboard and beforeinput undo/redo supported.",
-        "Grouping and context menus may differ.",
+        "Keyboard undo/redo supported.",
+        "Which edits are undone together and menu support may differ from native inputs.",
       ),
     ],
   },
   {
     label: "Disables IME",
     solutions: [
-      allBrowsers("supported", "Native password behavior blocks composition."),
-      allBrowsers("supported", "Native password behavior blocks composition."),
+      allBrowsers("supported", "IME input is disabled."),
+      allBrowsers("supported", "IME input is disabled."),
       [
-        ["best-effort", "IME blocked after text is entered.", "Unreliable while empty."],
-        ["unsupported", "IME stays enabled.", "Canceling compositionstart has no effect."],
-        ["supported", "ime-mode: disabled blocks composition."],
         [
-          "unsupported",
-          "IME stays enabled.",
-          "ime-mode and compositionstart cancellation have no effect.",
+          "best-effort",
+          "IME input is disabled after text is entered.",
+          "May remain available while empty.",
         ],
+        ["unsupported", "IME input remains available."],
+        ["supported", "IME input is disabled."],
+        ["unsupported", "IME input remains available."],
       ],
       [
-        ["supported", "Custom-password primer blocks IME switching."],
+        ["supported", "IME input is disabled."],
         [
           "best-effort",
-          "IME stays enabled. Drafts leave the secret unchanged.",
-          "Committed text applied once.",
+          "IME input remains available.",
+          "Only confirmed text changes the secret, without duplicate characters.",
         ],
-        ["supported", "ime-mode: disabled blocks composition."],
+        ["supported", "IME input is disabled."],
         [
           "best-effort",
-          "IME stays enabled. Drafts leave the secret unchanged.",
-          "Committed text applied once.",
+          "IME input remains available.",
+          "Only confirmed text changes the secret, without duplicate characters.",
         ],
       ],
     ],
@@ -187,13 +184,13 @@ const supportMatrix = [
       nativePasswordAccessibility,
       allBrowsers(
         "unsupported",
-        "Ordinary text-field semantics.",
-        "CSS adds no secure accessibility behavior.",
+        "Recognized as a regular text field by assistive technology.",
+        "Password-specific screen reader settings may not apply.",
       ),
       allBrowsers(
         "unsupported",
-        "Ordinary text-field semantics.",
-        "ARIA cannot add native password behavior.",
+        "Recognized as a regular text field by assistive technology.",
+        "Password-specific screen reader settings may not apply.",
       ),
     ],
   },
@@ -208,7 +205,7 @@ export function initializeComparison(root: HTMLElement, onReset: () => void): vo
   root.replaceChildren(template.content.cloneNode(true));
   renderSupportMatrix();
 
-  mask(requiredElement<HTMLInputElement>("#masked-signing-secret"));
+  createSecretInput(requiredElement<HTMLInputElement>("#masked-signing-secret"));
   const cssMasked = requiredElement<HTMLInputElement>("#css-signing-secret");
 
   cssMasked.style.setProperty("ime-mode", "disabled");

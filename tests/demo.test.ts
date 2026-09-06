@@ -44,7 +44,7 @@ afterEach(() => {
 describe("demo initialization", () => {
   it("delivers the product explanation and usage example before JavaScript runs", () => {
     expect(element("h1").textContent).toContain("autofill");
-    expect(element(".integration pre").textContent).toContain("mask(element)");
+    expect(element(".integration pre").textContent).toContain("createSecretInput(element");
     expect(document.querySelector("#setup-username")).toBeNull();
     expect(document.querySelector("#masked-signing-secret")).toBeNull();
   });
@@ -159,14 +159,15 @@ describe("demo initialization", () => {
   it("exposes comparison details to focus and click and can reset with blocked storage", async () => {
     localStorage.setItem(storageKey, "true");
     await import("../src/demo.ts");
-    await vi.dynamicImportSettled();
+    // Module evaluation can settle before the startup render finishes.
+    await vi.waitFor(() => {
+      expect(element("#demo-root").getAttribute("aria-busy")).toBe("false");
+    });
     expect(document.querySelector("#setup-username")).toBeNull();
     expect(document.querySelectorAll("#support-matrix tr")).toHaveLength(6);
     const button = element<HTMLButtonElement>(".browser-detail");
     button.focus();
-    expect(element("#support-detail").textContent).toBe(
-      "Both fields autofill despite autocomplete=off.",
-    );
+    expect(element("#support-detail").textContent).toBe("Both fields are filled automatically.");
     expect(button.getAttribute("aria-current")).toBe("true");
     const last = document.querySelector<HTMLButtonElement>(
       ".browser-support .browser-detail:last-child",
@@ -174,7 +175,7 @@ describe("demo initialization", () => {
     last.click();
     expect(
       [...document.querySelectorAll(".support-detail-notes li")].map((item) => item.textContent),
-    ).toEqual(["No automatic fill.", "Interaction opens a password picker."]);
+    ).toEqual(["No automatic fill observed.", "Password suggestions appear on interaction."]);
     expect(button.hasAttribute("aria-current")).toBe(false);
     expect(last.getAttribute("aria-current")).toBe("true");
     expect(document.querySelectorAll(".browser-detail[aria-current]")).toHaveLength(1);
@@ -204,8 +205,9 @@ describe("demo initialization", () => {
       throw new Error("Offline");
     });
     await import("../src/demo.ts");
-    await vi.dynamicImportSettled();
-    expect(element("#demo-root").getAttribute("aria-busy")).toBe("false");
+    await vi.waitFor(() => {
+      expect(element("#demo-root").getAttribute("aria-busy")).toBe("false");
+    });
     expect(element("#demo-root [role=status]").textContent).toContain("could not load");
     expect(element("#demo-root button").textContent).toBe("Reload comparison");
     expect(document.querySelector("#masked-signing-secret")).toBeNull();

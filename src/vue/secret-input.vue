@@ -1,82 +1,86 @@
 <script setup lang="ts">
-import { nextTick, watch } from "vue";
+import { nextTick, shallowRef, watch } from "vue";
 
-import { mask, redact } from "../secret-input.ts";
-import type { SecretInput } from "../secret-input.ts";
+import { createSecretInput, redact } from "../secret-input.ts";
+import type { SecretInputController, SecretInputOptions } from "../secret-input.ts";
+import { passwordManagerAttributes } from "../password-manager.ts";
 
 defineOptions({
   inheritAttrs: false,
   name: "SecretInput",
 });
 
-const props = withDefaults(
-  defineProps<{
-    defaultValue?: string;
-    modelValue?: string;
-    redacted?: boolean;
-    type?: string;
-    value?: string;
-  }>(),
-  { redacted: true },
-);
-
-const emit = defineEmits<{
-  change: [value: string, event: Event];
-  input: [value: string, event: InputEvent];
-  "update:modelValue": [value: string];
+const props = defineProps<{
+  revealed?: boolean;
+  pattern?: string;
+  minlength?: number | string;
+  maxlength?: number | string;
+  required?: boolean;
+  customValidity?: string | undefined;
+  value?: never;
+  defaultValue?: never;
 }>();
-const initialPresentation = redact(props.modelValue ?? props.defaultValue ?? "");
 
-let input: SecretInput | undefined;
+const model = defineModel<string>();
+const emit = defineEmits<{
+  change: [event: Event];
+  input: [event: InputEvent];
+}>();
+const initialPresentation = redact(model.value ?? "");
+const controller = shallowRef<SecretInputController>();
+
+defineExpose({
+  get input() {
+    return controller.value?.input;
+  },
+});
+
+function getOptions(): SecretInputOptions {
+  return {
+    value: model.value ?? "",
+    defaultValue: model.value ?? "",
+    revealed: props.revealed,
+    pattern: props.pattern,
+    minLength: props.minlength === undefined ? undefined : Number(props.minlength),
+    maxLength: props.maxlength === undefined ? undefined : Number(props.maxlength),
+    required: props.required,
+    customValidity: props.customValidity,
+  };
+}
 
 function sync(): void {
-  if (!input) {
-    return;
-  }
-  if (props.modelValue !== undefined) {
-    input.secretValue = props.modelValue;
-  }
-  if (props.defaultValue !== undefined) {
-    input.defaultSecretValue = props.defaultValue;
-  }
-  input.redacted = props.redacted;
+  controller.value?.update(getOptions());
 }
 
 function setInput(element: unknown): void {
-  input?.removeEventListener("change", handleChange);
-  input?.removeEventListener("input", handleInput);
+  controller.value?.input.removeEventListener("change", handleChange);
+  controller.value?.input.removeEventListener("input", handleInput);
   if (!(element instanceof HTMLInputElement)) {
-    input = undefined;
+    controller.value = undefined;
     return;
   }
 
-  const value = props.modelValue ?? props.defaultValue ?? "";
-  input = mask(element, {
-    defaultValue: props.defaultValue ?? value,
-    redacted: props.redacted,
-    value,
-  });
-  input.addEventListener("change", handleChange);
-  input.addEventListener("input", handleInput);
+  controller.value = createSecretInput(element, getOptions());
+  sync();
+  element.addEventListener("change", handleChange);
+  element.addEventListener("input", handleInput);
 }
 
 function handleChange(event: Event): void {
-  if (input) {
-    emit("change", input.secretValue, event);
-  }
+  emit("change", event);
 }
 
 function handleInput(event: InputEvent): void {
-  if (!input) {
+  if (!controller.value) {
     return;
   }
 
-  emit("update:modelValue", input.secretValue);
-  emit("input", input.secretValue, event);
+  model.value = controller.value.value;
+  emit("input", event);
   void nextTick(sync);
 }
 
-watch(() => [props.defaultValue, props.modelValue, props.redacted], sync, { flush: "post" });
+watch(getOptions, sync, { flush: "post" });
 </script>
 
 <template>
@@ -85,14 +89,10 @@ watch(() => [props.defaultValue, props.modelValue, props.redacted], sync, { flus
     autocapitalize="off"
     autocorrect="off"
     spellcheck="false"
-    v-bind="$attrs"
-    :value="initialPresentation"
+    v-bind="{ ...$attrs, ...passwordManagerAttributes }"
+    :required="props.required"
+    :value.attr="initialPresentation"
     type="text"
     autocomplete="off"
-    data-1p-ignore
-    data-bwignore="true"
-    data-form-type="other"
-    data-lpignore="true"
-    data-protonpass-ignore="true"
   />
 </template>

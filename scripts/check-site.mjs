@@ -9,7 +9,7 @@ const example = firstPaintHTML.match(/<pre\b[^>]*class="shiki\b[^>]*>([\s\S]*?)<
 assert.ok(example?.[1], "Shiki must render the example before the HTML is served.");
 assert.match(
   example[1].replace(/<[^>]+>/g, ""),
-  /mask\(element\)/,
+  /createSecretInput\(element,/,
   "Highlighting must preserve the example text.",
 );
 assert.doesNotMatch(

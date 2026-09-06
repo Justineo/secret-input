@@ -49,6 +49,9 @@ jobs:
       - name: Validate package
         run: vp run publint
 
+      - name: Check package consumer types
+        run: vp run check:package-types
+
       - name: Build site
         run: vp build
 

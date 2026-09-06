@@ -47,6 +47,9 @@ export default defineConfig(({ mode }) => {
   const browserMode = mode === "browser";
 
   return {
+    ...(browserMode
+      ? { optimizeDeps: { include: ["react", "react-dom", "react-dom/client", "vue"] } }
+      : {}),
     plugins: [
       Vue(),
       {
@@ -119,9 +122,21 @@ export default defineConfig(({ mode }) => {
         vue: true,
       },
       exports: true,
-      plugins: [VueRolldown({ isProduction: true })],
+      plugins: [
+        VueRolldown({ isProduction: true }),
+        {
+          name: "public-vue-type-imports",
+          renderChunk(code, chunk) {
+            if (!/\.d\.[cm]?ts$/.test(chunk.fileName)) return;
+            // The declaration generator names Vue's internal packages. All
+            // referenced types are re-exported by our only public peer, vue.
+            return code.replace(/import\("@vue\/(?:runtime-core|reactivity)"\)/g, 'import("vue")');
+          },
+        },
+      ],
     },
     lint: {
+      ignorePatterns: ["tests/package/**"],
       plugins: ["typescript"],
       options: {
         typeAware: true,

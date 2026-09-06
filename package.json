@@ -43,7 +43,8 @@
     "test:browser": "vp test --run --mode browser",
     "check": "vp check && vue-tsc --noEmit",
     "prepack": "vp pack",
-    "check:site": "node scripts/check-site.mjs"
+    "check:site": "node scripts/check-site.mjs",
+    "check:package-types": "vue-tsc --project tests/package/tsconfig.json --noEmit"
   },
   "devDependencies": {
     "@types/react": "^19.2.18",

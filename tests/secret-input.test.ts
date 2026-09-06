@@ -1,13 +1,13 @@
 import { beforeEach, describe, expect, it, vi } from "vite-plus/test";
 
-import { mask } from "../src/index.ts";
-import type { SecretInput } from "../src/index.ts";
+import { createSecretInput } from "../src/index.ts";
+import type { SecretInputController } from "../src/index.ts";
 import { beforeInput, composition, formDataFor } from "./edit.ts";
 
-function createInput(value = ""): SecretInput {
+function createInput(value = ""): SecretInputController {
   const input = document.createElement("input");
   document.body.append(input);
-  return mask(input, { value });
+  return createSecretInput(input, { value });
 }
 
 function createFormInput(name = ""): { form: HTMLFormElement; input: HTMLInputElement } {
@@ -42,17 +42,18 @@ function keyDown(
   return event;
 }
 
-describe("mask", () => {
+describe("createSecretInput", () => {
   beforeEach(() => {
     document.body.replaceChildren();
   });
 
   it("keeps the secret separate from the native value", () => {
-    const input = createInput("secret🔐");
+    const field = createInput("secret🔐");
+    const { input } = field;
 
     expect(input.type).toBe("text");
-    expect(input.redacted).toBe(true);
-    expect(input.secretValue).toBe("secret🔐");
+    expect(field.revealed).toBe(false);
+    expect(field.value).toBe("secret🔐");
     expect(input.value).toBe("•••••••");
     expect(input.getAttribute("value")).toBeNull();
     expect(input.value).not.toContain("secret");
@@ -62,17 +63,17 @@ describe("mask", () => {
     const input = document.createElement("input");
     input.value = "browser-filled";
 
-    const masked = mask(input, { value: "kept" });
+    const masked = createSecretInput(input, { value: "kept" });
 
-    expect(masked.secretValue).toBe("kept");
-    expect(masked.value).toBe("••••");
+    expect(masked.value).toBe("kept");
+    expect(input.value).toBe("••••");
   });
 
   it("normalizes the editing surface to a text input", () => {
     const input = document.createElement("input");
     input.type = "password";
 
-    mask(input);
+    createSecretInput(input);
 
     expect(input.type).toBe("text");
   });
@@ -82,7 +83,7 @@ describe("mask", () => {
     input.autocomplete = "current-password";
     input.setAttribute("data-form-type", "password");
 
-    mask(input);
+    createSecretInput(input);
 
     expect(input.autocomplete).toBe("off");
     expect(input.getAttribute("data-1p-ignore")).toBe("");
@@ -93,21 +94,22 @@ describe("mask", () => {
   });
 
   it("reveals and redacts without changing the secret or emitting input", () => {
-    const input = createInput("a👩‍💻b");
+    const field = createInput("a👩‍💻b");
+    const { input } = field;
     const listener = vi.fn();
     input.addEventListener("input", listener);
     input.focus();
     input.setSelectionRange(1, 2);
 
-    input.redacted = false;
+    field.update({ revealed: true });
 
     expect(input.value).toBe("a👩‍💻b");
-    expect(input.secretValue).toBe("a👩‍💻b");
+    expect(field.value).toBe("a👩‍💻b");
     expect(input.selectionStart).toBe(1);
     expect(input.selectionEnd).toBe(6);
     expect(listener).not.toHaveBeenCalled();
 
-    input.redacted = true;
+    field.update({ revealed: false });
 
     expect(input.value).toBe("•••");
     expect(input.selectionStart).toBe(1);
@@ -119,107 +121,117 @@ describe("mask", () => {
     const input = document.createElement("input");
     document.body.append(input);
 
-    const revealed = mask(input, { redacted: false, value: "secret" });
+    const revealed = createSecretInput(input, { revealed: true, value: "secret" });
 
-    expect(revealed.redacted).toBe(false);
-    expect(revealed.secretValue).toBe("secret");
+    expect(revealed.revealed).toBe(true);
+    expect(revealed.value).toBe("secret");
     expect(input.value).toBe("secret");
   });
 
   it("uses defaultValue as the initial value when value is omitted", () => {
     const input = document.createElement("input");
 
-    const currentState = mask(input, { defaultValue: "initial" });
+    const currentState = createSecretInput(input, { defaultValue: "initial" });
 
-    expect(currentState.secretValue).toBe("initial");
-    expect(currentState.defaultSecretValue).toBe("initial");
+    expect(currentState.value).toBe("initial");
+    expect(currentState.defaultValue).toBe("initial");
     expect(input.value).toBe("•••••••");
   });
 
   it("applies native single-line value sanitization", () => {
-    const input = mask(document.createElement("input"), {
+    const field = createSecretInput(document.createElement("input"), {
       defaultValue: "de\r\nfault",
       value: "a\nb\rc",
     });
+    const { input } = field;
 
-    expect(input.secretValue).toBe("abc");
-    expect(input.defaultSecretValue).toBe("default");
+    expect(field.value).toBe("abc");
+    expect(field.defaultValue).toBe("default");
 
-    input.secretValue = "x\r\ny";
-    input.defaultSecretValue = "r\neset";
-    expect(input.secretValue).toBe("xy");
-    expect(input.defaultSecretValue).toBe("reset");
+    field.update({ value: "x\r\ny" });
+    field.update({ defaultValue: "r\neset" });
+    expect(field.value).toBe("xy");
+    expect(field.defaultValue).toBe("reset");
 
-    input.secretValue = "";
+    field.update({ value: "" });
     beforeInput(input, "insertText", "a\r\nb");
-    expect(input.secretValue).toBe("ab");
+    expect(field.value).toBe("ab");
   });
 
-  it("returns the native input with non-enumerable secret properties", () => {
+  it("returns a controller without extending the native input", () => {
     const input = document.createElement("input");
+    const nativeMethod = Object.getOwnPropertyDescriptor(
+      HTMLInputElement.prototype,
+      "setCustomValidity",
+    );
+    const field = createSecretInput(input, { revealed: true, value: "secret" });
 
-    const masked = mask(input, { redacted: false, value: "secret" });
-
-    expect(masked).toBe(input);
-    expect(masked.secretValue).toBe("secret");
-    expect(masked.defaultSecretValue).toBe("secret");
-    expect(masked.redacted).toBe(false);
-    expect(Object.getOwnPropertyDescriptor(input, "secretValue")).toMatchObject({
-      configurable: false,
-      enumerable: false,
-      get: expect.any(Function),
-      set: expect.any(Function),
-    });
+    expect(field).not.toBe(input);
+    expect(field.input).toBe(input);
+    expect(field.value).toBe("secret");
+    expect(field.defaultValue).toBe("secret");
+    expect(field.revealed).toBe(true);
+    for (const name of ["secretValue", "defaultSecretValue", "revealed", "setCustomValidity"]) {
+      expect(Object.hasOwn(input, name)).toBe(false);
+    }
+    expect(
+      Object.getOwnPropertyDescriptor(HTMLInputElement.prototype, "setCustomValidity"),
+    ).toEqual(nativeMethod);
   });
 
   it("preserves an unfocused selection across presentation changes", () => {
-    const input = createInput("a👩‍💻b");
+    const field = createInput("a👩‍💻b");
+    const { input } = field;
     input.setSelectionRange(1, 2);
 
-    input.redacted = false;
+    field.update({ revealed: true });
 
     expect(input.selectionStart).toBe(1);
     expect(input.selectionEnd).toBe(6);
   });
 
   it("maps revealed UTF-16 selections back to grapheme edits", () => {
-    const input = createInput("a👩‍💻b");
-    input.redacted = false;
+    const field = createInput("a👩‍💻b");
+    const { input } = field;
+    field.update({ revealed: true });
     input.focus();
     input.setSelectionRange(1, 6);
 
     beforeInput(input, "insertText", "x");
 
-    expect(input.secretValue).toBe("axb");
+    expect(field.value).toBe("axb");
     expect(input.value).toBe("axb");
     expect(input.selectionStart).toBe(2);
     expect(input.selectionEnd).toBe(2);
   });
 
   it("rejects unexpected DOM mutations while revealed", () => {
-    const input = createInput("kept");
-    input.redacted = false;
+    const field = createInput("kept");
+    const { input } = field;
+    field.update({ revealed: true });
 
     input.value = "browser-filled";
     input.dispatchEvent(new InputEvent("input", { bubbles: true }));
 
-    expect(input.secretValue).toBe("kept");
+    expect(field.value).toBe("kept");
     expect(input.value).toBe("kept");
   });
 
   it("restores presentation when the current redacted state is reaffirmed", () => {
-    const input = createInput("kept");
+    const field = createInput("kept");
+    const { input } = field;
     input.value = "browser-filled";
 
-    input.redacted = true;
+    field.update({ revealed: false });
 
-    expect(input.secretValue).toBe("kept");
+    expect(field.value).toBe("kept");
     expect(input.value).toBe("••••");
   });
 
   it("allows exporting and cutting a revealed selection", () => {
-    const input = createInput("secret");
-    input.redacted = false;
+    const field = createInput("secret");
+    const { input } = field;
+    field.update({ revealed: true });
     input.focus();
     input.select();
     const copy = new Event("copy", { bubbles: true, cancelable: true });
@@ -228,7 +240,7 @@ describe("mask", () => {
     beforeInput(input, "deleteByCut");
 
     expect(copy.defaultPrevented).toBe(false);
-    expect(input.secretValue).toBe("");
+    expect(field.value).toBe("");
     expect(input.value).toBe("");
   });
 
@@ -248,10 +260,11 @@ describe("mask", () => {
     const valueSetter = vi.spyOn(HTMLInputElement.prototype, "value", "set");
 
     try {
-      const input = createInput();
+      const field = createInput();
+      const { input } = field;
 
       expect(valueSetter.mock.calls).toEqual([["••"], [""]]);
-      expect(input.secretValue).toBe("");
+      expect(field.value).toBe("");
       expect(input.value).toBe("");
     } finally {
       valueSetter.mockRestore();
@@ -265,8 +278,8 @@ describe("mask", () => {
     configured.setAttribute("autocorrect", "on");
     configured.setAttribute("spellcheck", "true");
 
-    mask(input);
-    mask(configured);
+    createSecretInput(input);
+    createSecretInput(configured);
 
     expect(input.getAttribute("autocapitalize")).toBe("off");
     expect(input.getAttribute("autocorrect")).toBe("off");
@@ -277,7 +290,8 @@ describe("mask", () => {
   });
 
   it("cancels composition when the browser permits it", () => {
-    const input = createInput();
+    const field = createInput();
+    const { input } = field;
     const event = new CompositionEvent("compositionstart", {
       bubbles: true,
       cancelable: true,
@@ -289,22 +303,24 @@ describe("mask", () => {
   });
 
   it("masks each input only once", () => {
-    const input = createInput("first");
+    const field = createInput("first");
+    const { input } = field;
     const originalInput = input;
 
-    expect(mask(input, { value: "ignored" })).toBe(input);
-    expect(mask(input)).toBe(originalInput);
-    expect(input.secretValue).toBe("first");
+    expect(createSecretInput(input, { value: "ignored" })).toBe(field);
+    expect(createSecretInput(input).input).toBe(originalInput);
+    expect(field.value).toBe("first");
   });
 
   it("updates the secret from explicit edits while inserting only masks", () => {
-    const input = createInput();
+    const field = createInput();
+    const { input } = field;
     input.focus();
 
     const event = beforeInput(input, "insertText", "🔐");
 
     expect(event.defaultPrevented).toBe(true);
-    expect(input.secretValue).toBe("🔐");
+    expect(field.value).toBe("🔐");
     expect(input.value).toBe("•");
     expect(input.selectionStart).toBe(1);
   });
@@ -312,49 +328,53 @@ describe("mask", () => {
   it.each(["é", "e\u0301", "🔐", "👩‍💻", "👍🏽", "🇨🇳"])(
     "preserves %s as one masked editing unit",
     (value) => {
-      const input = createInput();
+      const field = createInput();
+      const { input } = field;
       input.focus();
 
       beforeInput(input, "insertText", value);
 
-      expect(input.secretValue).toBe(value);
+      expect(field.value).toBe(value);
       expect(input.value).toBe("•");
       expect(input.selectionStart).toBe(1);
     },
   );
 
   it.each(["insertFromPasteAsQuotation", "insertFromYank"])("handles %s", (inputType) => {
-    const input = createInput();
+    const field = createInput();
+    const { input } = field;
     input.focus();
 
     beforeInput(input, inputType, "inserted");
 
-    expect(input.secretValue).toBe("inserted");
+    expect(field.value).toBe("inserted");
     expect(input.value).toBe("••••••••");
   });
 
   it("edits selections using grapheme positions", () => {
-    const input = createInput("a👩‍💻b");
+    const field = createInput("a👩‍💻b");
+    const { input } = field;
     input.focus();
     input.setSelectionRange(1, 2);
 
     beforeInput(input, "insertText", "é");
 
-    expect(input.secretValue).toBe("aéb");
+    expect(field.value).toBe("aéb");
     expect(input.value).toBe("•••");
   });
 
   it.each(["deleteContentBackward", "deleteContentForward"])(
     "does not split a grapheme during %s",
     (inputType) => {
-      const input = createInput("a👩‍💻b");
+      const field = createInput("a👩‍💻b");
+      const { input } = field;
       input.focus();
       const caret = inputType === "deleteContentBackward" ? 2 : 1;
       input.setSelectionRange(caret, caret);
 
       beforeInput(input, inputType);
 
-      expect(input.secretValue).toBe("ab");
+      expect(field.value).toBe("ab");
       expect(input.value).toBe("••");
     },
   );
@@ -372,18 +392,20 @@ describe("mask", () => {
     { inputType: "deleteSoftLineForward", start: 2, end: 2, expected: "ab" },
     { inputType: "deleteEntireSoftLine", start: 2, end: 2, expected: "" },
   ])("handles $inputType", ({ end, expected, inputType, start }) => {
-    const input = createInput("ab cd");
+    const field = createInput("ab cd");
+    const { input } = field;
     input.focus();
     input.setSelectionRange(start, end);
 
     beforeInput(input, inputType);
 
-    expect(input.secretValue).toBe(expected);
+    expect(field.value).toBe(expected);
     expect(input.value).toBe("•".repeat(Array.from(expected).length));
   });
 
   it.each(["copy", "cut", "dragstart"])("cancels %s like a concealed password field", (type) => {
-    const input = createInput("secret");
+    const field = createInput("secret");
+    const { input } = field;
     input.focus();
     input.select();
     const event = new Event(type, { bubbles: true, cancelable: true });
@@ -391,12 +413,13 @@ describe("mask", () => {
     input.dispatchEvent(event);
 
     expect(event.defaultPrevented).toBe(true);
-    expect(input.secretValue).toBe("secret");
+    expect(field.value).toBe("secret");
     expect(input.value).toBe("••••••");
   });
 
   it("leaves the native context menu available", () => {
-    const input = createInput("secret");
+    const field = createInput("secret");
+    const { input } = field;
     const event = new Event("contextmenu", { bubbles: true, cancelable: true });
 
     input.dispatchEvent(event);
@@ -405,13 +428,14 @@ describe("mask", () => {
   });
 
   it("does not honor a cut mutation after canceling clipboard export", () => {
-    const input = createInput("secret");
+    const field = createInput("secret");
+    const { input } = field;
     input.focus();
     input.select();
 
     beforeInput(input, "deleteByCut");
 
-    expect(input.secretValue).toBe("secret");
+    expect(field.value).toBe("secret");
     expect(input.value).toBe("••••••");
   });
 
@@ -419,54 +443,59 @@ describe("mask", () => {
     { eventType: "paste", inputType: "insertFromPaste" },
     { eventType: "drop", inputType: "insertFromDrop" },
   ] as const)("uses $eventType data when beforeinput has none", ({ eventType, inputType }) => {
-    const input = createInput();
+    const field = createInput();
+    const { input } = field;
     input.focus();
 
     dispatchTransfer(input, eventType, "pasted");
     beforeInput(input, inputType);
 
-    expect(input.secretValue).toBe("pasted");
+    expect(field.value).toBe("pasted");
     expect(input.value).toBe("••••••");
   });
 
   it("uses transfer data when input arrives without beforeinput", () => {
-    const input = createInput();
+    const field = createInput();
+    const { input } = field;
     input.focus();
 
     dispatchTransfer(input, "paste", "pasted");
     input.value = "pasted";
     input.dispatchEvent(new InputEvent("input", { bubbles: true, inputType: "insertFromPaste" }));
 
-    expect(input.secretValue).toBe("pasted");
+    expect(field.value).toBe("pasted");
     expect(input.value).toBe("••••••");
   });
 
   it("does not reuse transfer data after its edit opportunity expires", async () => {
-    const input = createInput();
+    const field = createInput();
+    const { input } = field;
     input.focus();
 
     dispatchTransfer(input, "paste", "stale");
     await Promise.resolve();
     beforeInput(input, "insertFromPaste");
 
-    expect(input.secretValue).toBe("");
+    expect(field.value).toBe("");
     expect(input.value).toBe("");
   });
 
   it("applies a non-cancelable edit from its beforeinput metadata", () => {
-    const input = createInput();
+    const field = createInput();
+    const { input } = field;
     input.focus();
 
     beforeInput(input, "insertText", "x", false);
     input.value = "x";
     input.dispatchEvent(new InputEvent("input", { bubbles: true, inputType: "insertText" }));
 
-    expect(input.secretValue).toBe("x");
+    expect(field.value).toBe("x");
     expect(input.value).toBe("•");
   });
 
   it("does not reuse a non-cancelable edit after its input opportunity expires", async () => {
-    const input = createInput();
+    const field = createInput();
+    const { input } = field;
     input.focus();
 
     beforeInput(input, "insertText", "stale", false);
@@ -474,66 +503,93 @@ describe("mask", () => {
     input.value = "browser-filled";
     input.dispatchEvent(new InputEvent("input", { bubbles: true }));
 
-    expect(input.secretValue).toBe("");
+    expect(field.value).toBe("");
     expect(input.value).toBe("");
   });
 
   it("keeps composition drafts out of the secret until commit", () => {
-    const input = createInput();
+    const field = createInput();
+    const { input } = field;
     input.focus();
 
     composition(input, "compositionstart");
     beforeInput(input, "insertCompositionText", "n");
-    expect(input.secretValue).toBe("");
-    expect(input.value).toBe("•");
+    expect(field.value).toBe("");
+    expect(input.value).toBe("");
 
     beforeInput(input, "insertCompositionText", "ni");
-    expect(input.secretValue).toBe("");
-    expect(input.value).toBe("••");
+    expect(field.value).toBe("");
+    expect(input.value).toBe("");
 
     composition(input, "compositionend", "你");
     beforeInput(input, "insertFromComposition", "你");
 
-    expect(input.secretValue).toBe("你");
+    expect(field.value).toBe("你");
     expect(input.value).toBe("•");
   });
 
-  it("shows composition drafts without committing them while revealed", () => {
-    const input = createInput();
-    input.redacted = false;
+  it("keeps composition drafts out of the revealed presentation", () => {
+    const field = createInput();
+    const { input } = field;
+    field.update({ revealed: true });
     input.focus();
 
     composition(input, "compositionstart");
     beforeInput(input, "insertCompositionText", "ni");
 
-    expect(input.secretValue).toBe("");
-    expect(input.value).toBe("ni");
+    expect(field.value).toBe("");
+    expect(input.value).toBe("");
 
     composition(input, "compositionend", "你");
 
-    expect(input.secretValue).toBe("你");
+    expect(field.value).toBe("你");
     expect(input.value).toBe("你");
   });
 
-  it("segments composition drafts together with surrounding text", () => {
-    const input = createInput("a");
+  it("commits interrupted composition through insertText once at the saved range", () => {
+    const field = createInput("ab");
+    const { input } = field;
+    input.setSelectionRange(1, 2);
+    const listener = vi.fn();
+    input.addEventListener("input", listener);
+    composition(input, "compositionstart");
+    beforeInput(input, "insertCompositionText", "ni");
+    expect(input.value).toBe("••");
+    expect(input.selectionStart).toBe(1);
+    expect(input.selectionEnd).toBe(2);
+    beforeInput(input, "insertText", "你");
+    composition(input, "compositionend", "你");
+    expect(field.value).toBe("a你");
+    expect(listener).toHaveBeenCalledOnce();
+    beforeInput(input, "insertText", "x");
+    expect(field.value).toBe("a你x");
+    beforeInput(input, "historyUndo");
+    expect(field.value).toBe("a你");
+    beforeInput(input, "historyUndo");
+    expect(field.value).toBe("ab");
+  });
+
+  it("segments committed composition text together with surrounding text", () => {
+    const field = createInput("a");
+    const { input } = field;
     input.focus();
     input.setSelectionRange(1, 1);
 
     composition(input, "compositionstart");
     beforeInput(input, "insertCompositionText", "\u0301");
 
-    expect(input.secretValue).toBe("a");
+    expect(field.value).toBe("a");
     expect(input.value).toBe("•");
 
     composition(input, "compositionend", "\u0301");
 
-    expect(input.secretValue).toBe("a\u0301");
+    expect(field.value).toBe("a\u0301");
     expect(input.value).toBe("•");
   });
 
   it("restores the selected text when composition is canceled", () => {
-    const input = createInput("ab");
+    const field = createInput("ab");
+    const { input } = field;
     const listener = vi.fn();
     input.addEventListener("input", listener);
     input.focus();
@@ -543,13 +599,14 @@ describe("mask", () => {
     beforeInput(input, "insertCompositionText", "x");
     composition(input, "compositionend");
 
-    expect(input.secretValue).toBe("ab");
+    expect(field.value).toBe("ab");
     expect(input.value).toBe("••");
     expect(listener).not.toHaveBeenCalled();
   });
 
   it("commits composition once when insertFromComposition precedes compositionend", () => {
-    const input = createInput("ab");
+    const field = createInput("ab");
+    const { input } = field;
     const listener = vi.fn();
     input.addEventListener("input", listener);
     input.focus();
@@ -560,13 +617,14 @@ describe("mask", () => {
     beforeInput(input, "insertFromComposition", "你");
     composition(input, "compositionend", "你");
 
-    expect(input.secretValue).toBe("a你");
+    expect(field.value).toBe("a你");
     expect(input.value).toBe("••");
     expect(listener).toHaveBeenCalledOnce();
   });
 
   it("restores masks after a non-cancelable composition mutation without committing it", () => {
-    const input = createInput();
+    const field = createInput();
+    const { input } = field;
     input.focus();
 
     composition(input, "compositionstart");
@@ -580,17 +638,18 @@ describe("mask", () => {
       }),
     );
 
-    expect(input.secretValue).toBe("");
-    expect(input.value).toBe("•");
+    expect(field.value).toBe("");
+    expect(input.value).toBe("");
 
     composition(input, "compositionend", "密");
 
-    expect(input.secretValue).toBe("密");
+    expect(field.value).toBe("密");
     expect(input.value).toBe("•");
   });
 
   it("never adopts an uncommitted composition and discards it on blur", () => {
-    const input = createInput("kept");
+    const field = createInput("kept");
+    const { input } = field;
     input.focus();
     input.setSelectionRange(4, 4);
     composition(input, "compositionstart");
@@ -607,17 +666,18 @@ describe("mask", () => {
         }),
       );
 
-      expect(input.secretValue).toBe("kept");
+      expect(field.value).toBe("kept");
     }
 
-    expect(input.value).toBe("•".repeat(17));
+    expect(input.value).toBe("••••");
     input.blur();
-    expect(input.secretValue).toBe("kept");
+    expect(field.value).toBe("kept");
     expect(input.value).toBe("••••");
   });
 
   it.each(["change", "input"])("does not adopt unexpected value mutations on %s", (type) => {
-    const input = createInput();
+    const field = createInput();
+    const { input } = field;
     input.focus();
     beforeInput(input, "insertText", "a");
     const listener = vi.fn();
@@ -630,74 +690,145 @@ describe("mask", () => {
         : new Event(type, { bubbles: true }),
     );
 
-    expect(input.secretValue).toBe("a");
+    expect(field.value).toBe("a");
     expect(input.value).toBe("•");
     expect(listener).not.toHaveBeenCalled();
     input.removeEventListener(type, listener);
 
     beforeInput(input, "insertText", "b");
     beforeInput(input, "historyUndo");
-    expect(input.secretValue).toBe("a");
+    expect(field.value).toBe("a");
   });
 
   it("rejects browser-managed replacement input", () => {
-    const input = createInput("kept");
+    const field = createInput("kept");
+    const { input } = field;
     input.focus();
     input.select();
 
     beforeInput(input, "insertReplacementText", "autofilled");
 
-    expect(input.secretValue).toBe("kept");
+    expect(field.value).toBe("kept");
     expect(input.value).toBe("••••");
   });
 
   it("ignores edits while readonly or disabled", () => {
     for (const property of ["readOnly", "disabled"] as const) {
-      const input = createInput("kept");
+      const field = createInput("kept");
+      const { input } = field;
       input[property] = true;
       input.focus();
       input.select();
 
       beforeInput(input, "insertText", "changed");
 
-      expect(input.secretValue).toBe("kept");
+      expect(field.value).toBe("kept");
       expect(input.value).toBe("••••");
     }
   });
 
   it("applies maxlength in UTF-16 code units without splitting graphemes", () => {
-    const input = createInput();
-    input.maxLength = 6;
+    const field = createInput();
+    const { input } = field;
+    field.update({ maxLength: 6 });
     input.focus();
 
     beforeInput(input, "insertText", "a👩‍💻b");
 
-    expect(input.secretValue).toBe("a👩‍💻");
+    expect(field.value).toBe("a👩‍💻");
     expect(input.value).toBe("••");
 
     input.setSelectionRange(1, 2);
     beforeInput(input, "insertText", "bc");
-    expect(input.secretValue).toBe("abc");
+    expect(field.value).toBe("abc");
     expect(input.value).toBe("•••");
 
-    input.secretValue = "";
-    input.maxLength = 1;
+    field.update({ value: "" });
+    field.update({ maxLength: 1 });
     beforeInput(input, "insertText", "🔐");
-    expect(input.secretValue).toBe("");
+    expect(field.value).toBe("");
     expect(input.value).toBe("");
 
-    input.secretValue = "🔐";
-    expect(input.secretValue).toBe("🔐");
+    field.update({ value: "🔐" });
+    expect(field.value).toBe("🔐");
     expect(input.value).toBe("•");
   });
 
+  it.each([true, false])(
+    "preserves Unicode splice boundaries, maxlength, and history (redacted=%s)",
+    (redacted) => {
+      for (const {
+        value,
+        revealedStart,
+        text,
+        maxLength,
+        expected,
+        accepted,
+        createSecretInput,
+        caret,
+        revealedCaret,
+      } of [
+        {
+          value: "👩x💻",
+          revealedStart: 2,
+          text: "\u200d",
+          maxLength: 5,
+          expected: "👩‍💻",
+          accepted: "\u200d",
+          createSecretInput: "•",
+          caret: 1,
+          revealedCaret: 5,
+        },
+        {
+          value: "a🔐b",
+          revealedStart: 1,
+          text: "e\u0301x",
+          maxLength: 4,
+          expected: "ae\u0301b",
+          accepted: "e\u0301",
+          createSecretInput: "•••",
+          caret: 2,
+          revealedCaret: 3,
+        },
+      ]) {
+        const field = createInput(value);
+        const { input } = field;
+        field.update({ revealed: !redacted });
+        field.update({ maxLength: maxLength });
+        const from = redacted ? 1 : revealedStart;
+        const to = redacted ? 2 : 3;
+        input.setSelectionRange(from, to, "backward");
+        const listener = vi.fn();
+        input.addEventListener("input", listener);
+
+        beforeInput(input, "insertFromPaste", text);
+        expect(field.value).toBe(expected);
+        expect(input.value).toBe(redacted ? createSecretInput : expected);
+        expect(input.selectionStart).toBe(redacted ? caret : revealedCaret);
+        expect(listener).toHaveBeenCalledExactlyOnceWith(
+          expect.objectContaining({ data: accepted }),
+        );
+
+        beforeInput(input, "historyUndo");
+        expect(field.value).toBe(value);
+        expect([input.selectionStart, input.selectionEnd, input.selectionDirection]).toEqual([
+          from,
+          to,
+          "backward",
+        ]);
+        beforeInput(input, "historyRedo");
+        expect(field.value).toBe(expected);
+      }
+    },
+  );
+
   it("provides actual values to FormData", () => {
     const { form, input } = createFormInput("token");
-    const masked = mask(input, { value: "submitted🔐" });
+    const masked = createSecretInput(input, { value: "submitted🔐" });
 
     const formData = formDataFor(form);
 
-    expect(masked.secretValue).toBe("submitted🔐");
+    expect(masked.value).toBe("submitted🔐");
     expect(input.value).toBe("••••••••••");
     expect(formData.get("token")).toBe("submitted🔐");
   });
@@ -710,8 +841,8 @@ describe("mask", () => {
     second.name = "token";
     form.append(first, second);
     document.body.append(form);
-    mask(first, { value: "one" });
-    mask(second, { value: "two" });
+    createSecretInput(first, { value: "one" });
+    createSecretInput(second, { value: "two" });
 
     expect(formDataFor(form).getAll("token")).toEqual(["one", "two"]);
   });
@@ -719,33 +850,33 @@ describe("mask", () => {
   it("omits disabled inputs from FormData", () => {
     const { form, input } = createFormInput("token");
     input.disabled = true;
-    mask(input, { value: "secret" });
+    createSecretInput(input, { value: "secret" });
 
     expect(formDataFor(form).has("token")).toBe(false);
   });
 
   it("resets to the current default value without emitting input", async () => {
     const { form, input } = createFormInput();
-    const currentState = mask(input, {
+    const currentState = createSecretInput(input, {
       defaultValue: "initial",
       value: "initial",
     });
     const listener = vi.fn();
     input.addEventListener("input", listener);
-    currentState.defaultSecretValue = "reset";
-    currentState.secretValue = "changed";
+    currentState.update({ defaultValue: "reset" });
+    currentState.update({ value: "changed" });
 
     form.reset();
     await Promise.resolve();
 
-    expect(currentState.secretValue).toBe("reset");
+    expect(currentState.value).toBe("reset");
     expect(input.value).toBe("•••••");
     expect(listener).not.toHaveBeenCalled();
   });
 
   it("keeps the current value when form reset is canceled", async () => {
     const { form, input } = createFormInput();
-    const currentState = mask(input, {
+    const currentState = createSecretInput(input, {
       defaultValue: "initial",
       value: "changed",
     });
@@ -754,16 +885,17 @@ describe("mask", () => {
     form.dispatchEvent(new Event("reset", { bubbles: true, cancelable: true }));
     await Promise.resolve();
 
-    expect(currentState.secretValue).toBe("changed");
+    expect(currentState.value).toBe("changed");
     expect(input.value).toBe("•••••••");
   });
 
   it("emits input for user edits but not property writes", () => {
-    const input = createInput();
+    const field = createInput();
+    const { input } = field;
     const listener = vi.fn();
     input.addEventListener("input", listener);
 
-    input.secretValue = "quiet";
+    field.update({ value: "quiet" });
     expect(listener).not.toHaveBeenCalled();
 
     input.focus();
@@ -772,8 +904,56 @@ describe("mask", () => {
     expect(listener.mock.calls[0]?.[0]).toBeInstanceOf(InputEvent);
   });
 
+  it("commits Enter once without changing focus, and tracks subsequent changes", () => {
+    const field = createInput("base");
+    const { input } = field;
+    input.focus();
+    input.setSelectionRange(4, 4);
+    const values: string[] = [];
+    input.addEventListener("change", () => values.push(field.value));
+    beforeInput(input, "insertText", "x");
+    const enter = beforeInput(input, "insertLineBreak");
+    expect(enter.defaultPrevented).toBe(false);
+    expect(document.activeElement).toBe(input);
+    expect(values).toEqual(["basex"]);
+    beforeInput(input, "insertLineBreak");
+    expect(values).toEqual(["basex"]);
+    beforeInput(input, "insertText", "y");
+    beforeInput(input, "historyUndo");
+    expect(field.value).toBe("basex");
+    input.blur();
+    expect(values).toEqual(["basex"]);
+  });
+
+  it("does not turn quiet property assignments into Enter changes", () => {
+    const field = createInput("base");
+    const { input } = field;
+    input.focus();
+    const changed = vi.fn();
+    input.addEventListener("change", changed);
+    field.update({ value: "external" });
+    beforeInput(input, "insertLineBreak");
+    input.blur();
+    expect(changed).not.toHaveBeenCalled();
+  });
+
+  it("does not commit when the application cancels the Enter action", () => {
+    const field = createInput("base");
+    const { input } = field;
+    input.focus();
+    const changed = vi.fn();
+    input.addEventListener("change", changed);
+    beforeInput(input, "insertText", "x");
+    input.addEventListener("beforeinput", (event) => event.preventDefault(), { capture: true });
+    beforeInput(input, "insertLineBreak");
+    expect(changed).not.toHaveBeenCalled();
+    input.blur();
+    expect(changed).toHaveBeenCalledTimes(1);
+  });
+
   it("emits change on blur after a user edit", () => {
-    const input = createInput();
+    const field = createInput();
+    const { input } = field;
     const listener = vi.fn();
     input.addEventListener("change", listener);
     input.focus();
@@ -785,34 +965,37 @@ describe("mask", () => {
   });
 
   it("supports undo and redo without exposing plaintext", () => {
-    const input = createInput();
+    const field = createInput();
+    const { input } = field;
     input.focus();
 
     beforeInput(input, "insertText", "ab");
     beforeInput(input, "deleteContentBackward");
-    expect(input.secretValue).toBe("a");
+    expect(field.value).toBe("a");
 
     beforeInput(input, "historyUndo");
-    expect(input.secretValue).toBe("ab");
+    expect(field.value).toBe("ab");
     beforeInput(input, "historyRedo");
-    expect(input.secretValue).toBe("a");
+    expect(field.value).toBe("a");
     expect(input.value).toBe("•");
   });
 
   it("preserves history when application state accepts the current value", () => {
-    const input = createInput();
+    const field = createInput();
+    const { input } = field;
     input.focus();
 
     beforeInput(input, "insertText", "a");
-    input.secretValue = "a";
+    field.update({ value: "a" });
     beforeInput(input, "historyUndo");
 
-    expect(input.secretValue).toBe("");
+    expect(field.value).toBe("");
     expect(input.value).toBe("");
   });
 
   it("groups contiguous typing like one native undo transaction", () => {
-    const input = createInput();
+    const field = createInput();
+    const { input } = field;
     input.focus();
 
     for (const character of ["a", "b", "c"]) {
@@ -820,16 +1003,17 @@ describe("mask", () => {
     }
 
     beforeInput(input, "historyUndo");
-    expect(input.secretValue).toBe("");
+    expect(field.value).toBe("");
     expect(input.value).toBe("");
 
     beforeInput(input, "historyRedo");
-    expect(input.secretValue).toBe("abc");
+    expect(field.value).toBe("abc");
     expect(input.value).toBe("•••");
   });
 
   it("groups contiguous backward deletion and restores the original caret", () => {
-    const input = createInput("abc");
+    const field = createInput("abc");
+    const { input } = field;
     input.focus();
     input.setSelectionRange(3, 3);
 
@@ -837,14 +1021,15 @@ describe("mask", () => {
     beforeInput(input, "deleteContentBackward");
     beforeInput(input, "historyUndo");
 
-    expect(input.secretValue).toBe("abc");
+    expect(field.value).toBe("abc");
     expect(input.value).toBe("•••");
     expect(input.selectionStart).toBe(3);
     expect(input.selectionEnd).toBe(3);
   });
 
   it("groups contiguous forward deletion and restores the original caret", () => {
-    const input = createInput("abc");
+    const field = createInput("abc");
+    const { input } = field;
     input.focus();
     input.setSelectionRange(0, 0);
 
@@ -852,14 +1037,15 @@ describe("mask", () => {
     beforeInput(input, "deleteContentForward");
     beforeInput(input, "historyUndo");
 
-    expect(input.secretValue).toBe("abc");
+    expect(field.value).toBe("abc");
     expect(input.value).toBe("•••");
     expect(input.selectionStart).toBe(0);
     expect(input.selectionEnd).toBe(0);
   });
 
   it("starts a new undo transaction after caret navigation", () => {
-    const input = createInput();
+    const field = createInput();
+    const { input } = field;
     input.focus();
     for (const character of ["a", "b", "c"]) {
       beforeInput(input, "insertText", character);
@@ -870,13 +1056,14 @@ describe("mask", () => {
     beforeInput(input, "insertText", "x");
     beforeInput(input, "historyUndo");
 
-    expect(input.secretValue).toBe("abc");
+    expect(field.value).toBe("abc");
     beforeInput(input, "historyUndo");
-    expect(input.secretValue).toBe("");
+    expect(field.value).toBe("");
   });
 
   it("starts a new undo transaction after rejecting an unrelated edit", () => {
-    const input = createInput();
+    const field = createInput();
+    const { input } = field;
     input.focus();
     beforeInput(input, "insertText", "a");
     beforeInput(input, "insertText", "b");
@@ -885,24 +1072,25 @@ describe("mask", () => {
     beforeInput(input, "insertText", "c");
     beforeInput(input, "historyUndo");
 
-    expect(input.secretValue).toBe("ab");
+    expect(field.value).toBe("ab");
     beforeInput(input, "historyUndo");
-    expect(input.secretValue).toBe("");
+    expect(field.value).toBe("");
   });
 
   it("supports keyboard undo and redo without relying on the browser history stack", () => {
-    const input = createInput();
+    const field = createInput();
+    const { input } = field;
     input.focus();
     beforeInput(input, "insertText", "ab");
     beforeInput(input, "deleteContentBackward");
 
     expect(keyDown(input, "z", { ctrlKey: true }).defaultPrevented).toBe(true);
-    expect(input.secretValue).toBe("ab");
+    expect(field.value).toBe("ab");
     expect(keyDown(input, "y", { ctrlKey: true }).defaultPrevented).toBe(true);
-    expect(input.secretValue).toBe("a");
+    expect(field.value).toBe("a");
     expect(keyDown(input, "z", { ctrlKey: true }).defaultPrevented).toBe(true);
     expect(keyDown(input, "z", { metaKey: true, shiftKey: true }).defaultPrevented).toBe(true);
-    expect(input.secretValue).toBe("a");
+    expect(field.value).toBe("a");
     expect(input.value).toBe("•");
   });
 
@@ -914,7 +1102,7 @@ describe("mask", () => {
     input.setAttribute("aria-describedby", "help");
     document.body.append(label, input);
 
-    mask(input);
+    createSecretInput(input);
     input.focus();
 
     expect(label.control).toBe(input);
@@ -923,92 +1111,101 @@ describe("mask", () => {
   });
 
   it("retains native required validity", () => {
-    const input = createInput();
-    input.required = true;
+    const field = createInput();
+    const { input } = field;
+    field.update({ required: true });
 
     expect(input.validity.valueMissing).toBe(true);
-    input.secretValue = "present";
+    field.update({ value: "present" });
     expect(input.validity.valid).toBe(true);
   });
   it.each([true, false])(
     "keeps the caret at joined grapheme boundaries (redacted=%s)",
     (redacted) => {
-      const input = createInput("ab");
-      input.redacted = redacted;
+      const field = createInput("ab");
+      const { input } = field;
+      field.update({ revealed: !redacted });
       input.setSelectionRange(1, 1);
 
       beforeInput(input, "insertText", "\u0301");
-      expect(input.secretValue).toBe("a\u0301b");
+      expect(field.value).toBe("a\u0301b");
       expect(input.selectionStart).toBe(redacted ? 1 : 2);
       beforeInput(input, "insertText", "x");
-      expect(input.secretValue).toBe("a\u0301xb");
+      expect(field.value).toBe("a\u0301xb");
       beforeInput(input, "historyUndo");
-      expect(input.secretValue).toBe("ab");
+      expect(field.value).toBe("ab");
     },
   );
 
   it("preserves backward selection when revealing and redacting", () => {
-    const input = createInput("a👩‍💻b");
+    const field = createInput("a👩‍💻b");
+    const { input } = field;
     input.setSelectionRange(1, 2, "backward");
-    input.redacted = false;
+    field.update({ revealed: true });
     expect(input.selectionDirection).toBe("backward");
-    input.redacted = true;
+    field.update({ revealed: false });
     expect(input.selectionDirection).toBe("backward");
   });
 
   it("does not reuse paste data for an unrelated edit in the same task", () => {
-    const input = createInput();
+    const field = createInput();
+    const { input } = field;
     dispatchTransfer(input, "paste", "stale");
     beforeInput(input, "insertText", "x");
-    expect(input.secretValue).toBe("x");
+    expect(field.value).toBe("x");
   });
 
   it("rejects an input whose type does not match pending metadata", () => {
-    const input = createInput("kept");
+    const field = createInput("kept");
+    const { input } = field;
     input.select();
     beforeInput(input, "insertText", "stale", false);
     input.value = "browser-filled";
     input.dispatchEvent(new InputEvent("input", { inputType: "insertReplacementText" }));
-    expect(input.secretValue).toBe("kept");
+    expect(field.value).toBe("kept");
     expect(input.value).toBe("••••");
   });
 
   it("does not delete a selection when insertion data is unavailable", () => {
-    const input = createInput("kept");
+    const field = createInput("kept");
+    const { input } = field;
     input.select();
     beforeInput(input, "insertFromPaste");
-    expect(input.secretValue).toBe("kept");
+    expect(field.value).toBe("kept");
   });
 
   it("respects beforeinput canceled by the application", () => {
-    const input = createInput("kept");
+    const field = createInput("kept");
+    const { input } = field;
     input.select();
     input.addEventListener("beforeinput", (event) => event.preventDefault(), { capture: true });
     beforeInput(input, "insertText", "rejected");
-    expect(input.secretValue).toBe("kept");
+    expect(field.value).toBe("kept");
   });
 
-  it("preserves a composition draft when the current value is reaffirmed", () => {
-    const input = createInput("ab");
+  it("preserves the composition replacement range when the current value is reaffirmed", () => {
+    const field = createInput("ab");
+    const { input } = field;
     input.setSelectionRange(1, 2);
     composition(input, "compositionstart");
     beforeInput(input, "insertCompositionText", "ni");
-    input.secretValue = "ab";
-    expect(input.value).toBe("•••");
+    field.update({ value: "ab" });
+    expect(input.value).toBe("••");
     composition(input, "compositionend", "你");
-    expect(input.secretValue).toBe("a你");
+    expect(field.value).toBe("a你");
   });
 
   it.each(["readOnly", "disabled"] as const)(
     "does not commit composition after becoming %s",
     (property) => {
-      const input = createInput("ab");
+      const field = createInput("ab");
+      const { input } = field;
       input.setSelectionRange(1, 2);
       composition(input, "compositionstart");
       beforeInput(input, "insertCompositionText", "ni");
       input[property] = true;
       composition(input, "compositionend", "你");
-      expect(input.secretValue).toBe("ab");
+      expect(field.value).toBe("ab");
       expect(input.value).toBe("••");
     },
   );
@@ -1023,14 +1220,15 @@ describe("mask", () => {
       document.body.append(host);
       host.attachShadow({ mode: "open" }).append(form);
     }
-    const masked = mask(input, { value: "changed", defaultValue: "initial" });
+    const masked = createSecretInput(input, { value: "changed", defaultValue: "initial" });
     expect(formDataFor(form).get("token")).toBe("changed");
     form.reset();
     await Promise.resolve();
-    expect(masked.secretValue).toBe("initial");
+    expect(masked.value).toBe("initial");
   });
   it("rejects unrelated DOM events dispatched inside an accepted input callback", () => {
-    const input = createInput();
+    const field = createInput();
+    const { input } = field;
     const received: string[] = [];
     input.addEventListener("input", () => {
       received.push(input.value);
@@ -1042,14 +1240,14 @@ describe("mask", () => {
     beforeInput(input, "insertText", "x");
     expect(received).toEqual(["•"]);
     expect(input.value).toBe("•");
-    expect(input.secretValue).toBe("x");
+    expect(field.value).toBe("x");
   });
 
   it("filters rejected input before listeners installed prior to masking", () => {
     const input = document.createElement("input");
     const listener = vi.fn();
     input.addEventListener("input", listener);
-    mask(input, { value: "kept" });
+    createSecretInput(input, { value: "kept" });
     input.value = "browser-filled";
     input.dispatchEvent(new InputEvent("input"));
     expect(listener).not.toHaveBeenCalled();
@@ -1057,18 +1255,20 @@ describe("mask", () => {
   });
 
   it("does not reuse a canceled transfer even within the same task", () => {
-    const input = createInput("kept");
+    const field = createInput("kept");
+    const { input } = field;
     input.select();
     input.addEventListener("paste", (event) => event.preventDefault());
     const event = new Event("paste", { cancelable: true });
     Object.defineProperty(event, "clipboardData", { value: { getData: () => "rejected" } });
     input.dispatchEvent(event);
     input.dispatchEvent(new InputEvent("input", { inputType: "insertFromPaste" }));
-    expect(input.secretValue).toBe("kept");
+    expect(field.value).toBe("kept");
   });
 
   it("does not retain a canceled composition as active editing state", () => {
-    const input = createInput();
+    const field = createInput();
+    const { input } = field;
     const listener = vi.fn();
     input.addEventListener("input", listener);
     input.dispatchEvent(new CompositionEvent("compositionstart", { cancelable: true }));
@@ -1078,20 +1278,21 @@ describe("mask", () => {
 
   it("discards a composition on reset even when the secret already equals its default", async () => {
     const { form, input } = createFormInput();
-    const masked = mask(input, { value: "ab" });
+    const masked = createSecretInput(input, { value: "ab" });
     input.setSelectionRange(1, 2);
     composition(input, "compositionstart");
     beforeInput(input, "insertCompositionText", "draft");
     form.reset();
     await Promise.resolve();
     composition(input, "compositionend", "ignored");
-    expect(masked.secretValue).toBe("ab");
+    expect(masked.value).toBe("ab");
     expect(input.value).toBe("••");
   });
   it("prefers the current beforeinput over older non-cancelable metadata", () => {
-    const input = createInput();
+    const field = createInput();
+    const { input } = field;
     beforeInput(input, "insertText", "stale", false);
     beforeInput(input, "insertText", "fresh");
-    expect(input.secretValue).toBe("fresh");
+    expect(field.value).toBe("fresh");
   });
 });

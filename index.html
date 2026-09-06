@@ -44,13 +44,14 @@
             </p>
           </div>
           <div class="integration" aria-label="JavaScript usage example">
-            <pre data-highlight="javascript"><code>import { mask } from 'secret-input';
+            <pre data-highlight="javascript"><code>import { createSecretInput } from 'secret-input';
 
-const input = mask(element);
-input.secretValue = 'sk_test_123';
+const field = createSecretInput(element, {
+  value: 'sk_test_123',
+});
 
-input.value;       // '•••••••••••'
-input.secretValue; // 'sk_test_123'</code></pre>
+element.value; // '•••••••••••'
+field.value; // 'sk_test_123'</code></pre>
             <div class="install-command">
               <span aria-hidden="true">$</span><code>npm install secret-input</code>
             </div>

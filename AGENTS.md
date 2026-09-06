@@ -1,8 +1,10 @@
 # Secret Input
 
-- `mask(input)` returns the same native input with `secretValue`, `defaultSecretValue`, and `redacted` accessors.
-- Keep the authoritative value in `input.secretValue`; `input.value` is presentation only.
-- `input.value` contains bullets while redacted and plaintext only after an explicit `redacted = false`.
+- Write all design documentation in English.
+- `createSecretInput(input, options)` returns an explicit controller with read-only state and synchronous `update(options)` patches. Do not add secret-state properties to native inputs.
+- Keep the authoritative value in `controller.value`; `input.value` is presentation only. Validation rules belong to controller options, not DOM attributes or observers.
+- Own application errors through `customValidity` options/props until explicitly cleared, including across edits and reset. Core is the sole native `setCustomValidity()` writer; never override it or emulate native validity flags.
+- `input.value` contains bullets while redacted and plaintext only after an explicit `revealed = true`.
 - Browser DOM/autofill mutations never implicitly become secret state.
 - Apply standard and known vendor ignore attributes to deter native and third-party autofill.
 - Preserve Unicode strings exactly. Use graphemes only for masked editing; keep native UTF-16 length semantics.

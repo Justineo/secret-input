@@ -20,5 +20,5 @@
     "skipLibCheck": true
   },
   "include": ["src", "tests", "vite.config.ts"],
-  "exclude": ["dist", "node_modules"]
+  "exclude": ["dist", "node_modules", "tests/package"]
 }

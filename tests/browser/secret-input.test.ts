@@ -1,8 +1,8 @@
 import { afterEach, beforeEach, describe, expect, it } from "vite-plus/test";
-import { page, userEvent } from "vite-plus/test/browser/context";
+import { cdp, page, server, userEvent } from "vite-plus/test/browser/context";
 
-import { mask } from "../../src/index.ts";
-import type { SecretInput } from "../../src/index.ts";
+import { createSecretInput } from "../../src/index.ts";
+import type { SecretInputController } from "../../src/index.ts";
 
 interface LoggedEvent {
   data: string | null;
@@ -16,7 +16,7 @@ interface LoggedEvent {
 interface Snapshot {
   domValue: string;
   events: LoggedEvent[];
-  redacted: boolean;
+  revealed: boolean;
   selectionEnd: number | null;
   selectionStart: number | null;
   value: string;
@@ -24,7 +24,8 @@ interface Snapshot {
 
 let events: LoggedEvent[];
 let form: HTMLFormElement;
-let input: SecretInput;
+let input: HTMLInputElement;
+let field: SecretInputController;
 let other: HTMLButtonElement;
 
 function query<T extends Element>(selector: string): T {
@@ -36,15 +37,15 @@ function query<T extends Element>(selector: string): T {
 }
 
 function reset(value = "", redacted = true, maxLength = -1): void {
-  input.defaultSecretValue = value;
-  input.secretValue = value;
-  input.redacted = redacted;
+  field.update({ defaultValue: value });
+  field.update({ value: value });
+  field.update({ revealed: !redacted });
   input.disabled = false;
   input.readOnly = false;
   if (maxLength < 0) {
-    input.removeAttribute("maxlength");
+    field.update({ maxLength: undefined });
   } else {
-    input.maxLength = maxLength;
+    field.update({ maxLength: maxLength });
   }
   events.length = 0;
   input.focus();
@@ -55,10 +56,10 @@ function snapshot(): Snapshot {
   return {
     domValue: input.value,
     events: [...events],
-    redacted: input.redacted,
+    revealed: field.revealed,
     selectionEnd: input.selectionEnd,
     selectionStart: input.selectionStart,
-    value: input.secretValue,
+    value: field.value,
   };
 }
 
@@ -115,7 +116,8 @@ describe("secret input browser contract", () => {
       </form>
     `;
     form = query("#form");
-    input = mask(query<HTMLInputElement>("#secret"));
+    field = createSecretInput(query<HTMLInputElement>("#secret"));
+    input = field.input;
     other = query("#other");
     events = [];
 
@@ -153,7 +155,7 @@ describe("secret input browser contract", () => {
     expect(snapshot()).toEqual({
       domValue: "••••",
       events: [],
-      redacted: true,
+      revealed: false,
       selectionEnd: 4,
       selectionStart: 4,
       value,
@@ -171,9 +173,9 @@ describe("secret input browser contract", () => {
     expect(page.getByRole("textbox", { name: "Secret" }).element()).toBe(input);
     expect(document.documentElement.outerHTML).not.toContain(value);
 
-    input.redacted = false;
+    field.update({ revealed: true });
     expect(snapshot().domValue).toBe(value);
-    input.redacted = true;
+    field.update({ revealed: false });
     expect(snapshot().domValue).toBe("••••");
   });
 
@@ -182,7 +184,7 @@ describe("secret input browser contract", () => {
     await userEvent.type(input, "a你", { skipClick: true });
     expect(snapshot()).toMatchObject({
       domValue: "••",
-      redacted: true,
+      revealed: false,
       selectionEnd: 2,
       selectionStart: 2,
       value: "a你",
@@ -191,18 +193,18 @@ describe("secret input browser contract", () => {
     reset("a👩‍💻b");
     input.setSelectionRange(1, 2);
     await userEvent.type(input, "密", { skipClick: true });
-    expect(input.secretValue).toBe("a密b");
+    expect(field.value).toBe("a密b");
 
     reset("a👩‍💻b");
     input.setSelectionRange(2, 2);
     await userEvent.keyboard("{Backspace}");
-    expect(input.secretValue).toBe("ab");
+    expect(field.value).toBe("ab");
   });
 
   it("applies native maxlength units without splitting Unicode input", () => {
     reset("", true, 6);
     beforeInput("insertText", "a👩‍💻b");
-    expect(input.secretValue).toBe("a👩‍💻");
+    expect(field.value).toBe("a👩‍💻");
 
     reset("", true, 1);
     beforeInput("insertText", "🔐");
@@ -218,7 +220,7 @@ describe("secret input browser contract", () => {
           type: "beforeinput",
         },
       ],
-      redacted: true,
+      revealed: false,
       selectionEnd: 0,
       selectionStart: 0,
       value: "",
@@ -231,14 +233,14 @@ describe("secret input browser contract", () => {
     await userEvent.copy();
     await userEvent.cut();
 
-    expect(input.secretValue).toBe("secret");
+    expect(field.value).toBe("secret");
     expect(input.value).toBe("••••••");
     expect(events.find((event) => event.type === "copy")?.defaultPrevented).toBe(true);
     expect(events.find((event) => event.type === "cut")?.defaultPrevented).toBe(true);
 
     input.setSelectionRange(6, 6);
     paste("粘贴🔐");
-    expect(input.secretValue).toBe("secret粘贴🔐");
+    expect(field.value).toBe("secret粘贴🔐");
     expect(input.value).toBe("•••••••••");
   });
 
@@ -246,23 +248,23 @@ describe("secret input browser contract", () => {
     reset();
     await userEvent.type(input, "abc", { skipClick: true });
     await userEvent.keyboard(shortcut("z"));
-    expect(input.secretValue).toBe("");
+    expect(field.value).toBe("");
 
     await userEvent.keyboard(shortcut("z", true));
-    expect(input.secretValue).toBe("abc");
+    expect(field.value).toBe("abc");
 
     input.dispatchEvent(new MouseEvent("contextmenu", { bubbles: true, cancelable: true }));
     expect(events.findLast((event) => event.type === "contextmenu")?.defaultPrevented).toBe(false);
   });
 
-  it("buffers both common native composition event orders", () => {
+  it("handles both simulated composition commit orders without displaying drafts", () => {
     for (const commitBeforeEnd of [false, true]) {
       reset("kept");
       composition("compositionstart");
       for (const draft of ["h", "hha", "hhaha", "hhaha'hha'hha"]) {
         nativeCompositionDraft(draft);
-        expect(input.secretValue).toBe("kept");
-        expect(input.value).not.toContain("h");
+        expect(field.value).toBe("kept");
+        expect(input.value).toBe("••••");
       }
 
       if (commitBeforeEnd) {
@@ -273,7 +275,7 @@ describe("secret input browser contract", () => {
         beforeInput("insertFromComposition", "好");
       }
 
-      expect(input.secretValue).toBe("kept好");
+      expect(field.value).toBe("kept好");
       expect(input.value).toBe("•••••");
       expect(events.filter((event) => event.type === "input" && event.data === "好")).toHaveLength(
         1,
@@ -281,10 +283,72 @@ describe("secret input browser contract", () => {
     }
   });
 
+  it.skipIf(!["chrome", "edge"].includes(server.browser))(
+    "restores committed DOM and native required validity during engine composition",
+    async () => {
+      const protocol = cdp();
+      field.update({ required: true });
+      const native = document.createElement("input");
+      native.type = "password";
+      native.required = true;
+
+      for (const revealed of [false, true]) {
+        reset("", !revealed);
+        await protocol.send("Input.imeSetComposition", {
+          text: "ni",
+          selectionStart: 2,
+          selectionEnd: 2,
+        });
+        expect(field.value).toBe("");
+        expect(input.value).toBe("");
+        expect(input.validity.valueMissing).toBe(true);
+        expect(input.validationMessage).toBe(native.validationMessage);
+
+        await protocol.send("Input.insertText", { text: "你" });
+        expect(field.value).toBe("你");
+        expect(input.value).toBe(revealed ? "你" : "•");
+        expect(input.checkValidity()).toBe(true);
+      }
+
+      reset("ab");
+      input.setSelectionRange(1, 2);
+      await protocol.send("Input.imeSetComposition", {
+        text: "ni",
+        selectionStart: 2,
+        selectionEnd: 2,
+      });
+      expect(input.value).toBe("••");
+      expect(input.selectionStart).toBe(1);
+      expect(input.selectionEnd).toBe(2);
+      await protocol.send("Input.insertText", { text: "你" });
+      expect(field.value).toBe("a你");
+      await protocol.send("Input.insertText", { text: "x" });
+      expect(field.value).toBe("a你x");
+      beforeInput("historyUndo");
+      expect(field.value).toBe("a你");
+      beforeInput("historyUndo");
+      expect(field.value).toBe("ab");
+
+      reset("", true, 3);
+      await protocol.send("Input.imeSetComposition", {
+        text: "emoji",
+        selectionStart: 5,
+        selectionEnd: 5,
+      });
+      await protocol.send("Input.insertText", { text: "👩‍💻" });
+      expect(field.value).toBe("");
+      expect(input.validity.valueMissing).toBe(true);
+      await protocol.send("Input.insertText", { text: "🔐" });
+      expect(field.value).toBe("🔐");
+      expect(input.value).toBe("•");
+      expect(input.checkValidity()).toBe(true);
+    },
+  );
+
   it("rejects simulated autofill mutations and submits the actual value", async () => {
     reset("kept");
     beforeInput("insertReplacementText", "autofilled");
-    expect(input.secretValue).toBe("kept");
+    expect(field.value).toBe("kept");
     expect(input.value).toBe("••••");
 
     input.value = "browser-filled";
@@ -294,29 +358,67 @@ describe("secret input browser contract", () => {
         inputType: "insertReplacementText",
       }),
     );
-    expect(input.secretValue).toBe("kept");
+    expect(field.value).toBe("kept");
     expect(input.value).toBe("••••");
     expect(Array.from(new FormData(form).entries())).toEqual([["secret", "kept"]]);
 
-    input.defaultSecretValue = "reset";
-    input.secretValue = "changed";
+    field.update({ defaultValue: "reset" });
+    field.update({ value: "changed" });
     form.reset();
     await Promise.resolve();
-    expect(input.secretValue).toBe("reset");
+    expect(field.value).toBe("reset");
     expect(input.value).toBe("•••••");
+  });
+
+  it("resets after native button activation and keeps the default presentation", async () => {
+    reset("kept");
+    field.update({ defaultValue: "start🔐" });
+    const button = document.createElement("button");
+    button.type = "reset";
+    button.textContent = "Reset";
+    form.append(button);
+    let valueDuringReset: string | undefined;
+    form.addEventListener("reset", () => {
+      valueDuringReset = field.value;
+    });
+
+    await userEvent.click(button);
+    await expect.poll(() => field.value).toBe("start🔐");
+    expect(valueDuringReset).toBe("kept");
+    expect(input.value).toBe("••••••");
+    expect(events.filter((event) => event.type === "input" || event.type === "change")).toEqual([]);
+  });
+
+  it("preserves the secret and history when a native reset click is canceled", async () => {
+    reset("kept");
+    await userEvent.type(input, "x", { skipClick: true });
+    const button = document.createElement("button");
+    button.type = "reset";
+    button.textContent = "Reset";
+    form.append(button);
+    form.addEventListener("reset", (event) => event.preventDefault());
+
+    await userEvent.click(button);
+    // Let a deferred reset finish before checking that cancellation preserved history.
+    await new Promise((resolve) => setTimeout(resolve, 0));
+    expect(field.value).toBe("keptx");
+    expect(input.value).toBe("•••••");
+    await userEvent.click(input);
+    await userEvent.keyboard(shortcut("z"));
+    expect(field.value).toBe("kept");
   });
 
   it("preserves native readonly, disabled, and required behavior", () => {
     reset();
-    input.required = true;
+    field.update({ required: true });
     expect(input.validity.valueMissing).toBe(true);
 
-    input.secretValue = "present";
+    field.update({ value: "present" });
     expect(input.validity.valid).toBe(true);
 
     input.readOnly = true;
     beforeInput("insertText", "changed");
-    expect(input.secretValue).toBe("present");
+    expect(field.value).toBe("present");
 
     input.readOnly = false;
     const fieldset = document.createElement("fieldset");
@@ -327,12 +429,178 @@ describe("secret input browser contract", () => {
     expect(Array.from(new FormData(form).entries())).toEqual([]);
   });
 
+  it("validates actual values in core and preserves native messages and submission", () => {
+    reset("AB");
+    field.update({ required: true });
+    const validator = input.ownerDocument.createElement("input");
+    validator.type = "password";
+    validator.required = true;
+    validator.pattern = "[A-F0-9]{4}";
+    validator.value = "AB";
+    const message = validator.validationMessage;
+    validator.value = "";
+    field.update({ pattern: "[A-F0-9]{4}" });
+    field.update({});
+    const submissions: FormDataEntryValue[] = [];
+    form.addEventListener("submit", (event) => {
+      event.preventDefault();
+      submissions.push(new FormData(form).get("secret")!);
+    });
+
+    expect(input.validity.customError).toBe(true);
+    expect(validator.isConnected).toBe(false);
+    expect(validator.value).toBe("");
+    expect(input.validationMessage).toBe(message);
+    expect(form.checkValidity()).toBe(false);
+    form.requestSubmit();
+    expect(submissions).toEqual([]);
+
+    beforeInput("insertFromPaste", "CD");
+    expect(field.value).toBe("ABCD");
+    expect(input.value).toBe("••••");
+    expect(form.checkValidity()).toBe(true);
+    for (const revealed of [true, false]) {
+      field.update({ revealed: revealed });
+      expect(form.checkValidity()).toBe(true);
+    }
+    form.requestSubmit();
+    expect(submissions).toEqual(["ABCD"]);
+
+    beforeInput("historyUndo");
+    expect(field.value).toBe("AB");
+    expect(input.validity.customError).toBe(true);
+    form.requestSubmit();
+    expect(submissions).toEqual(["ABCD"]);
+
+    // Programmatic writes are quiet and core revalidates them immediately.
+    field.update({ value: "EF12" });
+    expect(input.value).toBe("••••");
+    expect(input.validationMessage).toBe("");
+    expect(form.checkValidity()).toBe(true);
+  });
+
+  it("applies synchronous controller rule updates and validates Unicode lengths without exposing the value", async () => {
+    reset("👩‍💻");
+    field.update({ minLength: 5 });
+    field.update({ maxLength: 5 });
+    field.update({});
+    expect(input.value).toBe("•");
+    expect(input.checkValidity()).toBe(true);
+    field.update({ maxLength: 3 });
+    await expect.poll(() => input.checkValidity()).toBe(false);
+    expect(field.value).toBe("👩‍💻");
+    expect(input.matches(":invalid")).toBe(true);
+    const native = document.createElement("input");
+    native.pattern = "(?!)";
+    native.value = "xxxxx";
+    expect(input.validationMessage).toBe(native.validationMessage);
+    field.update({ minLength: undefined });
+    field.update({ maxLength: undefined });
+    await expect.poll(() => input.checkValidity()).toBe(true);
+    field.update({ pattern: "[A-Z]+" });
+    await expect.poll(() => input.checkValidity()).toBe(false);
+    field.update({ value: "AB" });
+    expect(input.checkValidity()).toBe(true);
+    field.update({ minLength: 3 });
+    await expect.poll(() => input.checkValidity()).toBe(false);
+    field.update({ value: "ABC" });
+    expect(input.checkValidity()).toBe(true);
+    field.update({ value: "" });
+    expect(input.checkValidity()).toBe(true);
+    field.update({ required: true });
+    expect(input.validity.valueMissing).toBe(true);
+    expect(input.validity.customError).toBe(false);
+    native.removeAttribute("pattern");
+    native.value = "";
+    native.required = true;
+    expect(input.validationMessage).toBe(native.validationMessage);
+  });
+
+  it("retains application errors across native exemptions and restores rule errors when cleared", () => {
+    reset("AB");
+    field.update({ minLength: 4, customValidity: "Server error" });
+    for (const property of ["disabled", "readOnly"] as const) {
+      input[property] = true;
+      field.update({ value: "ABC" });
+      expect(input.validationMessage).toBe("");
+      expect(input.validity.customError).toBe(true);
+      expect(form.checkValidity()).toBe(true);
+      input[property] = false;
+      expect(input.validationMessage).toBe("Server error");
+      expect(form.checkValidity()).toBe(false);
+    }
+    const fieldset = document.createElement("fieldset");
+    input.replaceWith(fieldset);
+    fieldset.append(input);
+    fieldset.disabled = true;
+    field.update({ revealed: true });
+    expect(input.validationMessage).toBe("");
+    expect(form.checkValidity()).toBe(true);
+    fieldset.disabled = false;
+    expect(input.validationMessage).toBe("Server error");
+    field.update({ customValidity: "" });
+    expect(input.validationMessage).not.toBe("Server error");
+    expect(input.validity.customError).toBe(true);
+    expect(input.validity.tooShort).toBe(false);
+    beforeInput("insertText", "D");
+    expect(field.value).toBe("ABCD");
+    expect(input.checkValidity()).toBe(true);
+  });
+
+  it("commits Enter before validation and submission while retaining focus", async () => {
+    reset();
+    const submit = document.createElement("button");
+    submit.type = "submit";
+    submit.textContent = "Save";
+    form.append(submit);
+    const seen: string[] = [];
+    field.update({ customValidity: "Enter a value" });
+    input.addEventListener("change", () => {
+      seen.push(`change:${field.value}`);
+      field.update({ customValidity: field.value ? "" : "Enter a value" });
+    });
+    form.addEventListener("submit", (event) => {
+      event.preventDefault();
+      const submitted = new FormData(form).get("secret");
+      if (typeof submitted !== "string") throw new TypeError("Expected a secret string");
+      seen.push(`submit:${submitted}`);
+    });
+    await userEvent.type(input, "x", { skipClick: true });
+    await userEvent.keyboard("{Enter}");
+    expect(seen).toEqual(["change:x", "submit:x"]);
+    expect(document.activeElement).toBe(input);
+    expect(input.value).toBe("•");
+    await userEvent.keyboard("{Enter}");
+    expect(seen).toEqual(["change:x", "submit:x", "submit:x"]);
+    await userEvent.click(other);
+    expect(events.filter((event) => event.type === "change")).toHaveLength(1);
+  });
+
+  it("does not commit or submit when Enter is canceled on keydown", async () => {
+    reset();
+    const submit = document.createElement("button");
+    submit.type = "submit";
+    form.append(submit);
+    let submissions = 0;
+    form.addEventListener("submit", (event) => {
+      event.preventDefault();
+      submissions += 1;
+    });
+    input.addEventListener("keydown", (event) => {
+      if (event.key === "Enter") event.preventDefault();
+    });
+    await userEvent.type(input, "x", { skipClick: true });
+    await userEvent.keyboard("{Enter}");
+    expect(submissions).toBe(0);
+    expect(events.filter((event) => event.type === "change")).toHaveLength(0);
+  });
+
   it("emits input and change with masked event targets", async () => {
     reset();
     await userEvent.type(input, "x", { skipClick: true });
     await userEvent.click(other);
 
-    expect(input.secretValue).toBe("x");
+    expect(field.value).toBe("x");
     expect(input.value).toBe("•");
     expect(events.filter((event) => event.type === "input")).toHaveLength(1);
     expect(events.filter((event) => event.type === "change")).toHaveLength(1);
@@ -345,11 +613,11 @@ describe("secret input browser contract", () => {
       beforeInput("insertText", "\u0301");
       expect(input.selectionStart).toBe(redacted ? 1 : 2);
       beforeInput("insertText", "x");
-      expect(input.secretValue).toBe("a\u0301xb");
+      expect(field.value).toBe("a\u0301xb");
       beforeInput("historyUndo");
-      expect(input.secretValue).toBe("ab");
+      expect(field.value).toBe("ab");
       input.setSelectionRange(0, 1, "backward");
-      input.redacted = !redacted;
+      field.update({ revealed: redacted });
       expect(input.selectionDirection).toBe("backward");
     },
   );
@@ -374,12 +642,12 @@ describe("secret input browser contract", () => {
       targetInput.name = "token";
       targetForm.append(targetInput);
       host?.append(targetForm);
-      const masked = mask(targetInput, { value: "changed", defaultValue: "initial" });
+      const masked = createSecretInput(targetInput, { value: "changed", defaultValue: "initial" });
       expect(new FormData(targetForm).get("token")).toBe("changed");
       targetForm.reset();
       await Promise.resolve();
-      expect(masked.secretValue).toBe("initial");
-      expect(masked.value).toBe("•••••••");
+      expect(masked.value).toBe("initial");
+      expect(targetInput.value).toBe("•••••••");
     },
   );
 
@@ -387,13 +655,13 @@ describe("secret input browser contract", () => {
     reset("kept");
     input.select();
     beforeInput("insertFromPaste");
-    expect(input.secretValue).toBe("kept");
+    expect(field.value).toBe("kept");
     beforeInput("insertText", "stale", false);
     input.value = "browser-filled";
     input.dispatchEvent(new InputEvent("input", { inputType: "insertReplacementText" }));
-    expect(input.secretValue).toBe("kept");
+    expect(field.value).toBe("kept");
     input.addEventListener("beforeinput", (event) => event.preventDefault(), { capture: true });
     beforeInput("insertText", "rejected");
-    expect(input.secretValue).toBe("kept");
+    expect(field.value).toBe("kept");
   });
 });

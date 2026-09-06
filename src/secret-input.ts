@@ -6,6 +6,8 @@ import {
   splitGraphemes,
 } from "./graphemes.ts";
 import { passwordManagerAttributes } from "./password-manager.ts";
+import { createValidation } from "./validation.ts";
+import type { ValidationRules } from "./validation.ts";
 
 const MASK = "•";
 
@@ -17,28 +19,35 @@ export function redact(value: string): string {
   return MASK.repeat(splitGraphemes(sanitize(value)).length);
 }
 
-interface State {
-  defaultValue: string;
-  redacted: boolean;
-  value: string;
+export interface SecretInputOptions extends ValidationRules {
+  /** Actual value. At creation, defaults to defaultValue, then the empty string. */
+  value?: string | undefined;
+  /** Form-reset value. At creation, defaults to the initial actual value. */
+  defaultValue?: string | undefined;
+  /** Reveal plaintext explicitly. Defaults to false. */
+  revealed?: boolean | undefined;
+  /** Mirrors native requiredness on the input. Defaults to false. */
+  required?: boolean | undefined;
+  /** Application error, retained until explicitly cleared with an empty string or undefined. */
+  customValidity?: string | undefined;
 }
 
-export interface SecretInput extends HTMLInputElement {
-  /** Value restored by form reset. Assignments are quiet and do not edit the current value. */
-  defaultSecretValue: string;
-  /** Whether the DOM shows bullets. Explicitly set false to expose the secret as text. */
-  redacted: boolean;
-  /** Authoritative value. Assignments are quiet; changing it clears edit history and composition. */
-  secretValue: string;
+export interface SecretInputController {
+  readonly input: HTMLInputElement;
+  /** Authoritative secret; input.value is presentation only. */
+  readonly value: string;
+  readonly defaultValue: string;
+  readonly revealed: boolean;
+  /** Apply a synchronous patch. Omitted keys are unchanged; undefined clears a setting. */
+  update(options: SecretInputOptions): void;
 }
 
-export interface MaskOptions {
-  /** Reset value; also initializes the current value when value is omitted. */
-  defaultValue?: string;
-  /** Initial presentation, true by default. */
-  redacted?: boolean;
-  /** Initial secret; defaults to defaultValue, then the empty string. Never read from the DOM. */
-  value?: string;
+function validateLengths({ minLength, maxLength }: ValidationRules): void {
+  for (const length of [minLength, maxLength]) {
+    if (length !== undefined && (!Number.isInteger(length) || length < 0 || length > 2 ** 31 - 1)) {
+      throw new RangeError("Length limits must be integers between 0 and 2147483647.");
+    }
+  }
 }
 
 interface Selection {
@@ -59,7 +68,6 @@ interface Edit extends Selection {
 }
 
 interface CompositionState extends Selection {
-  currentText?: string;
   originalText: string;
 }
 
@@ -69,8 +77,7 @@ interface HistoryEntry {
   readonly inputType: string;
 }
 
-interface Controller {
-  readonly state: State;
+interface Controller extends SecretInputController {
   reset(): void;
 }
 
@@ -122,7 +129,7 @@ function installRootHandlers(root: Node): void {
         }
 
         const group = byName.get(input.name) ?? [];
-        group.push(controller.state.value);
+        group.push(controller.value);
         byName.set(input.name, group);
       }
 
@@ -145,8 +152,15 @@ function installRootHandlers(root: Node): void {
 
       handledFormEvents.add(event);
       const form = event.target;
-      queueMicrotask(() => {
+      const finishReset = (): void => {
         if (event.defaultPrevented) {
+          return;
+        }
+
+        // Native activation can run microtasks between reset listeners. Wait for
+        // dispatch and the browser's own reset before restoring secret state.
+        if (event.eventPhase !== Event.NONE) {
+          setTimeout(finishReset, 0);
           return;
         }
 
@@ -155,7 +169,8 @@ function installRootHandlers(root: Node): void {
             controllers.get(element as HTMLInputElement)?.reset();
           }
         }
-      });
+      };
+      queueMicrotask(finishReset);
     },
     true,
   );
@@ -179,25 +194,28 @@ function collapsed(position: number): Selection {
   return { start: position, end: position };
 }
 
-function createController(
-  input: HTMLInputElement,
-  initialValue: string,
-  initialDefaultValue: string,
-  initialRedacted: boolean,
-): Controller {
+function createController(input: HTMLInputElement, options: SecretInputOptions): Controller {
   let composition: CompositionState | undefined;
-  let defaultValue = initialDefaultValue;
-  let dirtySinceFocus = false;
+  let customValidity = String(options.customValidity ?? "");
+  let defaultValue = sanitize(String(options.defaultValue ?? options.value ?? ""));
+  let dirtySinceCommit = false;
   let dispatchingChange: Event | undefined;
   let dispatchingInput: InputEvent | undefined;
   let historyGroup: HistoryEntry | undefined;
   let pendingEdit: Edit | undefined;
-  let redacted = initialRedacted;
+  let revealed = options.revealed ?? false;
   const redoStack: HistoryEntry[] = [];
   let skipCompositionCommit = false;
   const undoStack: HistoryEntry[] = [];
-  let value = initialValue;
-  let valueAtFocus = value;
+  let value = sanitize(String(options.value ?? options.defaultValue ?? ""));
+  const rules: ValidationRules = {
+    pattern: options.pattern,
+    minLength: options.minLength,
+    maxLength: options.maxLength,
+  };
+  const validate = createValidation(input);
+  input.required = options.required ?? false;
+  let valueAtCommit = value;
   let segmentedValue = value;
   let valueParts = splitGraphemes(value);
   let displayParts = valueParts;
@@ -210,38 +228,30 @@ function createController(
     return valueParts;
   }
 
-  const state: State = {
-    get value() {
-      return value;
-    },
-    set value(nextValue: string) {
-      setValue(sanitize(String(nextValue)));
-    },
-    get defaultValue() {
-      return defaultValue;
-    },
-    set defaultValue(nextValue: string) {
-      defaultValue = sanitize(String(nextValue));
-    },
-    get redacted() {
-      return redacted;
-    },
-    set redacted(nextValue: boolean) {
-      const nextRedacted = Boolean(nextValue);
-      if (nextRedacted === redacted) {
-        render();
-        return;
-      }
-
-      const currentSelection = selection();
-      composition = undefined;
-      pendingEdit = undefined;
-      skipCompositionCommit = false;
+  function update(options: SecretInputOptions): void {
+    validateLengths(options);
+    const currentSelection = selection();
+    const nextValue = "value" in options ? sanitize(String(options.value ?? "")) : value;
+    const nextRevealed = "revealed" in options ? Boolean(options.revealed) : revealed;
+    const valueChanged = nextValue !== value;
+    if (valueChanged) {
+      clearPendingInput();
+      clearHistory();
+      value = nextValue;
+    } else if (nextRevealed !== revealed) {
+      clearPendingInput();
       historyGroup = undefined;
-      redacted = nextRedacted;
-      render(currentSelection);
-    },
-  };
+    }
+    revealed = nextRevealed;
+    if ("defaultValue" in options) defaultValue = sanitize(String(options.defaultValue ?? ""));
+    if ("required" in options) input.required = options.required ?? false;
+    if ("customValidity" in options) customValidity = String(options.customValidity ?? "");
+    if ("pattern" in options) rules.pattern = options.pattern;
+    if ("minLength" in options) rules.minLength = options.minLength;
+    if ("maxLength" in options) rules.maxLength = options.maxLength;
+    installFormHandlers(input);
+    render(valueChanged ? collapsed(getParts().length) : currentSelection);
+  }
 
   input.addEventListener("beforeinput", handleBeforeInput);
   input.addEventListener("keydown", handleKeyDown);
@@ -262,6 +272,12 @@ function createController(
 
   render();
 
+  function clearPendingInput(): void {
+    composition = undefined;
+    pendingEdit = undefined;
+    skipCompositionCommit = false;
+  }
+
   function clearHistory(): void {
     historyGroup = undefined;
     undoStack.length = 0;
@@ -269,23 +285,22 @@ function createController(
   }
 
   function reset(): void {
-    composition = undefined;
-    pendingEdit = undefined;
-    skipCompositionCommit = false;
-    setValue(defaultValue);
-    valueAtFocus = value;
+    clearPendingInput();
+    value = defaultValue;
+    render(collapsed(getParts().length));
+    valueAtCommit = value;
     clearHistory();
-    dirtySinceFocus = false;
+    dirtySinceCommit = false;
   }
 
   function selection(): Selection {
     const length = getParts().length;
     const startOffset = input.selectionStart ?? length;
     const endOffset = input.selectionEnd ?? startOffset;
-    const start = redacted ? startOffset : graphemeIndexAtOffset(displayParts, startOffset);
-    const end = redacted
-      ? endOffset
-      : graphemeIndexAtOffset(displayParts, endOffset, endOffset > startOffset);
+    const start = revealed ? graphemeIndexAtOffset(displayParts, startOffset) : startOffset;
+    const end = revealed
+      ? graphemeIndexAtOffset(displayParts, endOffset, endOffset > startOffset)
+      : endOffset;
     const safeStart = clamp(start, 0, length);
 
     return {
@@ -295,38 +310,14 @@ function createController(
     };
   }
 
-  function setValue(nextValue: string): void {
-    if (nextValue === value) {
-      render();
-      return;
-    }
-
-    composition = undefined;
-    pendingEdit = undefined;
-    skipCompositionCommit = false;
-    clearHistory();
-    value = nextValue;
-    const length = getParts().length;
-    render(collapsed(length));
-  }
-
   function render(selection?: Selection): void {
-    const currentComposition = composition;
-    const parts = getParts();
-    const revealedValue =
-      currentComposition?.currentText === undefined
-        ? value
-        : [
-            ...parts.slice(0, currentComposition.start),
-            currentComposition.currentText,
-            ...parts.slice(currentComposition.end),
-          ].join("");
-    displayParts =
-      currentComposition?.currentText === undefined ? valueParts : splitGraphemes(revealedValue);
-    const presentation = redacted ? MASK.repeat(displayParts.length) : revealedValue;
+    getParts();
+    displayParts = valueParts;
+    const presentation = revealed ? value : MASK.repeat(displayParts.length);
     if (input.value !== presentation) {
       input.value = presentation;
     }
+    input.setCustomValidity(customValidity || validate(value, rules));
 
     if (selection) {
       renderSelection(selection);
@@ -334,7 +325,7 @@ function createController(
   }
 
   function renderSelection(selection: Selection): void {
-    if (redacted) {
+    if (!revealed) {
       input.setSelectionRange(selection.start, selection.end, selection.direction);
       return;
     }
@@ -351,13 +342,13 @@ function createController(
     const parts = getParts();
     const safeStart = clamp(start, 0, parts.length);
     const safeEnd = clamp(end, safeStart, parts.length);
-    const normalizedText = sanitize(insertedText);
-    let insertedParts = splitGraphemes(normalizedText);
-    const { maxLength } = input;
+    const prefix = parts.slice(0, safeStart).join("");
+    const suffix = parts.slice(safeEnd).join("");
+    let insertedParts = splitGraphemes(sanitize(insertedText));
+    const maxLength = rules.maxLength ?? -1;
 
     if (maxLength >= 0) {
-      const removedLength = parts.slice(safeStart, safeEnd).join("").length;
-      const available = Math.max(maxLength - (value.length - removedLength), 0);
+      const available = Math.max(maxLength - prefix.length - suffix.length, 0);
       let insertedLength = 0;
       const firstOverflow = insertedParts.findIndex((part) => {
         insertedLength += part.length;
@@ -368,14 +359,11 @@ function createController(
       }
     }
 
-    const nextValue = [
-      ...parts.slice(0, safeStart),
-      ...insertedParts,
-      ...parts.slice(safeEnd),
-    ].join("");
+    const inserted = insertedParts.join("");
+    const nextValue = prefix + inserted + suffix;
     // Segmentation can change across either splice boundary (combining marks,
     // regional indicators, ZWJ sequences). Map the resulting UTF-16 offset.
-    const nextOffset = offsetAtGraphemeIndex(parts, safeStart) + insertedParts.join("").length;
+    const nextOffset = prefix.length + inserted.length;
     const nextParts = splitGraphemes(nextValue);
     const nextCaret = graphemeIndexAtOffset(nextParts, nextOffset, true);
 
@@ -416,9 +404,9 @@ function createController(
     value = nextValue;
     segmentedValue = value;
     valueParts = nextParts;
-    dirtySinceFocus = true;
+    dirtySinceCommit = true;
     render(collapsed(nextCaret));
-    dispatchInput(inputType, insertedParts.length > 0 ? insertedParts.join("") : null);
+    dispatchInput(inputType, inserted || null);
   }
 
   function dispatchInput(inputType: string, data: string | null): void {
@@ -459,7 +447,7 @@ function createController(
     destination.push(entry);
     const snapshot = undo ? entry.before : entry.after;
     value = snapshot.value;
-    dirtySinceFocus = true;
+    dirtySinceCommit = true;
     render(snapshot);
     dispatchInput(inputType, null);
   }
@@ -515,12 +503,10 @@ function createController(
     switch (inputType) {
       case "insertCompositionText": {
         const currentComposition = composition ?? beginComposition(edit);
-        currentComposition.currentText = sanitize(data ?? "");
-        render();
-        const offset =
-          offsetAtGraphemeIndex(parts, currentComposition.start) +
-          currentComposition.currentText.length;
-        renderSelection(collapsed(graphemeIndexAtOffset(displayParts, offset, true)));
+        // Replacing browser-written drafts can end the engine's composition.
+        // Keep the original replacement range for either compositionend or the
+        // ordinary insertText that some engines deliver after that interruption.
+        render(currentComposition);
         return;
       }
       case "insertFromComposition": {
@@ -544,6 +530,14 @@ function createController(
           render({ start, end });
           return;
         }
+        if (composition && inputType === "insertText") {
+          if (edit.isComposing) {
+            render(composition);
+          } else {
+            commitComposition(data);
+          }
+          return;
+        }
         insertedText = data;
         break;
       case "deleteContentBackward":
@@ -562,7 +556,7 @@ function createController(
       case "deleteContent":
         break;
       case "deleteByCut":
-        if (redacted) {
+        if (!revealed) {
           render({ start, end });
           return;
         }
@@ -589,13 +583,21 @@ function createController(
     replace(edit, insertedText, start, end);
   }
 
-  function setPendingEdit(edit: Edit): void {
+  function setPendingEdit(edit: Edit, source: Event): void {
     pendingEdit = edit;
-    queueMicrotask(() => {
-      if (pendingEdit === edit) {
-        pendingEdit = undefined;
+    const expire = (): void => {
+      if (pendingEdit !== edit) {
+        return;
       }
-    });
+      // Native dispatch can run microtasks before its input/default action.
+      // Synthetic dispatch still expires at the ordinary microtask boundary.
+      if (source.eventPhase !== Event.NONE) {
+        setTimeout(expire, 0);
+        return;
+      }
+      pendingEdit = undefined;
+    };
+    queueMicrotask(expire);
   }
 
   function captureTransfer(
@@ -603,7 +605,7 @@ function createController(
     inputType: "insertFromDrop" | "insertFromPaste",
     source: Event,
   ): void {
-    setPendingEdit({ ...selection(), data, inputType, source });
+    setPendingEdit({ ...selection(), data, inputType, source }, source);
   }
 
   function handleBeforeInput(event: InputEvent): void {
@@ -611,6 +613,15 @@ function createController(
     pendingEdit = undefined;
     if (event.defaultPrevented) {
       breakHistoryGroup();
+      render();
+      return;
+    }
+    // Single-line inputs use this action for Enter/implicit submission.
+    // There is no newline to insert, and canceling it can suppress submission.
+    if (event.inputType === "insertLineBreak" || event.inputType === "insertParagraph") {
+      if (!event.isComposing && !composition) {
+        commitChange();
+      }
       render();
       return;
     }
@@ -626,7 +637,7 @@ function createController(
     };
 
     if (!event.cancelable) {
-      setPendingEdit(edit);
+      setPendingEdit(edit, event);
       return;
     }
 
@@ -697,7 +708,7 @@ function createController(
   }
 
   function preventExport(event: Event): void {
-    if (redacted) {
+    if (!revealed) {
       event.preventDefault();
     }
   }
@@ -731,9 +742,7 @@ function createController(
   function handleCompositionStart(event: CompositionEvent): void {
     event.preventDefault();
     breakHistoryGroup();
-    pendingEdit = undefined;
-    skipCompositionCommit = false;
-    composition = undefined;
+    clearPendingInput();
     if (!event.defaultPrevented && !isDisabled(input) && !input.readOnly) {
       beginComposition(selection());
     }
@@ -756,19 +765,23 @@ function createController(
   function handleFocus(): void {
     installFormHandlers(input);
     breakHistoryGroup();
-    valueAtFocus = value;
-    dirtySinceFocus = false;
+    valueAtCommit = value;
+    dirtySinceCommit = false;
     render();
   }
 
   function handleBlur(): void {
-    composition = undefined;
-    pendingEdit = undefined;
-    skipCompositionCommit = false;
+    clearPendingInput();
     breakHistoryGroup();
     render();
-    const changed = dirtySinceFocus && value !== valueAtFocus;
-    dirtySinceFocus = false;
+    commitChange();
+  }
+
+  function commitChange(): void {
+    breakHistoryGroup();
+    const changed = dirtySinceCommit && value !== valueAtCommit;
+    dirtySinceCommit = false;
+    valueAtCommit = value;
     if (!changed) {
       return;
     }
@@ -783,27 +796,34 @@ function createController(
   }
 
   return {
+    input,
+    get value() {
+      return value;
+    },
+    get defaultValue() {
+      return defaultValue;
+    },
+    get revealed() {
+      return revealed;
+    },
+    update,
     reset,
-    state,
   };
 }
 
-/**
- * Enhance and return the same native input. Options apply only on the first call;
- * subsequent calls refresh form bindings without changing secret state.
- */
-export function mask(input: HTMLInputElement, options: MaskOptions = {}): SecretInput {
-  const masked = input as SecretInput;
-  if (controllers.has(input)) {
-    installFormHandlers(input);
-    return masked;
-  }
-
-  const value = sanitize(String(options.value ?? options.defaultValue ?? ""));
-  const defaultValue = sanitize(String(options.defaultValue ?? value));
-  const redacted = options.redacted ?? true;
+/** Create one controller per input. Repeated creation returns it without reinitializing. */
+export function createSecretInput(
+  input: HTMLInputElement,
+  options: SecretInputOptions = {},
+): SecretInputController {
+  const existing = controllers.get(input);
+  if (existing) return existing;
+  validateLengths(options);
 
   input.type = "text";
+  // These rules belong to the controller and must never validate presentation.
+  // Existing native attributes are removed, not adopted as configuration.
+  for (const name of ["pattern", "minlength", "maxlength"]) input.removeAttribute(name);
   input.autocomplete = "off";
   for (const [name, attributeValue] of Object.entries(passwordManagerAttributes)) {
     input.setAttribute(name, attributeValue);
@@ -813,32 +833,10 @@ export function mask(input: HTMLInputElement, options: MaskOptions = {}): Secret
   setDefaultAttribute(input, "spellcheck", "false");
   input.style.setProperty("ime-mode", "disabled");
 
-  // Current Chromium remembers text controls that have contained at least two
-  // mask characters and gives them password-style input-method protection.
+  // Chromium's custom-password primer never remains as the visible value.
   input.value = MASK.repeat(2);
-  const controller = createController(input, value, defaultValue, redacted);
-  Object.defineProperties(masked, {
-    defaultSecretValue: {
-      get: () => controller.state.defaultValue,
-      set: (nextValue: string) => {
-        controller.state.defaultValue = nextValue;
-      },
-    },
-    redacted: {
-      get: () => controller.state.redacted,
-      set: (nextValue: boolean) => {
-        controller.state.redacted = nextValue;
-      },
-    },
-    secretValue: {
-      get: () => controller.state.value,
-      set: (nextValue: string) => {
-        controller.state.value = nextValue;
-      },
-    },
-  });
+  const controller = createController(input, options);
   controllers.set(input, controller);
-
   installFormHandlers(input);
-  return masked;
+  return controller;
 }

@@ -1,11 +1,12 @@
 import { afterEach, beforeEach, describe, expect, it } from "vite-plus/test";
 import { userEvent } from "vite-plus/test/browser/context";
 
-import { mask } from "../../src/index.ts";
-import type { SecretInput } from "../../src/index.ts";
+import { createSecretInput } from "../../src/index.ts";
+import type { SecretInputController } from "../../src/index.ts";
 import { beforeInput, composition } from "../edit.ts";
 
-let input: SecretInput;
+let input: HTMLInputElement;
+let field: SecretInputController;
 
 async function undo(): Promise<void> {
   await userEvent.keyboard("{Ctrl>}z{/Ctrl}");
@@ -19,7 +20,8 @@ describe("history browser contract", () => {
   beforeEach(() => {
     const element = document.createElement("input");
     document.body.append(element);
-    input = mask(element);
+    field = createSecretInput(element);
+    input = field.input;
     input.focus();
   });
 
@@ -29,47 +31,47 @@ describe("history browser contract", () => {
     await userEvent.type(input, "abc", { skipClick: true });
     await userEvent.keyboard("{ArrowLeft}{ArrowRight}d");
     await undo();
-    expect(input.secretValue).toBe("abc");
+    expect(field.value).toBe("abc");
     await undo();
-    expect(input.secretValue).toBe("");
+    expect(field.value).toBe("");
     await redo();
-    expect(input.secretValue).toBe("abc");
+    expect(field.value).toBe("abc");
     await userEvent.keyboard("x");
     await redo();
-    expect(input.secretValue).toBe("abcx");
+    expect(field.value).toBe("abcx");
     await undo();
-    expect(input.secretValue).toBe("abc");
+    expect(field.value).toBe("abc");
   });
 
   it.each(["backward", "forward"])(
     "round-trips grouped %s deletion and its carets",
     async (direction) => {
-      input.secretValue = "a👩‍💻bc";
+      field.update({ value: "a👩‍💻bc" });
       const caret = direction === "backward" ? 4 : 0;
       input.setSelectionRange(caret, caret);
       await userEvent.keyboard(
         direction === "backward" ? "{Backspace}{Backspace}" : "{Delete}{Delete}",
       );
-      const value = input.secretValue;
+      const value = field.value;
       const editedCaret = input.selectionStart;
       input.setSelectionRange(1, 1);
       await undo();
-      expect(input.secretValue).toBe("a👩‍💻bc");
+      expect(field.value).toBe("a👩‍💻bc");
       expect(input.selectionStart).toBe(caret);
       expect(input.selectionEnd).toBe(caret);
       input.select();
       await redo();
-      expect(input.secretValue).toBe(value);
+      expect(field.value).toBe(value);
       expect(input.selectionStart).toBe(editedCaret);
       expect(input.selectionEnd).toBe(editedCaret);
     },
   );
 
   it("preserves backward replacement selections across reveal and repeated traversal", async () => {
-    input.secretValue = "a👩‍💻b";
+    field.update({ value: "a👩‍💻b" });
     input.setSelectionRange(1, 2, "backward");
     await userEvent.keyboard("xy");
-    input.redacted = false;
+    field.update({ revealed: true });
     for (let index = 0; index < 3; index += 1) {
       input.setSelectionRange(0, 0);
       await undo();
@@ -95,28 +97,28 @@ describe("history browser contract", () => {
     input.setSelectionRange(2, 2);
     await userEvent.keyboard("x");
     await undo();
-    expect(input.secretValue).toBe("ab");
+    expect(field.value).toBe("ab");
     await undo();
-    expect(input.secretValue).toBe("");
+    expect(field.value).toBe("");
   });
 
   it("uses beforeinput selections for non-cancelable edits and history", () => {
-    input.secretValue = "abcd";
+    field.update({ value: "abcd" });
     input.setSelectionRange(1, 3, "backward");
     beforeInput(input, "insertText", "x", false);
     input.value = "browser-mutated";
     input.dispatchEvent(new InputEvent("input", { inputType: "insertText", data: "x" }));
-    expect(input.secretValue).toBe("axd");
+    expect(field.value).toBe("axd");
     beforeInput(input, "historyUndo", null, false);
     input.value = "another-mutation";
     input.dispatchEvent(new InputEvent("input", { inputType: "historyUndo" }));
-    expect(input.secretValue).toBe("abcd");
+    expect(field.value).toBe("abcd");
     expect(input.value).toBe("••••");
     expect(input.selectionStart).toBe(1);
     expect(input.selectionEnd).toBe(3);
     expect(input.selectionDirection).toBe("backward");
     beforeInput(input, "historyRedo");
-    expect(input.secretValue).toBe("axd");
+    expect(field.value).toBe("axd");
     expect(input.selectionStart).toBe(2);
   });
 
@@ -125,17 +127,17 @@ describe("history browser contract", () => {
     composition(input, "compositionstart");
     beforeInput(input, "insertCompositionText", "ni");
     beforeInput(input, "historyUndo");
-    expect(input.secretValue).toBe("a");
-    expect(input.value).toBe("•••");
+    expect(field.value).toBe("a");
+    expect(input.value).toBe("•");
     composition(input, "compositionend", "你");
     beforeInput(input, "insertFromComposition", "你");
     beforeInput(input, "historyUndo");
-    expect(input.secretValue).toBe("a");
+    expect(field.value).toBe("a");
     beforeInput(input, "historyUndo");
-    expect(input.secretValue).toBe("");
+    expect(field.value).toBe("");
     beforeInput(input, "historyRedo");
     beforeInput(input, "historyRedo");
-    expect(input.secretValue).toBe("a你");
+    expect(field.value).toBe("a你");
   });
 
   it("emits one input per transition and no change when undo returns to the focus value", async () => {
