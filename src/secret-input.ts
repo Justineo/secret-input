@@ -281,6 +281,7 @@ function createController(input: HTMLInputElement, options: SecretInputOptions):
 
   input.addEventListener("beforeinput", handleBeforeInput);
   input.addEventListener("keydown", handleKeyDown);
+  input.addEventListener("keypress", handleKeyPress);
   input.addEventListener("input", handleNativeInput, true);
   input.addEventListener("change", handleNativeChange, true);
   input.addEventListener("copy", preventExport);
@@ -669,6 +670,14 @@ function createController(input: HTMLInputElement, options: SecretInputOptions):
 
     event.preventDefault();
     executeEdit(edit);
+  }
+
+  function handleKeyPress(event: KeyboardEvent): void {
+    // Safari can submit a single-line input without a line-break beforeinput event.
+    // keypress follows an uncanceled keydown and precedes native form validation.
+    if (event.key === "Enter" && !event.defaultPrevented && !event.isComposing && !composition) {
+      commitChange();
+    }
   }
 
   function handleKeyDown(event: KeyboardEvent): void {

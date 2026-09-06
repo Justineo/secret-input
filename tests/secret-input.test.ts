@@ -965,6 +965,38 @@ describe("createSecretInput", () => {
     expect(changed).not.toHaveBeenCalled();
   });
 
+  it("confirms Enter without beforeinput and does not duplicate a later line-break commit", () => {
+    const field = createInput();
+    const { input } = field;
+    input.focus();
+    field.update({ customValidity: "Confirm the value" });
+    const changed = vi.fn(() => field.update({ customValidity: "" }));
+    input.addEventListener("change", changed);
+    beforeInput(input, "insertText", "x");
+    const enter = new KeyboardEvent("keypress", { key: "Enter", cancelable: true });
+    input.dispatchEvent(enter);
+    expect(enter.defaultPrevented).toBe(false);
+    expect(input.checkValidity()).toBe(true);
+    expect(document.activeElement).toBe(input);
+    beforeInput(input, "insertLineBreak");
+    input.blur();
+    expect(changed).toHaveBeenCalledOnce();
+  });
+
+  it("ignores canceled and composing Enter keypresses", () => {
+    const field = createInput();
+    const { input } = field;
+    input.focus();
+    beforeInput(input, "insertText", "x");
+    const changed = vi.fn();
+    input.addEventListener("change", changed);
+    const canceled = new KeyboardEvent("keypress", { key: "Enter", cancelable: true });
+    canceled.preventDefault();
+    input.dispatchEvent(canceled);
+    input.dispatchEvent(new KeyboardEvent("keypress", { key: "Enter", isComposing: true }));
+    expect(changed).not.toHaveBeenCalled();
+  });
+
   it("does not commit when the application cancels the Enter action", () => {
     const field = createInput("base");
     const { input } = field;

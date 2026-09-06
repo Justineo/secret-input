@@ -6,6 +6,8 @@ import "../../src/style.css";
 
 let textarea: HTMLTextAreaElement;
 let form: HTMLFormElement;
+// Safari's WebDriver may not resolve WebdriverIO's Ctrl alias to the macOS Command key.
+const historyModifier = /Mac/.test(navigator.platform) ? "Command" : "Control";
 
 describe("single-line textarea experiment", () => {
   beforeEach(() => {
@@ -35,9 +37,9 @@ describe("single-line textarea experiment", () => {
 
   it("keeps native typing undo and redo without rewriting the value", async () => {
     await userEvent.type(textarea, "abc", { skipClick: true });
-    await userEvent.keyboard("{Ctrl>}z{/Ctrl}");
+    await userEvent.keyboard(`{${historyModifier}>}z{/${historyModifier}}`);
     expect(textarea.value).toBe("");
-    await userEvent.keyboard("{Ctrl>}{Shift>}z{/Shift}{/Ctrl}");
+    await userEvent.keyboard(`{${historyModifier}>}{Shift>}z{/Shift}{/${historyModifier}}`);
     expect(textarea.value).toBe("abc");
   });
 
@@ -76,7 +78,7 @@ describe("single-line textarea experiment", () => {
     expect(drop.defaultPrevented).toBe(true);
     expect(textarea.value).toBe("abc");
     expect([textarea.selectionStart, textarea.selectionEnd]).toEqual([1, 2]);
-    await userEvent.keyboard("{Ctrl>}z{/Ctrl}");
+    await userEvent.keyboard(`{${historyModifier}>}z{/${historyModifier}}`);
     expect(textarea.value).toBe("");
   });
 

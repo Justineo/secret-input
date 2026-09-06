@@ -22,6 +22,8 @@ All notable changes to this project are documented here. The format follows [Kee
 
 ### Fixed
 
+- Confirm Enter on Safari before native validation even when no line-break `beforeinput` event is emitted.
+
 - Hold SSR inputs readonly until their controller attaches, then restore the author's readonly setting without changing input type or introducing CSS masking.
 - Fall back to default validation messages when a formatter throws, preserving validation and editing.
 - Preserve ordinary same-name form controls, file entries, and global FormData order when projecting secret values.
