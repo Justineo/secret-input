@@ -1,30 +1,48 @@
 # Secret Input experience goals and expected behavior
 
-This document defines the target contract; it does not claim that every platform has passed testing. It is based on browser and assistive-technology source research and official documentation reviewed on 2026-09-05.
+This document defines the target contract; it does not claim that every platform has passed testing. The non-negotiable requirements were clarified on 2026-09-06, following the browser and assistive-technology research.
 
 ## Product scope
 
-Secret Input supports configuration editing for non-login secrets such as API keys and tokens. Users can type, paste, edit, and inspect content on demand while reducing unrelated credential fills and suggestions and preventing browser or extension writes from silently replacing the value held by the application.
+Secret Input supports configuration editing for non-login secrets such as API keys and tokens. Users can type, paste, edit, and inspect content on demand without unwanted credential fills, credential suggestions, or disclosure of a concealed secret to assistive technology.
 
 Avoiding unwanted browser autofill and password suggestions is the primary goal. Removing plaintext from DOM value is not a goal or security boundary. Native password inputs provide a reference for interaction capabilities. Acceptance depends on completing these tasks, without requiring identical password-field behavior on every platform. Form libraries integrate through the component's value, callbacks/model, and validation interfaces; raw-native-input compatibility with every form library is outside the scope. Continue using native password inputs for login passwords.
 
-## Assessing support
+## Non-negotiable acceptance gates
 
-Each capability has an ideal outcome, acceptable implementation differences, and minimum correctness and usability requirements. Supported, Best effort, and Unsupported in the comparison table describe the degree of support for that capability. They do not directly rank the overall approach and should not be added into a single score.
+Every accepted implementation must satisfy all three gates on each combination it claims to support:
 
-| Area                  | Ideal outcome                                                                                     | Acceptable differences or best effort                                                                                                           | Unacceptable failures                                                                                                     |
-| --------------------- | ------------------------------------------------------------------------------------------------- | ----------------------------------------------------------------------------------------------------------------------------------------------- | ------------------------------------------------------------------------------------------------------------------------- |
-| Autofill              | No unrelated fills or suggestions                                                                 | Suggestions cannot be fully suppressed, but unexpected writes never enter the authoritative value; users can still complete the task            | Autofill corrupts the actual value or submission, or suggestions persistently obstruct basic operations                   |
-| IME                   | The same IME disabling effect as a native password input                                          | Correct composition handling when IME cannot be fully disabled                                                                                  | Drafts enter the authoritative value, characters are lost, commits are duplicated, or supported input cannot be completed |
-| Undo/redo             | Common entry points work and restoration matches user expectations                                | Controller history works, with differences in grouping, restored selections, system menus, and gestures; available entry points are documented  | Supported operations restore incorrect content, corrupt history branches, or emit incorrect events                        |
-| Assistive technology  | Users can complete the task with native password semantics and the platform's associated policies | Ordinary text-field semantics; clear purpose, hidden state, and errors; the stable current value appears as bullets; typing feedback may differ | Users cannot find or edit the field, cannot understand its state, or the component actively announces a hidden secret     |
-| Selection and Unicode | Natural native operations and exact string preservation                                           | One bullet per grapheme, with differences in word operations and some selection behavior                                                        | Ordinary editing breaks Unicode characters, replaces the wrong range, or unexpectedly changes the string                  |
-| Reveal and clipboard  | Clear, controllable visibility, allowing users to inspect content before copying it               | Copy, cut, and selection dragging are blocked while hidden and restored when revealed                                                           | Hidden fields export secrets or misleading bullets, or toggling corrupts the committed value or logical selection         |
-| Forms and frameworks  | Correct submission, reset, and synchronization with clear integration                             | Read controller.value and validate the actual value; some native constraints cannot be used directly                                            | Submitting bullets, framework synchronization corrupting the secret, or resetting to the wrong value                      |
+1. **No unwanted autofill.** Stored credentials must not be filled into the secret or unrelated neighboring configuration fields. Restoring the field afterward or rejecting the value at submission does not make an observed fill acceptable.
+2. **No autofill or password suggestion UI.** Focus, typing, clearing, and related interactions must not produce irrelevant dropdowns, generation offers, keyboard suggestions, or extension overlays. A suggestion is a failure even if users can dismiss it or still complete the task.
+3. **No disclosure of the concealed current value through assistive-technology reading.** The decisive scenario is: initialize or enter a secret, leave the field, then refocus it with a screen reader or request its current content. The concealed secret must not be read out. Accessible value/text interfaces must not expose the complete plaintext value for that reading. Initial focus, select-all, word/line traversal of existing content, and return from reveal need the same protection. Visual masking alone is insufficient. Feedback for newly typed characters and IME composition is assessed separately below.
 
-IME correctness is always required. Once that requirement is met, best effort is acceptable on some platforms. Missing native secure-field semantics must still be labeled unsupported; descriptive text cannot turn them into a supported capability. Products can choose this approach with an understanding of that difference.
+These gates cannot be traded for native undo, simpler code, better IME behavior, or exact native-password fidelity. The existing explicit reveal feature remains a deliberate disclosure state; focus or ordinary editing must not silently act as reveal. Hiding the editor from assistive technology or preventing accessible editing is not an acceptable way to pass the third gate.
 
-Correct values alone are insufficient for acceptance: users must also be able to operate the field, understand its state, and submit. A difference from native behavior is not automatically a defect.
+Record the browser, OS, password manager, assistive technology, versions, and tested settings. An unverified gate is unverified, not a best-effort pass. The current controller is subject to these requirements too.
+
+## Required foundations and negotiable capabilities
+
+The three gates define the product's distinctive requirements. Two ordinary quality requirements are also mandatory:
+
+- **Basic operation and accessibility:** users can locate and understand the field, focus it, type, paste, select, replace, delete, understand errors, and complete the form using the supported keyboard, touch, and assistive-technology paths. The hidden state is visually concealed. Explicit reveal, if offered, remains operable and understandable.
+- **Data integrity:** accepted input is preserved without unintended loss, duplication, normalization, or replacement. Supported validation, framework synchronization, reset, reveal, history, and submission operate on the correct actual value. Reject unsupported input explicitly instead of silently changing the secret.
+
+The remaining capabilities can use different implementations or narrower, documented support:
+
+| Capability                         | Acceptable compromise                                                                                                                                 | Boundary that still applies                                                                                                                                        |
+| ---------------------------------- | ----------------------------------------------------------------------------------------------------------------------------------------------------- | ------------------------------------------------------------------------------------------------------------------------------------------------------------------ |
+| Native password accessibility role | An ordinary text-field role is acceptable; explain purpose and hidden state and provide explicit actions where useful                                 | Basic operation and concealed current-value reading must pass; a descriptive label is not proof of protection                                                      |
+| Password-specific commands         | No requirement to reproduce platform commands such as repeat/read password; an explicit accessible reveal/hide action can cover inspection            | Ordinary focus or reading must not reveal the secret without an explicit disclosure action                                                                         |
+| IME suppression                    | Allow composition instead of disabling or switching the input method                                                                                  | Supported input must commit correctly and must not expose the stored concealed value through reading; lack of suppression is not a product failure                 |
+| Immediate typing feedback          | Character echo, new-input feedback, and composition feedback need not reproduce native password behavior                                              | Record actual behavior separately; do not equate new-input feedback with rereading an existing secret or excuse replaying the stored value                         |
+| Undo/redo                          | Controller history and explicit controls may replace native history; grouping, menus, gestures, and availability can differ                           | Available operations must restore correct values; a missing entry point must be documented. Adding buttons would require API work, not an assumed existing feature |
+| Selection and mask details         | Word movement, double-click selection, mask count, and caret behavior need not match every native password implementation                             | Basic selection/replacement must remain usable and accepted Unicode strings must not be corrupted                                                                  |
+| Clipboard operations               | Paste is foundational; concealed copy/cut/drag may be blocked, with copying available after explicit reveal or a clearly identified disclosure action | No silent export of the hidden secret or misleading substitution of bullets for copied content                                                                     |
+| Forms and frameworks               | A component API, value bridge, and component-owned validation are acceptable; raw-input compatibility with every form library is unnecessary          | Supported submission and state transitions must use the actual value and correct validation results                                                                |
+| DOM and architecture               | Plaintext may exist in DOM storage; input, textarea, custom hosts, wrappers, and frame-based approaches are implementation choices                    | Each complete implementation still has to pass the three gates and the foundations; visual masking alone does not establish this                                   |
+| Styling and platform details       | Internal markup, layout constraints, system-menu integration, and exact native appearance may differ                                                  | Labels, focus visibility, errors, and basic interaction must remain usable                                                                                         |
+
+Do not remove working capabilities merely because they are negotiable. A compromise needs a concrete benefit or a demonstrated conflict, and its effect on users must be recorded. Supported, Best effort, Unsupported, and Not tested in the comparison matrix describe individual observations, not an overall score. Native password semantics and IME suppression can be absent without failing the product; a failed or unverified gate cannot be offset by other features.
 
 ## Core experience
 
@@ -34,14 +52,14 @@ Correct values alone are insufficient for acceptance: users must also be able to
 | Enter or replace a secret  | Typing, paste, deletion, range replacement, and supported IME commits produce accurate results without loss, duplication, or silent rewriting                                        | Core maintains one authoritative value; unreliable browser paths must have a narrower, documented support scope                                      |
 | Hide entered content       | In the stable hidden state, the page and presentation-value reading interfaces receive bullets; the component does not put the secret in names, descriptions, hints, or live regions | Core maintains the masked presentation; the application avoids copying the secret into other readable regions                                        |
 | Inspect and verify content | Interfaces offering reveal have an operable, named button; toggling preserves the value and editing position, and revealed content is readable normally                              | Core provides revealed state; the application provides an explicit user action and synchronizes visible and accessible state                         |
-| Avoid incorrect fills      | Unexpected browser/extension DOM writes cannot change the authoritative value or submission; unrelated suggestions are reduced where possible                                        | The controller rejects unwanted writes; suppressing browser and third-party suggestions is best effort                                               |
+| Avoid incorrect fills      | No unwanted filling or suggestion UI, and no unwanted writes accepted as application state                                                                                           | Verify both browser/extension behavior and the authoritative-value boundary; restoring a value does not excuse a failed gate                         |
 | Complete a form            | Keyboard and assistive-technology users can reach the field, edit, understand errors, and submit the correct value                                                                   | Core preserves the native input surface and form behavior; application validation must use the actual secret rather than bullets                     |
 
 Hiding is a presentation capability that reduces exposure, not a security boundary against same-origin JavaScript. Revealing makes plaintext available to the DOM, assistive technology, and normal copy operations, and should be an explicit application feature offered to users.
 
 ## Typing feedback expectations
 
-The component does not promise that actual characters will never be spoken while typing. The current text-input approach cannot establish native protected-field semantics or reliably control operating-system key echo, soft-keyboard exploration, or IME feedback. There is no single password-speaking policy across assistive technologies for the component to enforce.
+The current text-input approach does not establish native protected-field semantics. Operating-system key echo, soft-keyboard exploration, and IME feedback therefore require actual assistive-technology tests. Distinguish immediate feedback about newly entered input from refocusing or reading the stored value. The latter must not disclose the concealed secret, including through word/line traversal or select-all reading.
 
 The component should:
 
@@ -50,9 +68,7 @@ The component should:
 - Name the field by its actual purpose and describe its hidden state. Descriptive text does not establish password-protection policies.
 - Inform developers that ordinary text-field echo policies can differ from native password-field policies. Do not claim compliance with users' password-specific privacy settings.
 
-Under this contract, differences in spoken letters, bullets, character counts, or editing feedback are not automatically defects. Assess whether they prevent the core task or violate the responsibility to avoid actively exposing content.
-
-Products that require the platform's protected-typing policies should use native secure fields. That requirement is outside this component's scope.
+Record character echo and composition feedback separately from current-value reading; do not infer speech behavior from an accessibility-role identifier or from bullets in `input.value`. Different new-input feedback is not automatically a failure or a promise of password-equivalent protection. Reading or replaying the stored concealed value remains a failure even when the browser or screen reader, rather than component code, produces it.
 
 ## Editing, mobile, and history
 
@@ -66,39 +82,39 @@ Basic mobile typing, paste, selection, deletion, and reveal are part of the core
 
 ## IME boundaries
 
-Disabling IME is the ideal outcome for this capability, so the comparison table can retain Disables IME and its support levels. When disabling is unavailable, correct composition handling is acceptable best effort: drafts must not enter the authoritative value prematurely, and commits must not be duplicated.
+Disabling IME is one implementation strategy, not a product requirement or an inherently superior result. The comparison table may retain Disables IME as a reference capability, but its absence does not reduce acceptance if composition works correctly and the three gates pass. The current controller keeps composition drafts outside its committed value; another architecture may use a different internal editing model without changing the user-facing requirements.
 
-Correct composition handling does not mean IME is disabled. It is a baseline requirement for every implementation. Explain both aspects in the same assessment without indefinitely adding browser-specific exceptions to reach the ideal outcome.
+Whenever composition is supported, its correctness is mandatory. Report whether IME remains available and whether editing works correctly as separate observations; do not mark a correct implementation deficient simply because it permits an input method.
 
-Non-cancelable edits in some browsers can briefly place composition plaintext in the DOM. Consequently, "the stable hidden state displays only bullets" must not become "plaintext never appears in the DOM at any time." Corruption or an inability to complete input on a particular IME path is a defect to fix or explicitly exclude from support. Transient presentation limits must be documented accurately.
+Non-cancelable edits in some browsers can briefly place composition plaintext in the DOM. DOM plaintext is not prohibited by itself, but a transient value that exposes the complete concealed secret through accessibility or speech fails the gate; restoring bullets afterward does not excuse it. Corruption or an inability to complete input on a particular IME path is also a defect to fix or explicitly exclude from support.
 
 ## Acceptance testing
 
 Test user tasks rather than counting replicated native password features.
 
 1. Representative keyboard, touch, and screen-reader combinations can complete "find the field → type/paste → edit → understand errors → submit."
-2. Refocusing a hidden field and reading its current content does not retrieve the secret from the stable presentation controlled by the component.
+2. Accessible value/text inspection and real screen-reader tests cannot retrieve or read the complete concealed secret on initial load, focus, refocus, select-all, value rereading, edits, composition, or return from reveal. Labels, errors, and the editor remain usable.
 3. Reveal controls are operable and understandable, and toggling preserves the secret and editing position.
-4. Unexpected DOM/autofill writes do not corrupt the authoritative value or submission.
+4. A normal profile with a saved disposable login shows no unwanted filling or suggestion UI, including on neighboring fields. Separately verify that unexpected writes do not corrupt the authoritative value or submission.
 5. Basic editing and IME commits do not lose, duplicate, or silently replace content.
 6. Platform differences in typing echo, system menus, and gestures are recorded separately and assessed against this contract. A difference from native password behavior is not the sole failure criterion.
 
-Choose coverage based on target users' platforms and record exact versions and unverified combinations. Source code and official documentation explain mechanisms but do not replace task-based acceptance testing. Expand verification when new findings affect core tasks; exhaustive coverage of every assistive device and behavior is not a release prerequisite.
+Choose coverage based on target users' platforms and record exact versions and unverified combinations. Source code and official documentation explain mechanisms but do not replace task-based acceptance testing. Claim acceptance only for combinations with evidence for all three gates; leave missing results unverified rather than weakening the requirements.
 
 ## Current tradeoffs and future work
 
 For non-login configuration involving API keys, tokens, and signing keys, retain the current approach: one authoritative value, a native text-input surface, and bullet presentation. The existing Safari comparison reports password suggestions for CSS masking and none for the controller approach. This observed autofill difference supports retaining the current controller; DOM plaintext isolation is not the reason. New evidence may justify a simpler editing implementation. Do not expand it into a general editor to match every native password feature.
 
-Acceptable differences currently include best-effort IME support on some platforms, controller history differing from native history, ordinary text-field accessibility semantics, and editing masked content by grapheme. Document each separately. They do not offset one another, and a best-effort label does not remove the need for testing.
+Acceptable differences include permitting IME with correct composition handling, controller history differing from native history, ordinary text-field accessibility semantics, and editing masked content by grapheme. Document each separately. A best-effort label does not excuse input corruption or remove the need to verify the three gates.
 
 Future priorities:
 
-1. Complete basic task verification on target mobile and screen-reader combinations, fixing content corruption or interaction barriers first.
+1. Verify the three gates on target mobile, password-manager, and screen-reader combinations before claiming acceptance, then address other usability differences.
 2. Keep integration examples for reveal, state descriptions, actual-value validation, and submission clear and usable.
 3. Design public history operations and availability only when a real product needs undo on devices without shortcuts; do not add UI to every field by default.
 4. Recheck documented autofill, suggestion, and IME behavior when browsers and extensions change. Avoid adding further heuristics without new evidence of failure.
 
-This decision is specific to the current use case, not a universal ranking of the four approaches. Products that prioritize full native editing and secure-field semantics and can accept password suggestions may choose native password inputs. Products requiring only visual concealment may choose CSS masking.
+This decision is specific to the current use case. An alternative that permits password suggestions or provides only visual concealment does not satisfy this product's contract, even if it is appropriate for another product.
 
 ## Research references
 

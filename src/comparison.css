@@ -290,19 +290,3 @@
   overflow: hidden;
   white-space: pre;
 }
-
-.browser-icon[data-support="untested"] {
-  opacity: 0.5;
-  outline: 1px dashed var(--muted);
-  outline-offset: 2px;
-  border-radius: 50%;
-}
-
-.untested-icon {
-  display: inline-grid;
-  place-items: center;
-  width: 18px;
-  height: 18px;
-  border: 1px dashed var(--muted);
-  border-radius: 50%;
-}

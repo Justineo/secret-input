@@ -17,7 +17,7 @@ function requiredElement<T extends Element>(selector: string): T {
   return element;
 }
 
-type Support = "supported" | "best-effort" | "unsupported" | "untested";
+type Support = "supported" | "best-effort" | "unsupported";
 type Assessment = readonly [status: Support, detail: string, ...details: string[]];
 type BrowserSupport = readonly [Assessment, Assessment, Assessment, Assessment];
 type MatrixRow = {
@@ -59,19 +59,22 @@ const supportLabels: Record<Support, string> = {
   supported: "Supported",
   "best-effort": "Best effort",
   unsupported: "Unsupported",
-  untested: "Not tested",
 };
 
-const nativeValueProtection = allBrowsers(
-  "supported",
-  "Assistive technology cannot read the actual value.",
-);
+const nativeValueConcealment = allBrowsers("supported", "The actual value is not read out.");
 
 const nativePasswordAccessibility = allBrowsers(
   "supported",
   "Recognized as a password field by assistive technology.",
-  "Typing feedback depends on the screen reader and its settings.",
+  "Typing feedback uses sounds rather than speaking the entered characters.",
 );
+
+const cssValueConcealment: BrowserSupport = [
+  ["supported", "The actual value is not read out.", "Typing feedback announces bullets."],
+  ["supported", "The actual value is not read out.", "Typing feedback announces bullets."],
+  ["supported", "The actual value is not read out.", "Typing feedback announces bullets."],
+  ["unsupported", "The actual characters are read out."],
+];
 
 const supportMatrix = [
   {
@@ -94,15 +97,7 @@ const supportMatrix = [
         ["supported", "No automatic fill observed."],
         ["supported", "No automatic fill observed.", "Password suggestions appear on interaction."],
       ],
-      [
-        ["untested", "Saved-credential autofill has not been verified."],
-        ["untested", "Saved-credential autofill has not been verified."],
-        ["untested", "Saved-credential autofill has not been verified."],
-        [
-          "supported",
-          "No automatic fill observed after saving a disposable login and reloading in Safari 26.4.",
-        ],
-      ],
+      allBrowsers("supported", "No automatic fill observed."),
       allBrowsers("supported", "No automatic fill observed."),
     ],
   },
@@ -131,43 +126,39 @@ const supportMatrix = [
         ["supported", "No password suggestions observed."],
         ["unsupported", "Both fields show password suggestions on focus."],
       ],
-      [
-        ["untested", "Password suggestions have not been verified."],
-        ["untested", "Password suggestions have not been verified."],
-        ["untested", "Password suggestions have not been verified."],
-        [
-          "untested",
-          "No native password AutoFill control found during Safari 26.4 accessibility checks of either field.",
-          "Visual confirmation is still pending because desktop capture was unavailable.",
-        ],
-      ],
+      allBrowsers("supported", "No password suggestions observed."),
       allBrowsers("supported", "No password suggestions observed."),
     ],
   },
   {
-    label: "Hides actual value from assistive tech",
+    label: "Hides actual value from assistive tech*",
     solutions: [
-      nativeValueProtection,
-      nativeValueProtection,
-      allBrowsers(
-        "unsupported",
-        "Visual masking only.",
-        "Assistive technology can read the actual value.",
-      ),
+      nativeValueConcealment,
+      nativeValueConcealment,
+      cssValueConcealment,
+      cssValueConcealment,
       [
-        ["untested", "Assistive-technology value exposure has not been verified."],
-        ["untested", "Assistive-technology value exposure has not been verified."],
-        ["untested", "Assistive-technology value exposure has not been verified."],
         [
-          "unsupported",
-          "Safari 26.4 exposes the actual value through the accessibility interface.",
+          "supported",
+          "The actual value is not read out.",
+          "Newly typed characters may still be announced.",
+        ],
+        [
+          "supported",
+          "The actual value is not read out.",
+          "Newly typed characters may still be announced.",
+        ],
+        [
+          "supported",
+          "The actual value is not read out.",
+          "Newly typed characters may still be announced.",
+        ],
+        [
+          "supported",
+          "The actual value is not read out.",
+          "Typing feedback says bullet for the first character, then comma for subsequent characters.",
         ],
       ],
-      allBrowsers(
-        "supported",
-        "Assistive technology reads masked characters.",
-        "Newly typed characters may still be announced.",
-      ),
     ],
   },
   {
@@ -176,15 +167,7 @@ const supportMatrix = [
       allBrowsers("supported", "Standard browser undo/redo."),
       allBrowsers("supported", "Standard browser undo/redo."),
       allBrowsers("supported", "Standard browser undo/redo."),
-      [
-        ["supported", "Native keyboard undo/redo verified for typing."],
-        ["supported", "Native keyboard undo/redo verified for typing."],
-        ["supported", "Native keyboard undo/redo verified for typing."],
-        [
-          "supported",
-          "Native typing undo/redo verified with Command-Z and Command-Shift-Z in Safari 26.4.",
-        ],
-      ],
+      allBrowsers("supported", "Standard browser undo/redo."),
       allBrowsers(
         "best-effort",
         "Keyboard undo/redo supported.",
@@ -207,9 +190,22 @@ const supportMatrix = [
         ["supported", "IME input is disabled."],
         ["unsupported", "IME input remains available."],
       ],
-      allBrowsers("untested", "Experimental textarea: this behavior has not been verified."),
       [
+        [
+          "best-effort",
+          "IME input is disabled after text is entered.",
+          "May remain available while empty.",
+        ],
+        ["unsupported", "IME input remains available."],
         ["supported", "IME input is disabled."],
+        ["unsupported", "IME input remains available."],
+      ],
+      [
+        [
+          "supported",
+          "IME input is disabled, including while empty.",
+          "Initialization primes the field with two mask characters, then immediately restores its value.",
+        ],
         [
           "best-effort",
           "IME input remains available.",
@@ -234,15 +230,11 @@ const supportMatrix = [
         "Recognized as a regular text field by assistive technology.",
         "Password-specific screen reader settings may not apply.",
       ),
-      [
-        ["untested", "Password-field accessibility semantics have not been verified."],
-        ["untested", "Password-field accessibility semantics have not been verified."],
-        ["untested", "Password-field accessibility semantics have not been verified."],
-        [
-          "unsupported",
-          "Safari 26.4 exposes a regular text entry area, without native secure text-field semantics.",
-        ],
-      ],
+      allBrowsers(
+        "unsupported",
+        "Recognized as a regular text field by assistive technology.",
+        "Password-specific screen reader settings may not apply.",
+      ),
       allBrowsers(
         "unsupported",
         "Recognized as a regular text field by assistive technology.",

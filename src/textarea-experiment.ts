@@ -1,18 +1,17 @@
-// Comparison-only prototype. Keep native value and history; do not attach the secret controller.
+// Comparison-only textarea. Keep native value and history; do not attach the secret controller.
 export function initializeTextareaExperiment(
   textarea: HTMLTextAreaElement,
   status: HTMLElement,
 ): void {
   if (!CSS.supports("-webkit-text-security", "disc")) {
     textarea.readOnly = true;
-    status.textContent =
-      "CSS masking is unavailable in this browser. This experiment is read-only.";
+    status.textContent = "CSS masking is unavailable in this browser. This field is read-only.";
     return;
   }
 
   textarea.style.setProperty("-webkit-text-security", "disc");
   textarea.readOnly = false;
-  status.textContent = "Experimental. Test with disposable values only.";
+  status.textContent = "Test with disposable values only.";
 
   let composing = false;
   textarea.addEventListener("compositionstart", () => (composing = true));

@@ -200,6 +200,8 @@ Attach the input to its form/root before calling `createSecretInput()`. After mo
 
 Use native password inputs for login passwords. This library is **not a security boundary against same-origin JavaScript**.
 
+The product's [acceptance contract](docs/behavior-expectations.md#non-negotiable-acceptance-gates) requires no unwanted autofill, no password/autofill suggestion UI, and no complete plaintext disclosure to assistive technology while concealed. These are target requirements, not a claim that every browser, password manager, or screen reader has passed. The limitations below identify verification needs; a failed gate is not an acceptable tradeoff.
+
 | Area              | Limitation                                                                                                                                        |
 | ----------------- | ------------------------------------------------------------------------------------------------------------------------------------------------- |
 | Password managers | May ignore opt-out hints. Separate secret state protects the application value.                                                                   |

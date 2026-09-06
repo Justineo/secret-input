@@ -192,7 +192,6 @@ a:hover {
   border: 1px solid var(--stroke);
   border-radius: 8px;
   background: var(--surface);
-  overflow: hidden;
 }
 .integration pre {
   margin: 0;

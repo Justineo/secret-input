@@ -5,6 +5,26 @@ Secret Input. It tests whether changing the native element avoids unwanted passw
 suggestions while retaining native value, editing history, and form submission. The
 package controller and React/Vue adapters are unchanged.
 
+**Updated accessibility evidence:** the maintainer corrected the earlier all-browser
+concealment report: VoiceOver reads actual characters for both CSS variants in
+Safari. Chrome, Edge, and Firefox were reported to speak bullets. Both Safari CSS
+cells are Unsupported for hiding the actual value from assistive technology; a
+small note identifies VoiceOver as the tested assistive technology. The earlier
+Safari accessibility API plaintext finding remains separate evidence. Broader
+assistive-technology acceptance and complete single-line editing still require
+verification.
+
+**Incremental browser coverage:** the maintainer confirmed on September 6 that Safari
+no longer shows autofill UI with Textarea + CSS. Compared with text input + CSS, the
+additional browser covered for this behavior is Safari: the input + CSS observations
+already passed in Chrome, Edge, and Firefox. This confirmation updates Safari's
+**Avoids autofill UI** matrix result to Supported. It does not change the separate
+plaintext accessibility result. The follow-up did not specify a browser version.
+The maintainer subsequently confirmed that the other browsers behave like input text + CSS.
+The comparison now records that parity across the existing dimensions, with Safari's
+no-autofill-UI result as the additional coverage, and removes the Experimental label.
+These follow-up results are maintainer-reported, not additional agent-run device tests.
+
 ## Prototype behavior
 
 - `textarea.value` contains the actual text. CSS `-webkit-text-security: disc` masks
@@ -51,7 +71,8 @@ serialization, or fetch-based submission was used.
 Safari WebDriver could not create a session because **Allow remote automation** is
 disabled. The subsequent desktop accessibility checks below cover a limited set of Safari behaviors.
 Automated WebDriver profiles have no saved credentials, so the Chrome, Edge, and Firefox
-autofill and password-suggestion results remain untested.
+automated tests alone do not establish autofill or password-suggestion behavior. The later
+maintainer confirmation above supplies the comparison results.
 
 ## Manual autofill comparison
 
@@ -66,9 +87,11 @@ autofill and password-suggestion results remain untested.
 5. Record browser version, automatic-fill behavior, and focus-triggered UI separately.
    Revisit a saved setup to check the initial comparison-loading path as well.
 
-Successful saved-credential tests, particularly Safari's focus-triggered password UI,
-are the decision point for considering a controller migration. The existing input's
-CSS-mask results do not establish the textarea's behavior.
+Saved-credential tests, particularly Safari's focus-triggered password UI, address only
+two of the three acceptance gates. A controller migration also requires verified
+concealed accessibility and speech behavior. The existing input's CSS-mask results
+do not establish the textarea's behavior on untested combinations. The corrected Safari VoiceOver result and the separate plaintext API exposure
+prevent claiming concealed accessibility for the CSS textarea.
 
 ## Safari desktop accessibility follow-up
 
@@ -96,9 +119,11 @@ Observed results:
 
 Both display and window capture failed in this environment. These checks establish the
 native accessibility observations above, but do not provide screenshot confirmation of
-all visible popup UI. The matrix therefore leaves Safari's **Avoids autofill UI** result
-Not tested with the partial evidence in its detail. Real OS IME behavior, actual VoiceOver
-speech, and the remaining Safari editing cases are still pending.
+all visible popup UI. The matrix initially left Safari's **Avoids autofill UI** result
+Not tested on that evidence alone. The subsequent maintainer confirmation above supplies
+the no-UI observation and changes that result to Supported; it is not an additional
+agent-run screenshot test. Real OS IME behavior, actual VoiceOver speech, and the remaining
+Safari editing cases are still pending.
 
 ## Mobile testing version
 

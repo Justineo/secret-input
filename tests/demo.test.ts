@@ -169,10 +169,10 @@ describe("demo initialization", () => {
     const candidate = element<HTMLTextAreaElement>("#textarea-signing-secret");
     expect(candidate.getAttribute("rows")).toBe("1");
     expect(candidate.hasAttribute("name")).toBe(false);
-    const pending = element<HTMLButtonElement>(
+    const textareaAutofill = element<HTMLButtonElement>(
       "#support-matrix tr:first-child td:nth-of-type(4) .browser-detail",
     );
-    expect(pending.getAttribute("aria-label")).toBe("Chrome: Not tested");
+    expect(textareaAutofill.getAttribute("aria-label")).toBe("Chrome: Supported");
     const button = element<HTMLButtonElement>(".browser-detail");
     button.focus();
     expect(element("#support-detail").textContent).toBe("Both fields are filled automatically.");

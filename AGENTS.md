@@ -2,6 +2,10 @@
 
 - Write all design documentation in English.
 - The product goal is to avoid unwanted browser autofill and password suggestions for non-login secrets. Removing plaintext from DOM value is not a product goal or security boundary.
+- Three non-negotiable acceptance gates apply to every implementation: no unwanted autofill, no autofill/password suggestion UI, and no complete plaintext secret exposed to assistive technology or read aloud while concealed. Rejecting an autofill write after it happens does not satisfy the first two gates. Native editing fidelity and implementation choices cannot compensate for a failed gate.
+- Treat accessible-value inspection and actual screen-reader behavior as separate required evidence. Missing native password semantics does not excuse disclosure; do not hide or disable the accessible editor to suppress speech. Mark unverified browser, password-manager, OS, and assistive-technology combinations unverified rather than accepted.
+- The decisive concealed-value scenario is leaving and refocusing the field with a screen reader or requesting its current content: the stored secret must not be read out. Immediate new-input echo is assessed separately. Native password roles/commands, IME suppression, native history entry points, and exact native behavior are negotiable; basic accessible operation and data integrity are mandatory. See the capability tiers in `docs/behavior-expectations.md`.
+- Current controller architecture rules below describe the existing implementation, not immutable product requirements for every future candidate. Evaluate alternative architectures against the acceptance gates and foundations before changing the implementation contract.
 - Cover useful input capabilities through the component contract; do not pursue drop-in native-input or arbitrary form-library compatibility.
 - `createSecretInput(input, options)` returns an explicit controller with read-only state and synchronous `update(options)` patches. Do not add secret-state properties to native inputs.
 - Keep the authoritative value in `controller.value`; `input.value` is presentation only. Validation rules belong to controller options, not DOM attributes or observers.
@@ -12,7 +16,7 @@
 - Use explicit English defaults for length errors. validationMessages maps valueMissing/patternMismatch/tooShort/tooLong to strings or synchronous formatters; empty/undefined results and formatter exceptions preserve default errors. Cache native checks, but reevaluate formatters on synchronization. Use the detached input for native patterns and required default wording requested by a formatter.
 - Preserve Unicode strings exactly. Use graphemes only for masked editing; keep native UTF-16 length semantics.
 - SSR emits a text input with initial bullets and readonly until its controller attaches. Restore the author's readonly state after attachment; a failed JS load must leave the pending field uneditable.
-- Retain the current bullet controller because the existing Safari comparison reports password suggestions with CSS masking. Evaluate future masking choices by autofill and editing behavior, not DOM plaintext isolation.
+- Retain the current bullet controller provisionally because the existing Safari comparison reports password suggestions with CSS masking. Evaluate it and future implementations against all three acceptance gates; existing tests do not establish universal acceptance. Plaintext DOM storage is permissible only when it does not violate the assistive-technology gate.
 - Preserve native styling, accessibility, focus, selection, and form behavior where possible.
 - Keep the controller framework-independent; React and Vue adapters reuse it.
 - Prefer strict, explicit TypeScript, minimal abstractions, and observable-behavior tests in unit tests and real target browsers.

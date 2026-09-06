@@ -61,6 +61,7 @@ interface Snapshot extends Selection {
 }
 
 interface Edit extends Selection {
+  appliedSelection?: Selection;
   isComposing?: boolean;
   source?: Event;
   data: string | null;
@@ -287,7 +288,7 @@ function createController(input: HTMLInputElement, options: SecretInputOptions):
   input.addEventListener("copy", preventExport);
   input.addEventListener("cut", preventExport);
   input.addEventListener("paste", handlePaste);
-  input.addEventListener("pointerdown", breakHistoryGroup);
+  input.addEventListener("pointerdown", handlePointerDown);
   input.addEventListener("select", handleSelectionChange);
   input.addEventListener("selectionchange", handleSelectionChange);
   input.addEventListener("dragstart", preventExport);
@@ -347,6 +348,13 @@ function createController(input: HTMLInputElement, options: SecretInputOptions):
     input.setCustomValidity(customValidity || validate(value, rules));
 
     if (selection) {
+      if (pendingEdit?.appliedSelection) {
+        pendingEdit.appliedSelection = {
+          start: selection.start,
+          end: selection.end,
+          direction: selection.direction ?? "none",
+        };
+      }
       renderSelection(selection);
     }
   }
@@ -387,6 +395,13 @@ function createController(input: HTMLInputElement, options: SecretInputOptions):
     }
 
     const inserted = insertedParts.join("");
+    // Reject an insertion that cannot contribute any text. It must not turn
+    // into a deletion of the selection or move the next edit to another range.
+    if (insertedText && !inserted) {
+      breakHistoryGroup();
+      render(edit);
+      return;
+    }
     const nextValue = prefix + inserted + suffix;
     // Segmentation can change across either splice boundary (combining marks,
     // regional indicators, ZWJ sequences). Map the resulting UTF-16 offset.
@@ -669,7 +684,17 @@ function createController(input: HTMLInputElement, options: SecretInputOptions):
     }
 
     event.preventDefault();
+    // Some keyboards still mutate the DOM after a canceled beforeinput.
+    // Retain the rendered selection for that input opportunity, without
+    // applying the same edit again or adopting the browser-written value.
+    edit.appliedSelection = {
+      start: edit.start,
+      end: edit.end,
+      direction: edit.direction ?? "none",
+    };
+    setPendingEdit(edit, event);
     executeEdit(edit);
+    edit.appliedSelection = selection();
   }
 
   function handleKeyPress(event: KeyboardEvent): void {
@@ -681,6 +706,7 @@ function createController(input: HTMLInputElement, options: SecretInputOptions):
   }
 
   function handleKeyDown(event: KeyboardEvent): void {
+    pendingEdit = undefined;
     const key = event.key.toLowerCase();
     const hasModifier = event.ctrlKey || event.metaKey;
     if (
@@ -724,7 +750,11 @@ function createController(input: HTMLInputElement, options: SecretInputOptions):
     pendingEdit = undefined;
 
     if (pending && pending.inputType === event.inputType && !pending.source?.defaultPrevented) {
-      executeEdit(pending);
+      if (pending.appliedSelection) {
+        render(pending.appliedSelection);
+      } else {
+        executeEdit(pending);
+      }
       return;
     }
 
@@ -738,6 +768,7 @@ function createController(input: HTMLInputElement, options: SecretInputOptions):
     }
 
     event.stopImmediatePropagation();
+    pendingEdit = undefined;
     breakHistoryGroup();
     render(selection());
   }
@@ -749,10 +780,28 @@ function createController(input: HTMLInputElement, options: SecretInputOptions):
   }
 
   function handleSelectionChange(): void {
+    const applied = pendingEdit?.appliedSelection;
+    if (!historyGroup && !applied) {
+      return;
+    }
+    const current = selection();
+    // A browser-written value can also move the caret before input fires.
+    // That movement is part of the mutation we will restore, not navigation.
+    if (applied && input.value !== (revealed ? value : MASK.repeat(getParts().length))) {
+      return;
+    }
+    if (
+      applied &&
+      (current.start !== applied.start ||
+        current.end !== applied.end ||
+        current.direction !== (applied.direction ?? "none"))
+    ) {
+      pendingEdit = undefined;
+    }
     if (!historyGroup) {
       return;
     }
-    const { start, end } = selection();
+    const { start, end } = current;
     if (start !== end || start !== historyGroup.after.start) {
       breakHistoryGroup();
     }
@@ -760,6 +809,11 @@ function createController(input: HTMLInputElement, options: SecretInputOptions):
 
   function breakHistoryGroup(): void {
     historyGroup = undefined;
+  }
+
+  function handlePointerDown(): void {
+    pendingEdit = undefined;
+    breakHistoryGroup();
   }
 
   function handlePaste(event: ClipboardEvent): void {
@@ -798,6 +852,7 @@ function createController(input: HTMLInputElement, options: SecretInputOptions):
   }
 
   function handleFocus(): void {
+    pendingEdit = undefined;
     installFormHandlers(input);
     breakHistoryGroup();
     valueAtCommit = value;

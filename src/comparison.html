@@ -162,7 +162,7 @@
       </div>
     </article>
 
-    <article class="comparison-case" data-experimental="true">
+    <article class="comparison-case">
       <header class="case-summary">
         <h3 class="section-title">Textarea + CSS</h3>
         <dl class="case-spec caption">
@@ -179,16 +179,17 @@
       <div class="case-content">
         <dl class="case-explanation">
           <div>
-            <dt>Why try it</dt>
+            <dt>Why use it</dt>
             <dd>
-              Tests whether a textarea avoids password suggestions while CSS hides its text. The
-              browser owns the real value, editing history, and form submission.
+              Uses a single-row textarea with CSS masking to also avoid Safari's autofill UI. Other
+              tested browser behavior matches the CSS-masked text input. The browser owns the value,
+              editing history, and form submission.
             </dd>
           </div>
           <div>
-            <dt>Experimental</dt>
+            <dt>Limitations</dt>
             <dd>
-              Password suggestions still need visual verification, including in Safari. Enter
+              CSS only changes painting; accessibility APIs can still read the actual value. Enter
               submits this test form; line breaks and multiline paste or drop are rejected. Copying
               still copies the real text.
             </dd>
@@ -287,7 +288,6 @@
           <img class="browser-icon" data-support="best-effort" width="18" height="18" alt="" />
           Best effort
         </span>
-        <span><span class="untested-icon" aria-hidden="true">?</span> Not tested</span>
         <span>
           <img class="browser-icon" data-support="unsupported" width="18" height="18" alt="" />
           Unsupported
@@ -305,7 +305,7 @@
     >
       <table
         aria-label="Browser support by implementation and behavior"
-        aria-describedby="compatibility-legend"
+        aria-describedby="compatibility-legend assistive-technology-note"
       >
         <thead>
           <tr>
@@ -320,7 +320,11 @@
         <tbody id="support-matrix"></tbody>
       </table>
     </div>
-    <p class="caption compatibility-note">Desktop results. Versions and settings may differ.</p>
+    <p class="caption compatibility-note">
+      Desktop results. Versions and settings may differ.
+      <br />
+      <small id="assistive-technology-note">* Assistive technology tested with VoiceOver.</small>
+    </p>
     <div id="support-detail" class="support-detail caption" role="status" aria-atomic="true">
       <p>Select a browser for details.</p>
     </div>
