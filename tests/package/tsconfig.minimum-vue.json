@@ -1,0 +1,10 @@
+{
+  "extends": "./tsconfig.json",
+  "compilerOptions": {
+    "paths": {
+      "vue": ["../../node_modules/vue-minimum/dist/vue.d.mts"],
+      "vue/*": ["../../node_modules/vue-minimum/*"]
+    }
+  },
+  "include": ["consumer.ts"]
+}

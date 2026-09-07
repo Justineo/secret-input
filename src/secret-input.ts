@@ -229,6 +229,7 @@ function createController(input: HTMLInputElement, options: SecretInputOptions):
   let historyGroup: HistoryEntry | undefined;
   let pendingEdit: Edit | undefined;
   let revealed = options.revealed ?? false;
+  let renderRevision = 0;
   const redoStack: HistoryEntry[] = [];
   let skipCompositionCommit = false;
   const undoStack: HistoryEntry[] = [];
@@ -339,13 +340,17 @@ function createController(input: HTMLInputElement, options: SecretInputOptions):
   }
 
   function render(selection?: Selection): void {
+    const revision = ++renderRevision;
     getParts();
     displayParts = valueParts;
     const presentation = revealed ? value : MASK.repeat(displayParts.length);
     if (input.value !== presentation) {
       input.value = presentation;
     }
-    input.setCustomValidity(customValidity || validate(value, rules));
+    const message = customValidity || validate(value, rules);
+    // A formatter can trigger an update; keep the newer validity and selection.
+    if (revision !== renderRevision) return;
+    input.setCustomValidity(message);
 
     if (selection) {
       if (pendingEdit?.appliedSelection) {

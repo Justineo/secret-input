@@ -44,7 +44,7 @@
     "check": "vp check && vue-tsc --noEmit",
     "prepack": "vp pack",
     "check:site": "node scripts/check-site.mjs",
-    "check:package-types": "vue-tsc --project tests/package/tsconfig.json --noEmit"
+    "check:package-types": "vue-tsc --project tests/package/tsconfig.json --noEmit && tsc --project tests/package/tsconfig.minimum-vue.json --noEmit"
   },
   "devDependencies": {
     "@types/react": "^19.2.18",
@@ -64,12 +64,13 @@
     "vitest": "catalog:",
     "void": "catalog:",
     "vue": "^3.5.42",
+    "vue-minimum": "npm:vue@3.5.13",
     "vue-tsc": "^3.3.11",
     "webdriverio": "catalog:"
   },
   "peerDependencies": {
     "react": "^19.0.0",
-    "vue": "^3.5.0"
+    "vue": "^3.5.13"
   },
   "peerDependenciesMeta": {
     "react": {

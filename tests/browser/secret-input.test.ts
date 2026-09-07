@@ -1,6 +1,8 @@
 import { afterEach, beforeEach, describe, expect, it } from "vite-plus/test";
 import { cdp, page, server, userEvent } from "vite-plus/test/browser/context";
 
+import { clickOptions } from "./click.ts";
+
 import { createSecretInput } from "../../src/index.ts";
 import type { SecretInputController } from "../../src/index.ts";
 
@@ -382,7 +384,7 @@ describe("secret input browser contract", () => {
       valueDuringReset = field.value;
     });
 
-    await userEvent.click(button);
+    await userEvent.click(button, clickOptions);
     await expect.poll(() => field.value).toBe("start🔐");
     expect(valueDuringReset).toBe("kept");
     expect(input.value).toBe("••••••");
@@ -398,12 +400,12 @@ describe("secret input browser contract", () => {
     form.append(button);
     form.addEventListener("reset", (event) => event.preventDefault());
 
-    await userEvent.click(button);
+    await userEvent.click(button, clickOptions);
     // Let a deferred reset finish before checking that cancellation preserved history.
     await new Promise((resolve) => setTimeout(resolve, 0));
     expect(field.value).toBe("keptx");
     expect(input.value).toBe("•••••");
-    await userEvent.click(input);
+    await userEvent.click(input, clickOptions);
     await userEvent.keyboard(shortcut("z"));
     expect(field.value).toBe("kept");
   });
@@ -458,6 +460,23 @@ describe("secret input browser contract", () => {
     ]);
     expect(files.every((file) => file.type === "text/plain")).toBe(true);
     expect(inputs[0]!.value).toBe("•••");
+  });
+
+  it("keeps the latest value, validity, and selection after a formatter updates the field", () => {
+    field.update({ value: "A", minLength: 3 });
+    input.setSelectionRange(0, 1);
+    field.update({
+      validationMessages: {
+        tooShort: () => {
+          field.update({ value: "valid" });
+          return "Stale error";
+        },
+      },
+    });
+    expect(field.value).toBe("valid");
+    expect(input.value).toBe("•••••");
+    expect(input.checkValidity()).toBe(true);
+    expect([input.selectionStart, input.selectionEnd]).toEqual([5, 5]);
   });
 
   it("preserves rule enforcement and accepted edits when a message formatter throws", async () => {
@@ -680,7 +699,7 @@ describe("secret input browser contract", () => {
     expect(input.value).toBe("•");
     await userEvent.keyboard("{Enter}");
     expect(seen).toEqual(["change:x", "submit:x", "submit:x"]);
-    await userEvent.click(other);
+    await userEvent.click(other, clickOptions);
     expect(events.filter((event) => event.type === "change")).toHaveLength(1);
   });
 
@@ -706,7 +725,7 @@ describe("secret input browser contract", () => {
   it("emits input and change with masked event targets", async () => {
     reset();
     await userEvent.type(input, "x", { skipClick: true });
-    await userEvent.click(other);
+    await userEvent.click(other, clickOptions);
 
     expect(field.value).toBe("x");
     expect(input.value).toBe("•");

@@ -395,6 +395,40 @@ describe("controller validation", () => {
     expect(input.validationMessage).toBe(baseline);
   });
 
+  it.each([false, true])(
+    "preserves nested updates when a formatter returns or throws (throws: %s)",
+    (throws) => {
+      const { field, input } = createField({ value: "A", minLength: 3 });
+      input.setSelectionRange(0, 1);
+      field.update({
+        validationMessages: {
+          tooShort: () => {
+            field.update({ value: "valid" });
+            if (throws) throw new Error("Message formatting failed");
+            return "Stale error";
+          },
+        },
+      });
+      expect(field.value).toBe("valid");
+      expect(input.value).toBe("•••••");
+      expect(input.checkValidity()).toBe(true);
+      expect([input.selectionStart, input.selectionEnd]).toEqual([5, 5]);
+    },
+  );
+
+  it("preserves an application error set inside a formatter", () => {
+    const { field, input } = createField({ value: "A", minLength: 3 });
+    field.update({
+      validationMessages: {
+        tooShort: () => {
+          field.update({ customValidity: "Server error" });
+          return "Stale error";
+        },
+      },
+    });
+    expect(input.validationMessage).toBe("Server error");
+  });
+
   it("finishes updates, edits, history, and reset when a formatter throws", async () => {
     const { field, input, form } = createField({
       value: "ABC",
