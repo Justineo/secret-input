@@ -38,6 +38,10 @@ jobs:
           package-manager-cache: false
           registry-url: https://registry.npmjs.org
 
+      - name: Update npm for trusted publishing
+        working-directory: ${{ runner.temp }}
+        run: npm install --global npm@latest
+
       - name: Verify tag matches package version
         env:
           RELEASE_TAG: ${{ github.ref_name }}
@@ -75,5 +79,3 @@ jobs:
 
       - name: Publish to npm
         run: vp pm publish --access public --tag "${{ steps.dist-tag.outputs.tag }}" --no-git-checks --report-summary -- --provenance
-        env:
-          NODE_AUTH_TOKEN: ${{ secrets.NPM_TOKEN }}
