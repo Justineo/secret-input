@@ -10,8 +10,9 @@ export function initializeTextareaExperiment(
   }
 
   textarea.style.setProperty("-webkit-text-security", "disc");
+  textarea.style.setProperty("ime-mode", "disabled");
   textarea.readOnly = false;
-  status.textContent = "Test with disposable values only.";
+  status.textContent = "";
 
   let composing = false;
   textarea.addEventListener("compositionstart", () => (composing = true));

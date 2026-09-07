@@ -5,6 +5,10 @@
       Check for unexpected values, then focus each field to see which password suggestions get in
       the way.
     </p>
+    <label class="value-toggle">
+      <input id="show-actual-values" type="checkbox" />
+      Show actual values
+    </label>
 
     <button id="reset-demo" class="form-button" type="button">Reset test</button>
   </header>
@@ -42,7 +46,8 @@
             <dt>Limitations</dt>
             <dd>
               Browsers deliberately ignore this hint for login-like fields. In our tests, Chrome,
-              Edge, and Firefox autofill anyway. Safari shows its password picker on focus.
+              Edge, and Firefox autofill anyway. Safari requires a selection from its password
+              picker to fill.
             </dd>
           </div>
         </dl>
@@ -117,7 +122,10 @@
           </div>
           <div>
             <dt>Setup</dt>
-            <dd><code>-webkit-text-security: disc</code></dd>
+            <dd>
+              <code>-webkit-text-security: disc</code><br />
+              <code>ime-mode: disabled</code>
+            </dd>
           </div>
         </dl>
       </header>
@@ -137,8 +145,7 @@
             <dt>Limitations</dt>
             <dd>
               This nonstandard property only changes painting. Plaintext remains in the DOM and
-              accessibility APIs. Safari still shows autofill UI, and IME behavior varies by
-              browser.
+              accessibility APIs. Safari still shows autofill UI.
             </dd>
           </div>
         </dl>
@@ -172,7 +179,10 @@
           </div>
           <div>
             <dt>Setup</dt>
-            <dd><code>-webkit-text-security: disc</code></dd>
+            <dd>
+              <code>-webkit-text-security: disc</code><br />
+              <code>ime-mode: disabled</code>
+            </dd>
           </div>
         </dl>
       </header>
@@ -190,8 +200,7 @@
             <dt>Limitations</dt>
             <dd>
               CSS only changes painting; accessibility APIs can still read the actual value. Enter
-              submits this test form; line breaks and multiline paste or drop are rejected. Copying
-              still copies the real text.
+              submits this test form; line breaks and multiline paste or drop are rejected.
             </dd>
           </div>
         </dl>
@@ -247,10 +256,8 @@
           <div>
             <dt>Limitations</dt>
             <dd>
-              Keyboard undo/redo and IME commits are supported. History grouping, native menu
-              support, and IME suppression can differ from native password inputs. The accessible
-              value is masked, with text-field semantics. Typing echo depends on assistive
-              technology and user settings.
+              Keyboard undo/redo is supported, but history grouping and native menu support can
+              differ from native inputs. The accessible value is masked, with text-field semantics.
               <a href="https://github.com/Justineo/secret-input#boundaries">Behavior details.</a>
             </dd>
           </div>
@@ -285,8 +292,10 @@
           Supported
         </span>
         <span>
-          <img class="browser-icon" data-support="best-effort" width="18" height="18" alt="" />
-          Best effort
+          <span class="browser-caveat" aria-hidden="true">
+            <img class="browser-icon" data-support="caveats" width="18" height="18" alt="" />
+          </span>
+          With caveats
         </span>
         <span>
           <img class="browser-icon" data-support="unsupported" width="18" height="18" alt="" />
@@ -296,7 +305,7 @@
     </header>
     <div
       class="table-wrap"
-      tabindex="0"
+      tabindex="-1"
       role="region"
       aria-labelledby="compatibility-title"
       data-density="compact"
@@ -305,7 +314,7 @@
     >
       <table
         aria-label="Browser support by implementation and behavior"
-        aria-describedby="compatibility-legend assistive-technology-note"
+        aria-describedby="compatibility-legend compatibility-keyboard-note assistive-technology-note password-recognition-note"
       >
         <thead>
           <tr>
@@ -322,8 +331,13 @@
     </div>
     <p class="caption compatibility-note">
       Desktop results. Versions and settings may differ.
+      <span id="compatibility-keyboard-note">Use arrow keys to move between browser results.</span>
       <br />
       <small id="assistive-technology-note">* Assistive technology tested with VoiceOver.</small>
+      <br />
+      <small id="password-recognition-note">
+        † Field recognition only. Actual-value concealment is assessed separately.
+      </small>
     </p>
     <div id="support-detail" class="support-detail caption" role="status" aria-atomic="true">
       <p>Select a browser for details.</p>

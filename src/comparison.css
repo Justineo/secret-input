@@ -17,6 +17,24 @@
   white-space: nowrap;
 }
 
+.value-toggle {
+  display: inline-flex;
+  grid-column: 1 / -1;
+  align-items: center;
+  justify-self: start;
+  gap: var(--space-2);
+  color: var(--text);
+  font-size: 0.8125rem;
+  cursor: pointer;
+}
+
+.value-toggle input {
+  width: 1rem;
+  height: 1rem;
+  margin: 0;
+  accent-color: var(--ink);
+}
+
 .case-grid {
   margin-block-start: var(--space-8);
 }
@@ -97,8 +115,33 @@
   grid-template-columns: repeat(2, minmax(0, 1fr));
   gap: var(--space-5);
   align-content: start;
+  align-items: start;
   min-width: 0;
   margin: 0;
+}
+
+.actual-value {
+  display: flex;
+  align-items: baseline;
+  gap: var(--space-2);
+  margin: 0;
+  color: var(--muted);
+  font-size: 0.75rem;
+}
+
+.actual-value > span {
+  white-space: nowrap;
+}
+
+.actual-value > code {
+  min-width: 0;
+  padding: 0;
+  border: 0;
+  background: none;
+  color: var(--text);
+  font-size: inherit;
+  white-space: pre-wrap;
+  overflow-wrap: anywhere;
 }
 
 .compatibility {
@@ -115,6 +158,8 @@
 }
 
 .table-wrap {
+  --behavior-column-width: max(20.16rem, 28%);
+
   position: relative;
   display: block;
   width: 100%;
@@ -122,6 +167,7 @@
   min-width: 0;
   overflow-x: auto;
   overscroll-behavior-inline: contain;
+  scroll-padding-inline: calc(var(--behavior-column-width) + var(--space-2)) var(--space-2);
 }
 
 .table-wrap table {
@@ -138,7 +184,7 @@
   padding: 5px var(--space-2);
   border-bottom: 1px solid var(--stroke);
   text-align: start;
-  vertical-align: baseline;
+  vertical-align: middle;
 }
 
 .table-wrap thead th {
@@ -196,7 +242,7 @@
 }
 
 .legend > span {
-  gap: var(--space-1);
+  gap: var(--space-2);
 }
 
 .browser-support {
@@ -211,10 +257,21 @@
   object-fit: contain;
 }
 
-.browser-icon[data-support="best-effort"] {
+.browser-caveat {
+  position: relative;
+  display: inline-flex;
+}
+
+.browser-caveat::after {
+  content: "";
+  position: absolute;
+  right: -2px;
+  bottom: -2px;
+  width: 6px;
+  height: 6px;
   border-radius: 50%;
-  box-shadow: 0 0 0 1px var(--warning);
-  opacity: 0.72;
+  background: var(--focus);
+  box-shadow: 0 0 0 1.5px var(--background);
 }
 
 .browser-icon[data-support="unsupported"] {
@@ -276,11 +333,14 @@
     align-items: flex-start;
     flex-direction: column;
   }
+  .table-wrap {
+    --behavior-column-width: clamp(8rem, 40vw, 10rem);
+  }
   .table-wrap table {
     min-width: 56rem;
   }
   .table-wrap :is(th, td):first-child {
-    width: clamp(8rem, 40vw, 10rem);
+    width: var(--behavior-column-width);
     white-space: normal;
   }
 }

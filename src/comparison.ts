@@ -17,7 +17,7 @@ function requiredElement<T extends Element>(selector: string): T {
   return element;
 }
 
-type Support = "supported" | "best-effort" | "unsupported";
+type Support = "supported" | "caveats" | "unsupported";
 type Assessment = readonly [status: Support, detail: string, ...details: string[]];
 type BrowserSupport = readonly [Assessment, Assessment, Assessment, Assessment];
 type MatrixRow = {
@@ -57,48 +57,57 @@ const browsers = [
 
 const supportLabels: Record<Support, string> = {
   supported: "Supported",
-  "best-effort": "Best effort",
+  caveats: "Supported with caveats",
   unsupported: "Unsupported",
 };
 
 const nativeValueConcealment = allBrowsers("supported", "The actual value is not read out.");
 
-const nativePasswordAccessibility = allBrowsers(
+const nativePasswordRecognition = allBrowsers(
   "supported",
   "Recognized as a password field by assistive technology.",
-  "Typing feedback uses sounds rather than speaking the entered characters.",
 );
 
 const cssValueConcealment: BrowserSupport = [
-  ["supported", "The actual value is not read out.", "Typing feedback announces bullets."],
-  ["supported", "The actual value is not read out.", "Typing feedback announces bullets."],
-  ["supported", "The actual value is not read out.", "Typing feedback announces bullets."],
+  ["supported", "The actual value is not read out."],
+  ["supported", "The actual value is not read out."],
+  ["supported", "The actual value is not read out."],
   ["unsupported", "The actual characters are read out."],
+];
+
+const noAutomaticFill: BrowserSupport = [
+  ["supported", "No automatic fill observed."],
+  ["supported", "No automatic fill observed."],
+  ["supported", "No automatic fill observed."],
+  ["supported", "Safari requires user action to fill."],
+];
+
+const nativeClipboard = allBrowsers(
+  "supported",
+  "Copy and cut are blocked; menu items are disabled.",
+);
+
+const cssClipboard: BrowserSupport = [
+  ["caveats", "Copies bullets; cut also deletes the selection."],
+  ["caveats", "Copies bullets; cut also deletes the selection."],
+  ["unsupported", "Copies the actual value; cut also deletes the selection."],
+  ["caveats", "Copies bullets; cut also deletes the selection."],
 ];
 
 const supportMatrix = [
   {
-    label: "Stops automatic autofill",
+    label: "No automatic autofill",
     solutions: [
       [
         ["unsupported", "Both fields are filled automatically."],
         ["unsupported", "Both fields are filled automatically."],
         ["unsupported", "Both fields are filled automatically."],
-        ["supported", "No automatic fill observed.", "Password suggestions appear on interaction."],
+        noAutomaticFill[3],
       ],
-      allBrowsers(
-        "supported",
-        "No automatic fill observed.",
-        "Password suggestions may still appear on interaction.",
-      ),
-      [
-        ["supported", "No automatic fill observed."],
-        ["supported", "No automatic fill observed."],
-        ["supported", "No automatic fill observed."],
-        ["supported", "No automatic fill observed.", "Password suggestions appear on interaction."],
-      ],
-      allBrowsers("supported", "No automatic fill observed."),
-      allBrowsers("supported", "No automatic fill observed."),
+      noAutomaticFill,
+      noAutomaticFill,
+      noAutomaticFill,
+      noAutomaticFill,
     ],
   },
   {
@@ -113,12 +122,8 @@ const supportMatrix = [
       [
         ["unsupported", "Secret field shows password suggestions on focus."],
         ["unsupported", "Secret field shows password suggestions on focus."],
-        [
-          "unsupported",
-          "Both fields show password suggestions on focus.",
-          "Secret field offers new passwords.",
-        ],
-        ["unsupported", "New-password suggestions appear on focus."],
+        ["unsupported", "Both fields show password suggestions on focus."],
+        ["unsupported", "Password suggestions appear on focus."],
       ],
       [
         ["supported", "No password suggestions observed."],
@@ -137,109 +142,66 @@ const supportMatrix = [
       nativeValueConcealment,
       cssValueConcealment,
       cssValueConcealment,
-      [
-        [
-          "supported",
-          "The actual value is not read out.",
-          "Newly typed characters may still be announced.",
-        ],
-        [
-          "supported",
-          "The actual value is not read out.",
-          "Newly typed characters may still be announced.",
-        ],
-        [
-          "supported",
-          "The actual value is not read out.",
-          "Newly typed characters may still be announced.",
-        ],
-        [
-          "supported",
-          "The actual value is not read out.",
-          "Typing feedback says bullet for the first character, then comma for subsequent characters.",
-        ],
-      ],
+      allBrowsers("supported", "The actual value is not read out."),
+    ],
+  },
+  {
+    label: "Copy/cut",
+    solutions: [
+      nativeClipboard,
+      nativeClipboard,
+      cssClipboard,
+      cssClipboard,
+      allBrowsers("supported", "Copy and cut are blocked; menu items remain enabled."),
     ],
   },
   {
     label: "Undo/redo",
     solutions: [
-      allBrowsers("supported", "Standard browser undo/redo."),
-      allBrowsers("supported", "Standard browser undo/redo."),
-      allBrowsers("supported", "Standard browser undo/redo."),
-      allBrowsers("supported", "Standard browser undo/redo."),
+      allBrowsers("supported", "Native undo/redo."),
+      allBrowsers("supported", "Native undo/redo."),
+      allBrowsers("supported", "Native undo/redo."),
+      allBrowsers("supported", "Native undo/redo."),
       allBrowsers(
-        "best-effort",
+        "caveats",
         "Keyboard undo/redo supported.",
-        "Which edits are undone together and menu support may differ from native inputs.",
+        "Edit grouping and menu support may differ from native inputs.",
       ),
     ],
   },
   {
-    label: "Disables IME",
+    label: "IME handling",
     solutions: [
-      allBrowsers("supported", "IME input is disabled."),
-      allBrowsers("supported", "IME input is disabled."),
+      allBrowsers("supported", "IME is disabled."),
+      allBrowsers("supported", "IME is disabled."),
       [
-        [
-          "best-effort",
-          "IME input is disabled after text is entered.",
-          "May remain available while empty.",
-        ],
-        ["unsupported", "IME input remains available."],
-        ["supported", "IME input is disabled."],
-        ["unsupported", "IME input remains available."],
+        ["caveats", "IME is available initially, then disabled after two characters."],
+        ["unsupported", "IME remains active; composition drafts are not filtered."],
+        ["supported", "Disabled via ime-mode: disabled."],
+        ["unsupported", "IME remains active; composition drafts are not filtered."],
       ],
       [
-        [
-          "best-effort",
-          "IME input is disabled after text is entered.",
-          "May remain available while empty.",
-        ],
-        ["unsupported", "IME input remains available."],
-        ["supported", "IME input is disabled."],
-        ["unsupported", "IME input remains available."],
+        ["supported", "Handled by the browser."],
+        ["unsupported", "IME remains active; composition drafts are not filtered."],
+        ["supported", "Disabled via ime-mode: disabled."],
+        ["unsupported", "IME remains active; composition drafts are not filtered."],
       ],
       [
-        [
-          "supported",
-          "IME input is disabled, including while empty.",
-          "Initialization primes the field with two mask characters, then immediately restores its value.",
-        ],
-        [
-          "best-effort",
-          "IME input remains available.",
-          "Only confirmed text changes the secret, without duplicate characters.",
-        ],
-        ["supported", "IME input is disabled."],
-        [
-          "best-effort",
-          "IME input remains available.",
-          "Only confirmed text changes the secret, without duplicate characters.",
-        ],
+        ["supported", "Prewarmed with two mask characters to disable IME, even while empty."],
+        ["caveats", "Confirmed text is committed once; composition drafts are not shown."],
+        ["supported", "Disabled via ime-mode: disabled."],
+        ["caveats", "Confirmed text is committed once; composition drafts are not shown."],
       ],
     ],
   },
   {
-    label: "Native password accessibility",
+    label: "Recognized as a password field†",
     solutions: [
-      nativePasswordAccessibility,
-      nativePasswordAccessibility,
-      allBrowsers(
-        "unsupported",
-        "Recognized as a regular text field by assistive technology.",
-        "Password-specific screen reader settings may not apply.",
-      ),
-      allBrowsers(
-        "unsupported",
-        "Recognized as a regular text field by assistive technology.",
-        "Password-specific screen reader settings may not apply.",
-      ),
-      allBrowsers(
-        "unsupported",
-        "Recognized as a regular text field by assistive technology.",
-        "Password-specific screen reader settings may not apply.",
-      ),
+      nativePasswordRecognition,
+      nativePasswordRecognition,
+      allBrowsers("unsupported", "Recognized as a regular text field by assistive technology."),
+      allBrowsers("unsupported", "Recognized as a text area by assistive technology."),
+      allBrowsers("unsupported", "Recognized as a regular text field by assistive technology."),
     ],
   },
 ] as const satisfies readonly MatrixRow[];
@@ -253,7 +215,8 @@ export function initializeComparison(root: HTMLElement, onReset: () => void): vo
   root.replaceChildren(template.content.cloneNode(true));
   renderSupportMatrix();
 
-  createSecretInput(requiredElement<HTMLInputElement>("#masked-signing-secret"));
+  const masked = requiredElement<HTMLInputElement>("#masked-signing-secret");
+  const controller = createSecretInput(masked);
   const textarea = requiredElement<HTMLTextAreaElement>("#textarea-signing-secret");
   const textareaStatus = requiredElement<HTMLElement>("#textarea-status");
   initializeTextareaExperiment(textarea, textareaStatus);
@@ -267,6 +230,34 @@ export function initializeComparison(root: HTMLElement, onReset: () => void): vo
   if (CSS.supports("-webkit-text-security", "disc")) {
     cssMasked.style.setProperty("-webkit-text-security", "disc");
   }
+
+  const showValues = requiredElement<HTMLInputElement>("#show-actual-values");
+  const previews = [
+    ...root.querySelectorAll<HTMLInputElement | HTMLTextAreaElement>('[id$="-signing-secret"]'),
+  ].map((field) => {
+    const preview = document.createElement("p");
+    preview.className = "actual-value";
+    preview.hidden = true;
+    const label = document.createElement("span");
+    label.textContent = "Actual value";
+    const value = document.createElement("code");
+    preview.append(label, value);
+    field.after(preview);
+
+    const synchronize = () => {
+      preview.hidden = !showValues.checked;
+      value.textContent = showValues.checked
+        ? JSON.stringify(field === masked ? controller.value : field.value)
+        : "";
+    };
+    field.addEventListener("input", synchronize);
+    field.addEventListener("change", synchronize);
+    field.addEventListener("focus", synchronize);
+    return synchronize;
+  });
+  showValues.addEventListener("change", () => {
+    for (const synchronize of previews) synchronize();
+  });
 
   requiredElement<HTMLElement>(".comparison-page").addEventListener("submit", (event) => {
     event.preventDefault();
@@ -289,8 +280,12 @@ function renderSupportMatrix(): void {
     "Secret Input",
   ];
   let selectedButton: HTMLButtonElement | undefined;
+  let tabStop: HTMLButtonElement | undefined;
+  const buttonRows: HTMLButtonElement[][] = [];
 
-  for (const row of supportMatrix) {
+  for (const [rowIndex, row] of supportMatrix.entries()) {
+    const rowButtons: HTMLButtonElement[] = [];
+    buttonRows.push(rowButtons);
     const tableRow = document.createElement("tr");
     const heading = document.createElement("th");
     heading.scope = "row";
@@ -325,9 +320,23 @@ function renderSupportMatrix(): void {
         const button = document.createElement("button");
         button.type = "button";
         button.className = "browser-detail";
+        button.tabIndex = tabStop ? -1 : 0;
+        tabStop ??= button;
+        const columnIndex = rowButtons.length;
+        rowButtons.push(button);
         button.setAttribute("aria-label", description);
-        button.append(icon);
+        if (status === "caveats") {
+          const marker = document.createElement("span");
+          marker.className = "browser-caveat";
+          marker.append(icon);
+          button.append(marker);
+        } else {
+          button.append(icon);
+        }
         const showDetail = () => {
+          if (tabStop) tabStop.tabIndex = -1;
+          button.tabIndex = 0;
+          tabStop = button;
           if (selectedButton === button) return;
           selectedButton?.removeAttribute("aria-current");
           button.setAttribute("aria-current", "true");
@@ -342,6 +351,40 @@ function renderSupportMatrix(): void {
           }
           detailOutput.replaceChildren(notes);
         };
+        button.addEventListener("keydown", (event) => {
+          if (
+            event.defaultPrevented ||
+            event.altKey ||
+            event.ctrlKey ||
+            event.metaKey ||
+            event.shiftKey
+          ) {
+            return;
+          }
+          let nextRow = rowIndex;
+          let nextColumn = columnIndex;
+          switch (event.key) {
+            case "ArrowLeft":
+              nextColumn -= 1;
+              break;
+            case "ArrowRight":
+              nextColumn += 1;
+              break;
+            case "ArrowUp":
+              nextRow -= 1;
+              break;
+            case "ArrowDown":
+              nextRow += 1;
+              break;
+            default:
+              return;
+          }
+          event.preventDefault();
+          const next = buttonRows[nextRow]?.[nextColumn];
+          if (!next) return;
+          next.focus({ preventScroll: true });
+          next.scrollIntoView({ block: "nearest", inline: "nearest", behavior: "instant" });
+        });
         button.addEventListener("focus", showDetail);
         button.addEventListener("click", showDetail);
         group.append(button);

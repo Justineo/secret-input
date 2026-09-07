@@ -217,6 +217,7 @@ a:hover {
   gap: var(--space-3);
   padding: var(--space-4) var(--space-6);
   border-top: 1px solid var(--stroke);
+  border-radius: 0 0 7px 7px;
   background: var(--background);
   font-size: 0.8125rem;
 }

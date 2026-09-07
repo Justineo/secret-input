@@ -14,9 +14,24 @@ Some engines expose IME edits as non-cancelable. While redacted, the browser may
 
 The controller sets the legacy `ime-mode: disabled` declaration as a Firefox-only hardening measure. Chromium and WebKit ignore it, so it is neither a cross-browser guarantee nor a substitute for composition handling.
 
-Current Chromium also recognizes a text control that has contained at least two mask characters as a custom password field. During `createSecretInput()` initialization, the controller synchronously writes `••` and immediately replaces it with the authoritative presentation value before returning. Chromium retains the classification after the value changes and can use it to suppress IME context and apply password-oriented privacy protections. Never retain the two-character primer for an empty secret: doing so would break empty-value, placeholder, selection, validity, and accessibility behavior.
+The maintainer's September 7 clarification distinguishes immediate suppression
+in Firefox from Chrome's automatic suppression after two characters. For the
+CSS-masked input, Chrome initially allows IME, then disables it at that threshold;
+Edge and Safari continue to allow native composition. Neither CSS candidate
+filters composition drafts there, so both are Unsupported for IME handling in
+those browsers; native composition alone does not provide that capability. Firefox disables IME via
+`ime-mode: disabled`, which the CSS-masked input and Secret Input already set.
+The textarea comparison now sets the same declaration; its earlier initialization
+omitted it. Both CSS examples list the declaration in their public setup, and the
+three non-password Firefox assessments identify this mechanism. In the public matrix,
+distinguish disabled IME, conditional suppression, native composition, and
+controller-managed commits. IME availability alone does not reduce support;
+switching off during typing or omitting composition drafts is a concrete
+interaction caveat.
 
-Current Chrome testing confirms that the primer prevents IME switching, so the comparison matrix marks Chrome as supported. The heuristic has no Web API or feature detection and is not a portable Chromium contract: current Edge does not reproduce that behavior, and it does not affect WebKit. In Edge and Safari, composition handling is the fallback—the IME remains available, but drafts do not change the actual state and the committed result is applied once. Retest IME switching, accessibility value announcements, and password autofill whenever browser versions change; the password manager may classify fields independently from the input-method layer.
+Chromium has a custom-password heuristic for text controls that have contained at least two mask characters. During `createSecretInput()` initialization, the controller synchronously writes `••` and immediately replaces it with the authoritative presentation value before returning. This primes Chrome's two-character condition, so the observed controller behavior disables IME even while empty and is Supported. The CSS comparison input does not perform this initialization, so its conditional behavior is recorded separately. Never retain the two-character primer for an empty secret: doing so would break empty-value, placeholder, selection, validity, and accessibility behavior.
+
+The comparison matrix evaluates input correctness, not suppression: allowing composition is equally acceptable when the resulting input is correct. The heuristic has no Web API or feature detection and is not a portable Chromium contract. In Edge and Safari, composition handling is the fallback—the IME remains available, but drafts do not change the actual state and the committed result is applied once. Keep composition handling available in every browser when suppression does not apply. Retest input correctness, accessibility value announcements, and password autofill whenever browser versions change; the password manager may classify fields independently from the input-method layer.
 
 Keep the browser's context menu. Its paste, delete, undo, and redo actions reach the controller through clipboard and `beforeinput` events when the browser dispatches them. Because canceling native edits and rendering masks does not populate the browser's private undo manager, also handle standard keyboard undo/redo shortcuts against secret-state history. Group contiguous typing and character deletion, and end the group for selection navigation, pointer interaction, composition, unrelated edit types, focus changes, and undo/redo.
 
@@ -33,6 +48,15 @@ Snapshots retain full strings rather than edit deltas. This keeps restoration in
 The native context menu may still disable Undo or Redo because Web content cannot register entries in the input's private undo manager. Do not use deprecated `execCommand()` or allow plaintext DOM edits merely to populate that stack. Exact transaction boundaries and restored selections also vary by browser and operating system; the controller approximates their shared behavior rather than claiming identical native history.
 
 Concealed native password fields do not export their selection in all target engines. While redacted, cancel copy, cut, and selection dragging rather than putting either the secret or misleading bullets on the clipboard. Revealed mode deliberately restores native copy, cut, and drag behavior. Paste and external drop remain supported in both states. Their data may be absent from `beforeinput`; capture it from the preceding transfer event and consume it once. Pending transfer data and non-cancelable edit metadata expire at the next microtask checkpoint so unrelated input cannot reuse them.
+
+The September 7 clipboard comparison uses native password behavior as the reference:
+copy and cut do nothing, and their menu items are disabled in all four browsers.
+Secret Input blocks the operations while redacted, but leaves the menu items enabled.
+For both CSS-masked input and textarea, Chrome, Edge, and Safari copy bullets;
+Firefox copies the actual value. Cut also deletes the selection in every CSS case.
+The maintainer supplied the browser results. A separate Chrome/Firefox keyboard
+copy/cut-and-paste probe confirmed both CSS element types, with a plain-input
+clipboard control before each operation; it did not inspect native menus.
 
 Ordinary caret, range selection, keyboard, and pointer handling stay native. Consequently, character-wise operations line up with one mask per grapheme, but word-wise movement and pointer word selection see a run of bullets instead of the secret's undisclosed word boundaries. Do not replace the native editor merely to close that gap.
 

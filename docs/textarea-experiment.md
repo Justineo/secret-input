@@ -29,6 +29,8 @@ These follow-up results are maintainer-reported, not additional agent-run device
 
 - `textarea.value` contains the actual text. CSS `-webkit-text-security: disc` masks
   painting after a support check; unsupported browsers leave the field read-only.
+- The textarea sets `ime-mode: disabled` for Firefox, matching the CSS-masked input
+  and controller. This declaration does not disable IME in Chromium or WebKit.
 - One visible row, wrapping disabled, resizing disabled, and horizontal caret scrolling.
 - Cancelable line-break edits and multiline paste/drop are rejected. Rejection leaves
   the selection and native history intact; it does not remove line breaks and insert
@@ -41,7 +43,8 @@ These follow-up results are maintainer-reported, not additional agent-run device
 - The comparison page cancels navigation for every candidate. All comparison fields
   omit `name` to preserve the existing autofill experiment conditions. Separate submission
   fixtures assign names and use actual native HTTP submissions.
-- Copying exports the real text. This experiment does not implement the controller's
+- Copy/cut copies bullets in Chrome, Edge, and Safari, but the actual text in Firefox.
+  Cut also deletes the selection. This experiment does not implement the controller's
   redacted clipboard policy or reject browser-written values.
 
 This is a bounded prototype, not a replacement public component. Non-cancelable edits,

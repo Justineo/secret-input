@@ -30,6 +30,11 @@ reported content reading remains concealed. These are user-reported speech
 observations; exact browser/OS versions and speech settings were not supplied.
 Do not extend them to every reading command or other screen readers.
 
+The maintainer reconfirmed on September 7 that Secret Input does not read actual
+characters aloud with VoiceOver. Its public concealment assessment is Supported
+in all four browsers. Do not downgrade those observations using a hypothetical
+typing-echo warning from other screen readers or settings.
+
 For Secret Input in Safari, the maintainer heard “bullet” for the first character and
 “comma” for subsequent characters during typing. Current-content reading still did not
 expose actual characters. The controller's mask is U+2022 BULLET throughout; its render

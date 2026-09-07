@@ -42,7 +42,7 @@ The remaining capabilities can use different implementations or narrower, docume
 | DOM and architecture               | Plaintext may exist in DOM storage; input, textarea, custom hosts, wrappers, and frame-based approaches are implementation choices                    | Each complete implementation still has to pass the three gates and the foundations; visual masking alone does not establish this                                   |
 | Styling and platform details       | Internal markup, layout constraints, system-menu integration, and exact native appearance may differ                                                  | Labels, focus visibility, errors, and basic interaction must remain usable                                                                                         |
 
-Do not remove working capabilities merely because they are negotiable. A compromise needs a concrete benefit or a demonstrated conflict, and its effect on users must be recorded. Supported, Best effort, Unsupported, and Not tested in the comparison matrix describe individual observations, not an overall score. Native password semantics and IME suppression can be absent without failing the product; a failed or unverified gate cannot be offset by other features.
+Do not remove working capabilities merely because they are negotiable. A compromise needs a concrete benefit or a demonstrated conflict, and its effect on users must be recorded. Supported, With caveats, and Unsupported in the comparison matrix describe individual observations, not an overall score. Unverified combinations remain unverified. Native password semantics and IME suppression can be absent without failing the product; a failed or unverified gate cannot be offset by other features.
 
 ## Core experience
 
@@ -82,9 +82,9 @@ Basic mobile typing, paste, selection, deletion, and reveal are part of the core
 
 ## IME boundaries
 
-Disabling IME is one implementation strategy, not a product requirement or an inherently superior result. The comparison table may retain Disables IME as a reference capability, but its absence does not reduce acceptance if composition works correctly and the three gates pass. The current controller keeps composition drafts outside its committed value; another architecture may use a different internal editing model without changing the user-facing requirements.
+Disabling IME is one implementation strategy, not a product requirement or an inherently superior result. The comparison table evaluates IME handling by input correctness: composition must not introduce unintended characters, lose input, or commit twice. Suppression and correct composition handling both satisfy this criterion; IME availability alone is not a limitation. The current controller keeps composition drafts outside its committed value; another architecture may use a different internal editing model without changing the user-facing requirements.
 
-Whenever composition is supported, its correctness is mandatory. Report whether IME remains available and whether editing works correctly as separate observations; do not mark a correct implementation deficient simply because it permits an input method.
+Whenever composition is supported, its correctness is mandatory. Report whether IME remains available and whether editing works correctly as separate observations; do not mark a correct implementation deficient simply because it permits an input method. The matrix also distinguishes dedicated IME handling from unfiltered native composition: an Unsupported handling cell means the candidate offers neither suppression nor draft filtering on that path, not that native composition necessarily corrupts text.
 
 Non-cancelable edits in some browsers can briefly place composition plaintext in the DOM. DOM plaintext is not prohibited by itself, but a transient value that exposes the complete concealed secret through accessibility or speech fails the gate; restoring bullets afterward does not excuse it. Corruption or an inability to complete input on a particular IME path is also a defect to fix or explicitly exclude from support.
 

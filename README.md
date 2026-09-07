@@ -202,15 +202,15 @@ Use native password inputs for login passwords. This library is **not a security
 
 The product's [acceptance contract](docs/behavior-expectations.md#non-negotiable-acceptance-gates) requires no unwanted autofill, no password/autofill suggestion UI, and no complete plaintext disclosure to assistive technology while concealed. These are target requirements, not a claim that every browser, password manager, or screen reader has passed. The limitations below identify verification needs; a failed gate is not an acceptable tradeoff.
 
-| Area              | Limitation                                                                                                                                        |
-| ----------------- | ------------------------------------------------------------------------------------------------------------------------------------------------- |
-| Password managers | May ignore opt-out hints. Separate secret state protects the application value.                                                                   |
-| Accessibility     | Redacted values expose bullets, but text inputs lack native secure-field semantics. Typing echo may announce input.                               |
-| Undo/redo         | Uses controller history. Native menu items may be disabled. Grouping and selection can differ by platform.                                        |
-| IME               | Suppression is best effort. Drafts are removed from the DOM without updating secret state; engines may expose transient plaintext before cleanup. |
-| Reveal            | Plaintext becomes available through the DOM, accessibility APIs, selection, and clipboard.                                                        |
-| Validation        | Derived failures use `customError`. Length errors use customizable English defaults; native `tooShort` / `tooLong` flags are not emulated.        |
-| Form names        | Ordinary inputs, textareas, and selects may share secret names. Submitters, `dirname`, and custom form elements must use distinct names.          |
+| Area              | Limitation                                                                                                                                 |
+| ----------------- | ------------------------------------------------------------------------------------------------------------------------------------------ |
+| Password managers | May ignore opt-out hints. Separate secret state protects the application value.                                                            |
+| Accessibility     | Redacted values expose bullets, but text inputs lack native secure-field semantics. Typing echo may announce input.                        |
+| Undo/redo         | Uses controller history. Native menu items may be disabled. Grouping and selection can differ by platform.                                 |
+| IME               | Composition drafts are not shown. Confirmed text is committed once; engines may expose transient plaintext before masks are restored.      |
+| Reveal            | Plaintext becomes available through the DOM, accessibility APIs, selection, and clipboard.                                                 |
+| Validation        | Derived failures use `customError`. Length errors use customizable English defaults; native `tooShort` / `tooLong` flags are not emulated. |
+| Form names        | Ordinary inputs, textareas, and selects may share secret names. Submitters, `dirname`, and custom form elements must use distinct names.   |
 
 Chrome, Edge, Firefox, and Safari have automated browser tests. Saved-credential autofill, real IMEs, iOS interaction, and assistive technology require manual checks. See the [live comparison](https://secret-input.void.app/) for observed behavior.
 

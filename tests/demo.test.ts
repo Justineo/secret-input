@@ -1,5 +1,6 @@
 import { readFileSync } from "node:fs";
 import { afterEach, beforeEach, describe, expect, it, vi } from "vite-plus/test";
+import { beforeInput, composition } from "./edit.ts";
 
 const html = readFileSync("index.html", "utf8");
 const storageKey = "secret-input:credential-ready";
@@ -164,7 +165,7 @@ describe("demo initialization", () => {
       expect(element("#demo-root").getAttribute("aria-busy")).toBe("false");
     });
     expect(document.querySelector("#setup-username")).toBeNull();
-    expect(document.querySelectorAll("#support-matrix tr")).toHaveLength(6);
+    expect(document.querySelectorAll("#support-matrix tr")).toHaveLength(7);
     expect(document.querySelectorAll(".comparison-case")).toHaveLength(5);
     const candidate = element<HTMLTextAreaElement>("#textarea-signing-secret");
     expect(candidate.getAttribute("rows")).toBe("1");
@@ -183,7 +184,7 @@ describe("demo initialization", () => {
     last.click();
     expect(
       [...document.querySelectorAll(".support-detail-notes li")].map((item) => item.textContent),
-    ).toEqual(["No automatic fill observed.", "Password suggestions appear on interaction."]);
+    ).toEqual(["Safari requires user action to fill."]);
     expect(button.hasAttribute("aria-current")).toBe(false);
     expect(last.getAttribute("aria-current")).toBe("true");
     expect(document.querySelectorAll(".browser-detail[aria-current]")).toHaveLength(1);
@@ -193,6 +194,161 @@ describe("demo initialization", () => {
     element<HTMLButtonElement>("#reset-demo").click();
     expect(document.querySelector("#setup-username")).not.toBeNull();
     expect(document.querySelector("#masked-signing-secret")).toBeNull();
+  });
+
+  it("navigates browser results across solutions and behaviors with arrow keys", async () => {
+    const { initializeComparison } = await import("../src/comparison.ts");
+    initializeComparison(element<HTMLElement>("#demo-root"), () => {});
+    const button = (row: number, solution: number, browser: number) =>
+      element<HTMLButtonElement>(
+        `#support-matrix tr:nth-child(${row}) td:nth-of-type(${solution}) button:nth-child(${browser})`,
+      );
+    const press = (key: string) => {
+      const event = new KeyboardEvent("keydown", { key, bubbles: true, cancelable: true });
+      document.activeElement!.dispatchEvent(event);
+      expect(event.defaultPrevented).toBe(true);
+    };
+    button(1, 1, 4).focus();
+    press("ArrowRight");
+    expect(document.activeElement).toBe(button(1, 2, 1));
+    expect(element("#support-detail").textContent).toBe("No automatic fill observed.");
+    press("ArrowDown");
+    expect(document.activeElement).toBe(button(2, 2, 1));
+    expect(element("#support-detail").textContent).toBe(
+      "Secret field shows password suggestions on focus.",
+    );
+    press("ArrowLeft");
+    expect(document.activeElement).toBe(button(2, 1, 4));
+    press("ArrowUp");
+    expect(document.activeElement).toBe(button(1, 1, 4));
+    expect(element("#support-detail").textContent).toBe("Safari requires user action to fill.");
+    expect(document.querySelectorAll('.browser-detail[tabindex="0"]')).toHaveLength(1);
+    expect(button(1, 1, 4).tabIndex).toBe(0);
+    expect(document.querySelectorAll('.browser-detail[aria-current="true"]')).toHaveLength(1);
+  });
+
+  it("stops arrow navigation at edges and preserves Tab and modified shortcuts", async () => {
+    const { initializeComparison } = await import("../src/comparison.ts");
+    initializeComparison(element<HTMLElement>("#demo-root"), () => {});
+    const buttons = [...document.querySelectorAll<HTMLButtonElement>(".browser-detail")];
+    const first = buttons[0]!;
+    const last = buttons.at(-1)!;
+    expect(first.tabIndex).toBe(0);
+    for (const [button, keys] of [
+      [first, ["ArrowLeft", "ArrowUp"]],
+      [last, ["ArrowRight", "ArrowDown"]],
+    ] as const) {
+      button.focus();
+      for (const key of keys) {
+        const event = new KeyboardEvent("keydown", { key, bubbles: true, cancelable: true });
+        button.dispatchEvent(event);
+        expect(event.defaultPrevented).toBe(true);
+        expect(document.activeElement).toBe(button);
+      }
+    }
+    first.click();
+    expect(first.tabIndex).toBe(0);
+    expect(last.tabIndex).toBe(-1);
+    first.focus();
+    for (const options of [
+      { key: "Tab" },
+      { key: "Tab", shiftKey: true },
+      { key: "ArrowRight", altKey: true },
+      { key: "ArrowRight", ctrlKey: true },
+      { key: "ArrowRight", metaKey: true },
+      { key: "ArrowRight", shiftKey: true },
+    ]) {
+      const event = new KeyboardEvent("keydown", { ...options, bubbles: true, cancelable: true });
+      first.dispatchEvent(event);
+      expect(event.defaultPrevented).toBe(false);
+      expect(document.activeElement).toBe(first);
+    }
+  });
+
+  it("shows current actual values only after opt-in and clears them when hidden", async () => {
+    const { initializeComparison } = await import("../src/comparison.ts");
+    const { createSecretInput } = await import("../src/index.ts");
+    const root = element<HTMLElement>("#demo-root");
+    initializeComparison(root, () => {});
+    const toggle = element<HTMLInputElement>("#show-actual-values");
+    const fields = [
+      ...root.querySelectorAll<HTMLInputElement | HTMLTextAreaElement>('[id$="-signing-secret"]'),
+    ];
+    const masked = element<HTMLInputElement>("#masked-signing-secret");
+    const controller = createSecretInput(masked);
+    const value = 'test"<>& 🔐';
+    for (const field of fields) {
+      if (field === masked) controller.update({ value });
+      else field.value = value;
+    }
+    const previews = [...root.querySelectorAll<HTMLElement>(".actual-value")];
+    const values = () => previews.map((preview) => preview.querySelector("code")!.textContent);
+    expect(toggle.checked).toBe(false);
+    expect(previews.every((preview) => preview.hidden)).toBe(true);
+    expect(values()).toEqual(["", "", "", "", ""]);
+
+    toggle.click();
+    expect(previews.every((preview) => !preview.hidden)).toBe(true);
+    expect(values()).toEqual(Array(5).fill(JSON.stringify(value)));
+    expect(masked.value).not.toBe(value);
+    expect(root.querySelector(".actual-value code > *")).toBeNull();
+    for (const field of fields) {
+      if (field === masked) continue;
+      field.value = "changed";
+      field.dispatchEvent(new Event("input", { bubbles: true }));
+    }
+    expect(values()).toEqual([
+      '"changed"',
+      '"changed"',
+      '"changed"',
+      '"changed"',
+      JSON.stringify(value),
+    ]);
+
+    toggle.click();
+    controller.update({ value: "updated while hidden" });
+    expect(previews.every((preview) => preview.hidden)).toBe(true);
+    expect(values()).toEqual(["", "", "", "", ""]);
+    toggle.click();
+    expect(values().at(-1)).toBe('"updated while hidden"');
+
+    initializeComparison(root, () => {});
+    expect(element<HTMLInputElement>("#show-actual-values").checked).toBe(false);
+    expect(
+      [...root.querySelectorAll(".actual-value code")].every((item) => !item.textContent),
+    ).toBe(true);
+  });
+
+  it("previews committed secret edits and history without displaying composition drafts", async () => {
+    const { initializeComparison } = await import("../src/comparison.ts");
+    const { createSecretInput } = await import("../src/index.ts");
+    initializeComparison(element<HTMLElement>("#demo-root"), () => {});
+    const masked = element<HTMLInputElement>("#masked-signing-secret");
+    const controller = createSecretInput(masked);
+    controller.update({ value: "old" });
+    element<HTMLInputElement>("#show-actual-values").click();
+    const preview = element("#masked-signing-secret + .actual-value code");
+    masked.setSelectionRange(1, 2);
+    composition(masked, "compositionstart");
+    beforeInput(masked, "insertCompositionText", "ni", false);
+    masked.value = "onid";
+    masked.dispatchEvent(
+      new InputEvent("input", {
+        bubbles: true,
+        inputType: "insertCompositionText",
+        data: "ni",
+        isComposing: true,
+      }),
+    );
+    expect(preview.textContent).toBe('"old"');
+    composition(masked, "compositionend", "你");
+    expect(preview.textContent).toBe('"o你d"');
+    beforeInput(masked, "historyUndo");
+    expect(preview.textContent).toBe('"old"');
+    beforeInput(masked, "historyRedo");
+    expect(preview.textContent).toBe('"o你d"');
+    expect(controller.value).toBe("o你d");
+    expect(masked.value).toBe("•••");
   });
 
   it("blocks setup when an extension injects a known marker", async () => {
