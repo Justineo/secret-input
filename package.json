@@ -64,7 +64,7 @@
     "vitest": "catalog:",
     "void": "catalog:",
     "vue": "^3.5.42",
-    "vue-minimum": "npm:vue@3.5.13",
+    "vue-minimum": "npm:vue@3.5.42",
     "vue-tsc": "^3.3.11",
     "webdriverio": "catalog:"
   },
