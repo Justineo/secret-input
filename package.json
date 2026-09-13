@@ -51,7 +51,7 @@
     "@types/react-dom": "^19.2.7",
     "@vitest/browser-webdriverio": "catalog:",
     "bumpp": "catalog:",
-    "happy-dom": "^20.12.0",
+    "happy-dom": "^20.14.0",
     "publint": "catalog:",
     "react": "^19.2.8",
     "react-dom": "^19.2.8",
