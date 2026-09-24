@@ -2,7 +2,7 @@ import { act, createElement, createRef, StrictMode, useState } from "react";
 import type { InputEvent } from "react";
 import { createRoot, hydrateRoot } from "react-dom/client";
 import { renderToString } from "react-dom/server";
-import { afterEach, beforeEach, describe, expect, it, vi } from "vite-plus/test";
+import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 
 import { SecretInput } from "../src/react.ts";
 import { createSecretInput } from "../src/index.ts";

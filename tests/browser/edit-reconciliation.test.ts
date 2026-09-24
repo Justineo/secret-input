@@ -1,5 +1,5 @@
-import { afterEach, beforeEach, describe, expect, it } from "vite-plus/test";
-import { userEvent } from "vite-plus/test/browser/context";
+import { afterEach, beforeEach, describe, expect, it } from "vitest";
+import { userEvent } from "vitest/browser";
 
 import { createSecretInput } from "../../src/index.ts";
 import type { SecretInputController } from "../../src/index.ts";

@@ -5,4 +5,5 @@ coverage
 .DS_Store
 .void
 .vitest-attachments
+.vitest
 tests/browser/__screenshots__

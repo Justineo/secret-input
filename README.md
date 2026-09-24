@@ -220,7 +220,7 @@ Chrome, Edge, Firefox, and Safari have automated browser tests. Saved-credential
 pnpm install
 vp dev                 # Demo
 vpr check              # Formatting, lint, and types
-vp test                # Unit tests
+vp run test            # Unit tests
 vp run test:browser    # Browser tests
 vp build               # Website
 vp pack                # Library

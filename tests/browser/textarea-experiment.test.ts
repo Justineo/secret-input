@@ -1,5 +1,5 @@
-import { afterEach, beforeEach, describe, expect, it } from "vite-plus/test";
-import { server, userEvent } from "vite-plus/test/browser/context";
+import { afterEach, beforeEach, describe, expect, it } from "vitest";
+import { server, userEvent } from "vitest/browser";
 
 import { initializeComparison } from "../../src/comparison.ts";
 import "../../src/style.css";

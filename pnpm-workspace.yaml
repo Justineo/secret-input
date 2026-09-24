@@ -3,7 +3,7 @@ overrides:
   vite@*: "catalog:"
   vitest@*: "catalog:"
 catalog:
-  "@vitest/browser-webdriverio": 4.1.11
+  "@vitest/browser-webdriverio": 5.0.0
   bumpp: 12.3.0
   publint: 0.3.24
   releaselog: 8.1.0

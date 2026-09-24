@@ -1,4 +1,4 @@
-import { server } from "vite-plus/test/browser/context";
+import { server } from "vitest/browser";
 
 // Safari 26.4 can deliver Element Click mouse events out of order and omit click.
 // Explicit options select WebDriver pointer actions, preserving trusted activation.
