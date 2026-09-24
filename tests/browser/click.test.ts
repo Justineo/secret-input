@@ -1,5 +1,5 @@
-import { expect, it } from "vite-plus/test";
-import { userEvent } from "vite-plus/test/browser/context";
+import { expect, it } from "vitest";
+import { userEvent } from "vitest/browser";
 import { clickOptions } from "./click.ts";
 
 it("delivers trusted pointer activation and native reset without a controller", async () => {

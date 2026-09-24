@@ -5,8 +5,8 @@ import { createRoot, hydrateRoot } from "react-dom/client";
 import { renderToString as renderReactToString } from "react-dom/server";
 import { createApp, createSSRApp, h, nextTick, ref } from "vue";
 import { renderToString as renderVueToString } from "vue/server-renderer";
-import { afterEach, beforeEach, describe, expect, it } from "vite-plus/test";
-import { page, userEvent } from "vite-plus/test/browser/context";
+import { afterEach, beforeEach, describe, expect, it } from "vitest";
+import { page, userEvent } from "vitest/browser";
 
 import { clickOptions } from "./click.ts";
 

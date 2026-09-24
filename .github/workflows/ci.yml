@@ -41,7 +41,7 @@ jobs:
         run: vp run check
 
       - name: Test
-        run: vp test --run
+        run: vp run test --run
 
       - name: Build package
         run: vp pack
@@ -117,6 +117,7 @@ jobs:
           name: browser-${{ matrix.browser }}-failure
           path: |
             .vitest-attachments
+            .vitest/attachments
             tests/browser/__screenshots__
           if-no-files-found: ignore
           include-hidden-files: true

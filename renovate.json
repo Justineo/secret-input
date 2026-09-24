@@ -27,6 +27,10 @@
       "matchUpdateTypes": ["major"],
       "groupName": null,
       "automerge": false
+    },
+    {
+      "matchPackageNames": ["vitest", "@vitest/browser-webdriverio"],
+      "groupName": "Vitest"
     }
   ]
 }

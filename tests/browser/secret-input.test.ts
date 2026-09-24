@@ -1,5 +1,5 @@
-import { afterEach, beforeEach, describe, expect, it } from "vite-plus/test";
-import { cdp, page, server, userEvent } from "vite-plus/test/browser/context";
+import { afterEach, beforeEach, describe, expect, it } from "vitest";
+import { cdp, page, server, userEvent } from "vitest/browser";
 
 import { clickOptions } from "./click.ts";
 
