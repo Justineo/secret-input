@@ -9,9 +9,6 @@ on:
       - main
   pull_request:
   workflow_call:
-    secrets:
-      VOID_TOKEN:
-        required: false
   workflow_dispatch:
 
 concurrency:
@@ -153,5 +150,3 @@ jobs:
 
       - name: Deploy to Void
         run: vp exec void deploy --skip-build --project secret-input
-        env:
-          VOID_TOKEN: ${{ secrets.VOID_TOKEN }}
