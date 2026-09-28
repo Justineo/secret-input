@@ -150,3 +150,5 @@ jobs:
 
       - name: Deploy to Void
         run: vp exec void deploy --skip-build --project secret-input
+        env:
+          VOID_API_URL: https://api.void.cloud
