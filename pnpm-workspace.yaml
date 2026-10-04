@@ -10,7 +10,7 @@ catalog:
   vite: npm:@voidzero-dev/vite-plus-core@0.3.3
   vite-plus: 0.3.3
   vitest: 5.0.1
-  void: 0.20.1
+  void: 0.20.3
   webdriverio: 9.32.0
 peerDependencyRules:
   allowAny:
