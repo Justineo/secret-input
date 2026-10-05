@@ -8,7 +8,7 @@ catalog:
   publint: 0.3.24
   releaselog: 8.1.0
   vite: npm:@voidzero-dev/vite-plus-core@0.3.3
-  vite-plus: 0.3.3
+  vite-plus: 1.0.0
   vitest: 5.0.2
   void: 0.20.3
   webdriverio: 9.32.0
