@@ -224,8 +224,8 @@ catalogs:
       specifier: 0.3.3
       version: 0.3.3
     vitest:
-      specifier: 5.0.1
-      version: 5.0.1
+      specifier: 5.0.2
+      version: 5.0.2
     void:
       specifier: 0.20.3
       version: 0.20.3
@@ -236,7 +236,7 @@ catalogs:
 overrides:
   typescript: npm:typescript-native-bridge@6.0.3-bridge.17.tsgo.7.0.2
   vite@*: npm:@voidzero-dev/vite-plus-core@0.3.3
-  vitest@*: 5.0.1
+  vitest@*: 5.0.2
 
 importers:
 
@@ -250,7 +250,7 @@ importers:
         version: 19.3.0(@types/react@19.3.0)
       '@vitest/browser-webdriverio':
         specifier: 'catalog:'
-        version: 5.0.0(@voidzero-dev/vite-plus-core@0.3.3(@types/node@26.4.1)(esbuild@0.28.2)(jiti@2.7.0)(publint@0.3.24)(tsx@4.23.13)(typescript-native-bridge@6.0.3-bridge.17.tsgo.7.0.2)(yaml@2.9.0))(vitest@5.0.1)(webdriverio@9.32.0(supports-color@10.2.2))
+        version: 5.0.0(@voidzero-dev/vite-plus-core@0.3.3(@types/node@26.4.1)(esbuild@0.28.2)(jiti@2.7.0)(publint@0.3.24)(tsx@4.23.13)(typescript-native-bridge@6.0.3-bridge.17.tsgo.7.0.2)(yaml@2.9.0))(vitest@5.0.2)(webdriverio@9.32.0(supports-color@10.2.2))
       bumpp:
         specifier: 'catalog:'
         version: 12.3.0
@@ -283,13 +283,13 @@ importers:
         version: '@voidzero-dev/vite-plus-core@0.3.3(@types/node@26.4.1)(esbuild@0.28.2)(jiti@2.7.0)(publint@0.3.24)(tsx@4.23.13)(typescript-native-bridge@6.0.3-bridge.17.tsgo.7.0.2)(yaml@2.9.0)'
       vite-plus:
         specifier: 'catalog:'
-        version: 0.3.3(@types/node@26.4.1)(@vitest/browser-webdriverio@5.0.0)(@vitest/ui@5.0.1)(esbuild@0.28.2)(happy-dom@20.14.5)(jiti@2.7.0)(publint@0.3.24)(tsx@4.23.13)(typescript-native-bridge@6.0.3-bridge.17.tsgo.7.0.2)(yaml@2.9.0)
+        version: 0.3.3(@types/node@26.4.1)(@vitest/browser-webdriverio@5.0.0)(esbuild@0.28.2)(happy-dom@20.14.5)(jiti@2.7.0)(publint@0.3.24)(tsx@4.23.13)(typescript-native-bridge@6.0.3-bridge.17.tsgo.7.0.2)(yaml@2.9.0)
       vitest:
         specifier: 'catalog:'
-        version: 5.0.1(@types/node@26.4.1)(@vitest/browser-preview@4.1.11)(@vitest/browser-webdriverio@5.0.0)(@vitest/ui@5.0.1(vitest@5.0.1))(@voidzero-dev/vite-plus-core@0.3.3(@types/node@26.4.1)(esbuild@0.28.2)(jiti@2.7.0)(publint@0.3.24)(tsx@4.23.13)(typescript-native-bridge@6.0.3-bridge.17.tsgo.7.0.2)(yaml@2.9.0))(happy-dom@20.14.5)
+        version: 5.0.2(@types/node@26.4.1)(@vitest/browser-preview@4.1.11)(@vitest/browser-webdriverio@5.0.0)(@voidzero-dev/vite-plus-core@0.3.3(@types/node@26.4.1)(esbuild@0.28.2)(jiti@2.7.0)(publint@0.3.24)(tsx@4.23.13)(typescript-native-bridge@6.0.3-bridge.17.tsgo.7.0.2)(yaml@2.9.0))(happy-dom@20.14.5)
       void:
         specifier: 'catalog:'
-        version: 0.20.3(@types/node@26.4.1)(@voidzero-dev/vite-plus-core@0.3.3(@types/node@26.4.1)(esbuild@0.28.2)(jiti@2.7.0)(publint@0.3.24)(tsx@4.23.13)(typescript-native-bridge@6.0.3-bridge.17.tsgo.7.0.2)(yaml@2.9.0))(arktype@2.2.3)(kysely@0.29.5)(react-dom@19.3.0(react@19.3.0))(react@19.3.0)(valibot@1.4.2(typescript-native-bridge@6.0.3-bridge.17.tsgo.7.0.2))(vitest@5.0.1)(vue@3.5.43(typescript-native-bridge@6.0.3-bridge.17.tsgo.7.0.2))(zod@4.5.4)
+        version: 0.20.3(@types/node@26.4.1)(@voidzero-dev/vite-plus-core@0.3.3(@types/node@26.4.1)(esbuild@0.28.2)(jiti@2.7.0)(publint@0.3.24)(tsx@4.23.13)(typescript-native-bridge@6.0.3-bridge.17.tsgo.7.0.2)(yaml@2.9.0))(arktype@2.2.3)(kysely@0.29.5)(react-dom@19.3.0(react@19.3.0))(react@19.3.0)(valibot@1.4.2(typescript-native-bridge@6.0.3-bridge.17.tsgo.7.0.2))(vitest@5.0.2)(vue@3.5.43(typescript-native-bridge@6.0.3-bridge.17.tsgo.7.0.2))(zod@4.5.4)
       vue:
         specifier: ^3.5.43
         version: 3.5.43(typescript-native-bridge@6.0.3-bridge.17.tsgo.7.0.2)
@@ -1848,24 +1848,24 @@ packages:
   '@vitest/browser-preview@4.1.11':
     resolution: {integrity: sha512-iPKSE6Ibayey6HFgK1V1/aHgyhx7HSRk1YMi+lnBZGmlIiNV5Uc7xRkD9Su8RDylTxDECK23t7kTHdRKoqSYDQ==}
     peerDependencies:
-      vitest: 5.0.1
+      vitest: 5.0.2
 
   '@vitest/browser-webdriverio@5.0.0':
     resolution: {integrity: sha512-faotr4XiQrpK7yK+GTSWTA2pYSPFMZZA+fXx0rtKh9mvAjCMBM0Q2UJ5NIv6o5Oqkn2CASIrKnePaC/37judJA==}
     engines: {node: ^22.12.0 || ^24.0.0 || >=26.0.0}
     peerDependencies:
-      vitest: 5.0.1
+      vitest: 5.0.2
       webdriverio: '*'
 
   '@vitest/browser@4.1.11':
     resolution: {integrity: sha512-bwMovvAeuTFOK5kIFevw4VEf+1gVEICv4SYK4k3knJOxl6b1zEWud8mYKD73e1B0odAn174h1MofURy2TPWf3w==}
     peerDependencies:
-      vitest: 5.0.1
+      vitest: 5.0.2
 
   '@vitest/browser@5.0.1':
     resolution: {integrity: sha512-s2UroEhP2BZPoen1qrXXTtVqnUcs6y2sxMLGCZ8tZDkH2iM/6tTC2GVTPCgF+oVF3X5M6wC/X2O0MvvoHNmH0Q==}
     peerDependencies:
-      vitest: 5.0.1
+      vitest: 5.0.2
 
   '@vitest/expect@4.1.11':
     resolution: {integrity: sha512-VX2x5vNJXET47KAFzwERI+KRMtTTCSWTfSMKsW7JsUsXV4psq++e3DvZpuTDOpHcxytiDs6p2nhVb2tVDiiUYw==}
@@ -1883,6 +1883,17 @@ packages:
 
   '@vitest/mocker@5.0.1':
     resolution: {integrity: sha512-6K1DoBNAPGvuOcSsGA4D6x+5zEEff/KmOOP3uetT2TrGpVfI+HRHRnJJfKi5ib/g1vx8IYHQD8s0pbJz8WQI7Q==}
+    peerDependencies:
+      msw: ^2.4.9
+      vite: ^6.0.0 || ^7.0.0 || ^8.0.0
+    peerDependenciesMeta:
+      msw:
+        optional: true
+      vite:
+        optional: true
+
+  '@vitest/mocker@5.0.2':
+    resolution: {integrity: sha512-Z5FS00Q1SJHkB35xATsmWGdQ5WA1/0MV3CDjqyv7GavHv1OfOj145MNfHOlHk7QLes21dKFDHr8EO2zvL+9WGA==}
     peerDependencies:
       msw: ^2.4.9
       vite: ^6.0.0 || ^7.0.0 || ^8.0.0
@@ -1910,10 +1921,13 @@ packages:
   '@vitest/spy@5.0.1':
     resolution: {integrity: sha512-rbto/mF/SGERxEgYOek7Xm6B9b+y+mVoo+f4b2LymYO8zM1b7uB5nHuhVMTP2hxdzgxvGiZYGxGIaMvL5y180Q==}
 
+  '@vitest/spy@5.0.2':
+    resolution: {integrity: sha512-Ijc7T1nT9efNb5LxvjaBrEqw3f/QwUv5EE0nKqZxgqsaV/FxAAZ8baGylA8X/Z2oS4Lp+K74Jr6dTJsDKxJDeg==}
+
   '@vitest/ui@5.0.1':
     resolution: {integrity: sha512-7PvQu/X9/pQoHYfNLAYL22qsD4/+sx2k7zpUA7XvjW0sc40r3/r0lGZ2fsEyOHMuO8Q1KjiO1QQVjJdnWUy/WQ==}
     peerDependencies:
-      vitest: 5.0.1
+      vitest: 5.0.2
 
   '@vitest/utils@4.1.11':
     resolution: {integrity: sha512-zTCVGpyFsGWBhllOyKlTw/vnr6D9qxsfSDyfbyZmTyjHw5N/VuvzHpHoQjm2ZJzn4RJgx5w4r7V0er69CmLgPQ==}
@@ -2427,7 +2441,7 @@ packages:
       react-dom: ^18.0.0 || ^19.0.0
       solid-js: ^1.0.0
       svelte: ^4.0.0 || ^5.0.0
-      vitest: 5.0.1
+      vitest: 5.0.2
       vue: ^3.0.0
     peerDependenciesMeta:
       '@lynx-js/react':
@@ -3631,9 +3645,6 @@ packages:
     resolution: {integrity: sha512-Mb/GvXPHBAXdgGIcnfU5L3ldpn1XcxrGkPHwqgRx17/I2XRfqlFKk2vGkHWINn1kdXvzJZeuO3is6I9KLPFm0g==}
     engines: {node: '>=20'}
 
-  siginfo@2.0.0:
-    resolution: {integrity: sha512-ybx0WO1/8bSBLEWXZvEd7gMW3Sn3JFlW3TvX1nREbDLRNQNaeNN8WK0meBwPdAaOI7TtRRRJn/Es1zhrrCHu7g==}
-
   signal-exit@3.0.7:
     resolution: {integrity: sha512-wnD2ZE+l+SPC/uoS0vXeE9L1+0wuaMqKlfz9AMUo38JsyLSBWSFcHR1Rri62LZc12vLr1gb3jl7iwQhgwpAbGQ==}
 
@@ -3681,9 +3692,6 @@ packages:
   sql-escaper@1.5.2:
     resolution: {integrity: sha512-6CKD38c31SENivxOADeMNLdukOnUxUcflKtzVWzace7Riv1v7cAEym5Cx9Q7gYZ3ezIJI7ZpqecQq8cqNeSSFg==}
     engines: {bun: '>=1.0.0', deno: '>=2.0.0', node: '>=12.0.0'}
-
-  stackback@0.0.2:
-    resolution: {integrity: sha512-1XMJE5fQo1jGH6Y/7ebnwPOBEkIEnT4QF32d5R1+VXdXveM0IBMJt8zfaxX1P3QhVwrYe+576+jkANtSS2mBbw==}
 
   std-env@4.2.0:
     resolution: {integrity: sha512-oCUKSupKTHX53EyjDtuZQ64pjLJ6yYCtpmEw0goYxtjG9KpbRe8KAsl2tBUGU9DyMcJ0RwJ8GqJAFzMXcXW1Rw==}
@@ -3905,20 +3913,20 @@ packages:
       '@vitest/browser-webdriverio':
         optional: true
 
-  vitest@5.0.1:
-    resolution: {integrity: sha512-iA95lQbKEkvrtTkdAgnWbXfbipWiiWe/hDl2P5tMi6WFwD76G0NxXAGp/M9EOcYupeGJRr6wppMc7CoA41TQjg==}
+  vitest@5.0.2:
+    resolution: {integrity: sha512-7MQrx9pDv5aHiUcovIb/70Ys3tgtkUVgCtledvKdCmEO+/1Dicq5ZqoSxOW034m03oqC+oHOKui2dM6qtMLoJg==}
     engines: {node: ^22.12.0 || ^24.0.0 || >=26.0.0}
     hasBin: true
     peerDependencies:
       '@edge-runtime/vm': '*'
       '@opentelemetry/api': ^1.9.0
       '@types/node': ^22.0.0 || >=24.0.0
-      '@vitest/browser-playwright': 5.0.1
-      '@vitest/browser-preview': 5.0.1
+      '@vitest/browser-playwright': 5.0.2
+      '@vitest/browser-preview': 5.0.2
       '@vitest/browser-webdriverio': ^5.0.0-beta.5 || >=5.0.0
-      '@vitest/coverage-istanbul': 5.0.1
-      '@vitest/coverage-v8': 5.0.1
-      '@vitest/ui': 5.0.1
+      '@vitest/coverage-istanbul': 5.0.2
+      '@vitest/coverage-v8': 5.0.2
+      '@vitest/ui': 5.0.2
       happy-dom: '*'
       jsdom: '*'
       vite: ^6.4.0 || ^7.0.0 || ^8.0.0
@@ -4027,9 +4035,9 @@ packages:
     engines: {node: ^20.17.0 || >=22.9.0}
     hasBin: true
 
-  why-is-node-running@2.3.0:
-    resolution: {integrity: sha512-hUrmaWBdVDcxvYqnyh09zunKzROWjbZTiNy8dBEjkS7ehEDQibXJ7XvlmtbwuTclUiIyN+CyXQD4Vmko8fNm8w==}
-    engines: {node: '>=8'}
+  why-is-node-running@3.2.2:
+    resolution: {integrity: sha512-NKUzAelcoCXhXL4dJzKIwXeR8iEVqsA0Lq6Vnd0UXvgaKbzVo4ZTHROF2Jidrv+SgxOQ03fMinnNhzZATxOD3A==}
+    engines: {node: '>=20.11'}
     hasBin: true
 
   workerd@1.20260910.1:
@@ -5106,22 +5114,22 @@ snapshots:
 
   '@ungap/structured-clone@1.4.0': {}
 
-  '@vitest/browser-preview@4.1.11(@voidzero-dev/vite-plus-core@0.3.3(@types/node@26.4.1)(esbuild@0.28.2)(jiti@2.7.0)(publint@0.3.24)(tsx@4.23.13)(typescript-native-bridge@6.0.3-bridge.17.tsgo.7.0.2)(yaml@2.9.0))(vitest@5.0.1)':
+  '@vitest/browser-preview@4.1.11(@voidzero-dev/vite-plus-core@0.3.3(@types/node@26.4.1)(esbuild@0.28.2)(jiti@2.7.0)(publint@0.3.24)(tsx@4.23.13)(typescript-native-bridge@6.0.3-bridge.17.tsgo.7.0.2)(yaml@2.9.0))(vitest@5.0.2)':
     dependencies:
       '@testing-library/dom': 10.4.1
       '@testing-library/user-event': 14.6.7(@testing-library/dom@10.4.1)
-      '@vitest/browser': 4.1.11(@voidzero-dev/vite-plus-core@0.3.3(@types/node@26.4.1)(esbuild@0.28.2)(jiti@2.7.0)(publint@0.3.24)(tsx@4.23.13)(typescript-native-bridge@6.0.3-bridge.17.tsgo.7.0.2)(yaml@2.9.0))(vitest@5.0.1)
-      vitest: 5.0.1(@types/node@26.4.1)(@vitest/browser-preview@4.1.11)(@vitest/browser-webdriverio@5.0.0)(@vitest/ui@5.0.1(vitest@5.0.1))(@voidzero-dev/vite-plus-core@0.3.3(@types/node@26.4.1)(esbuild@0.28.2)(jiti@2.7.0)(publint@0.3.24)(tsx@4.23.13)(typescript-native-bridge@6.0.3-bridge.17.tsgo.7.0.2)(yaml@2.9.0))(happy-dom@20.14.5)
+      '@vitest/browser': 4.1.11(@voidzero-dev/vite-plus-core@0.3.3(@types/node@26.4.1)(esbuild@0.28.2)(jiti@2.7.0)(publint@0.3.24)(tsx@4.23.13)(typescript-native-bridge@6.0.3-bridge.17.tsgo.7.0.2)(yaml@2.9.0))(vitest@5.0.2)
+      vitest: 5.0.2(@types/node@26.4.1)(@vitest/browser-preview@4.1.11)(@vitest/browser-webdriverio@5.0.0)(@voidzero-dev/vite-plus-core@0.3.3(@types/node@26.4.1)(esbuild@0.28.2)(jiti@2.7.0)(publint@0.3.24)(tsx@4.23.13)(typescript-native-bridge@6.0.3-bridge.17.tsgo.7.0.2)(yaml@2.9.0))(happy-dom@20.14.5)
     transitivePeerDependencies:
       - bufferutil
       - msw
       - utf-8-validate
       - vite
 
-  '@vitest/browser-webdriverio@5.0.0(@voidzero-dev/vite-plus-core@0.3.3(@types/node@26.4.1)(esbuild@0.28.2)(jiti@2.7.0)(publint@0.3.24)(tsx@4.23.13)(typescript-native-bridge@6.0.3-bridge.17.tsgo.7.0.2)(yaml@2.9.0))(vitest@5.0.1)(webdriverio@9.32.0(supports-color@10.2.2))':
+  '@vitest/browser-webdriverio@5.0.0(@voidzero-dev/vite-plus-core@0.3.3(@types/node@26.4.1)(esbuild@0.28.2)(jiti@2.7.0)(publint@0.3.24)(tsx@4.23.13)(typescript-native-bridge@6.0.3-bridge.17.tsgo.7.0.2)(yaml@2.9.0))(vitest@5.0.2)(webdriverio@9.32.0(supports-color@10.2.2))':
     dependencies:
-      '@vitest/browser': 5.0.1(@voidzero-dev/vite-plus-core@0.3.3(@types/node@26.4.1)(esbuild@0.28.2)(jiti@2.7.0)(publint@0.3.24)(tsx@4.23.13)(typescript-native-bridge@6.0.3-bridge.17.tsgo.7.0.2)(yaml@2.9.0))(vitest@5.0.1)
-      vitest: 5.0.1(@types/node@26.4.1)(@vitest/browser-preview@4.1.11)(@vitest/browser-webdriverio@5.0.0)(@vitest/ui@5.0.1(vitest@5.0.1))(@voidzero-dev/vite-plus-core@0.3.3(@types/node@26.4.1)(esbuild@0.28.2)(jiti@2.7.0)(publint@0.3.24)(tsx@4.23.13)(typescript-native-bridge@6.0.3-bridge.17.tsgo.7.0.2)(yaml@2.9.0))(happy-dom@20.14.5)
+      '@vitest/browser': 5.0.1(@voidzero-dev/vite-plus-core@0.3.3(@types/node@26.4.1)(esbuild@0.28.2)(jiti@2.7.0)(publint@0.3.24)(tsx@4.23.13)(typescript-native-bridge@6.0.3-bridge.17.tsgo.7.0.2)(yaml@2.9.0))(vitest@5.0.2)
+      vitest: 5.0.2(@types/node@26.4.1)(@vitest/browser-preview@4.1.11)(@vitest/browser-webdriverio@5.0.0)(@voidzero-dev/vite-plus-core@0.3.3(@types/node@26.4.1)(esbuild@0.28.2)(jiti@2.7.0)(publint@0.3.24)(tsx@4.23.13)(typescript-native-bridge@6.0.3-bridge.17.tsgo.7.0.2)(yaml@2.9.0))(happy-dom@20.14.5)
       webdriverio: 9.32.0(supports-color@10.2.2)
     transitivePeerDependencies:
       - bufferutil
@@ -5129,7 +5137,7 @@ snapshots:
       - utf-8-validate
       - vite
 
-  '@vitest/browser@4.1.11(@voidzero-dev/vite-plus-core@0.3.3(@types/node@26.4.1)(esbuild@0.28.2)(jiti@2.7.0)(publint@0.3.24)(tsx@4.23.13)(typescript-native-bridge@6.0.3-bridge.17.tsgo.7.0.2)(yaml@2.9.0))(vitest@5.0.1)':
+  '@vitest/browser@4.1.11(@voidzero-dev/vite-plus-core@0.3.3(@types/node@26.4.1)(esbuild@0.28.2)(jiti@2.7.0)(publint@0.3.24)(tsx@4.23.13)(typescript-native-bridge@6.0.3-bridge.17.tsgo.7.0.2)(yaml@2.9.0))(vitest@5.0.2)':
     dependencies:
       '@blazediff/core': 1.9.1
       '@vitest/mocker': 4.1.11(@voidzero-dev/vite-plus-core@0.3.3(@types/node@26.4.1)(esbuild@0.28.2)(jiti@2.7.0)(publint@0.3.24)(tsx@4.23.13)(typescript-native-bridge@6.0.3-bridge.17.tsgo.7.0.2)(yaml@2.9.0))
@@ -5138,7 +5146,7 @@ snapshots:
       pngjs: 7.0.0
       sirv: 3.0.2
       tinyrainbow: 3.1.1
-      vitest: 5.0.1(@types/node@26.4.1)(@vitest/browser-preview@4.1.11)(@vitest/browser-webdriverio@5.0.0)(@vitest/ui@5.0.1(vitest@5.0.1))(@voidzero-dev/vite-plus-core@0.3.3(@types/node@26.4.1)(esbuild@0.28.2)(jiti@2.7.0)(publint@0.3.24)(tsx@4.23.13)(typescript-native-bridge@6.0.3-bridge.17.tsgo.7.0.2)(yaml@2.9.0))(happy-dom@20.14.5)
+      vitest: 5.0.2(@types/node@26.4.1)(@vitest/browser-preview@4.1.11)(@vitest/browser-webdriverio@5.0.0)(@voidzero-dev/vite-plus-core@0.3.3(@types/node@26.4.1)(esbuild@0.28.2)(jiti@2.7.0)(publint@0.3.24)(tsx@4.23.13)(typescript-native-bridge@6.0.3-bridge.17.tsgo.7.0.2)(yaml@2.9.0))(happy-dom@20.14.5)
       ws: 8.21.3
     transitivePeerDependencies:
       - bufferutil
@@ -5146,17 +5154,17 @@ snapshots:
       - utf-8-validate
       - vite
 
-  '@vitest/browser@5.0.1(@voidzero-dev/vite-plus-core@0.3.3(@types/node@26.4.1)(esbuild@0.28.2)(jiti@2.7.0)(publint@0.3.24)(tsx@4.23.13)(typescript-native-bridge@6.0.3-bridge.17.tsgo.7.0.2)(yaml@2.9.0))(vitest@5.0.1)':
+  '@vitest/browser@5.0.1(@voidzero-dev/vite-plus-core@0.3.3(@types/node@26.4.1)(esbuild@0.28.2)(jiti@2.7.0)(publint@0.3.24)(tsx@4.23.13)(typescript-native-bridge@6.0.3-bridge.17.tsgo.7.0.2)(yaml@2.9.0))(vitest@5.0.2)':
     dependencies:
       '@blazediff/core': 1.10.0
       '@vitest/mocker': 5.0.1(@voidzero-dev/vite-plus-core@0.3.3(@types/node@26.4.1)(esbuild@0.28.2)(jiti@2.7.0)(publint@0.3.24)(tsx@4.23.13)(typescript-native-bridge@6.0.3-bridge.17.tsgo.7.0.2)(yaml@2.9.0))
-      '@vitest/ui': 5.0.1(vitest@5.0.1)
+      '@vitest/ui': 5.0.1(vitest@5.0.2)
       '@vitest/utils': 5.0.1
       magic-string: 1.4.2
       pngjs: 7.0.0
       sirv: 3.0.2
       tinyrainbow: 3.1.1
-      vitest: 5.0.1(@types/node@26.4.1)(@vitest/browser-preview@4.1.11)(@vitest/browser-webdriverio@5.0.0)(@vitest/ui@5.0.1(vitest@5.0.1))(@voidzero-dev/vite-plus-core@0.3.3(@types/node@26.4.1)(esbuild@0.28.2)(jiti@2.7.0)(publint@0.3.24)(tsx@4.23.13)(typescript-native-bridge@6.0.3-bridge.17.tsgo.7.0.2)(yaml@2.9.0))(happy-dom@20.14.5)
+      vitest: 5.0.2(@types/node@26.4.1)(@vitest/browser-preview@4.1.11)(@vitest/browser-webdriverio@5.0.0)(@voidzero-dev/vite-plus-core@0.3.3(@types/node@26.4.1)(esbuild@0.28.2)(jiti@2.7.0)(publint@0.3.24)(tsx@4.23.13)(typescript-native-bridge@6.0.3-bridge.17.tsgo.7.0.2)(yaml@2.9.0))(happy-dom@20.14.5)
       ws: 8.21.3
     transitivePeerDependencies:
       - bufferutil
@@ -5190,6 +5198,15 @@ snapshots:
     optionalDependencies:
       vite: '@voidzero-dev/vite-plus-core@0.3.3(@types/node@26.4.1)(esbuild@0.28.2)(jiti@2.7.0)(publint@0.3.24)(tsx@4.23.13)(typescript-native-bridge@6.0.3-bridge.17.tsgo.7.0.2)(yaml@2.9.0)'
 
+  '@vitest/mocker@5.0.2(@voidzero-dev/vite-plus-core@0.3.3(@types/node@26.4.1)(esbuild@0.28.2)(jiti@2.7.0)(publint@0.3.24)(tsx@4.23.13)(typescript-native-bridge@6.0.3-bridge.17.tsgo.7.0.2)(yaml@2.9.0))':
+    dependencies:
+      '@jridgewell/trace-mapping': 0.3.31
+      '@vitest/spy': 5.0.2
+      estree-walker: 3.0.3
+      magic-string: 1.4.2
+    optionalDependencies:
+      vite: '@voidzero-dev/vite-plus-core@0.3.3(@types/node@26.4.1)(esbuild@0.28.2)(jiti@2.7.0)(publint@0.3.24)(tsx@4.23.13)(typescript-native-bridge@6.0.3-bridge.17.tsgo.7.0.2)(yaml@2.9.0)'
+
   '@vitest/pretty-format@4.1.11':
     dependencies:
       tinyrainbow: 3.1.1
@@ -5214,7 +5231,9 @@ snapshots:
 
   '@vitest/spy@5.0.1': {}
 
-  '@vitest/ui@5.0.1(vitest@5.0.1)':
+  '@vitest/spy@5.0.2': {}
+
+  '@vitest/ui@5.0.1(vitest@5.0.2)':
     dependencies:
       '@vitest/utils': 5.0.1
       fflate: 0.8.3
@@ -5222,7 +5241,7 @@ snapshots:
       pathe: 2.0.3
       sirv: 3.0.2
       tinyrainbow: 3.1.1
-      vitest: 5.0.1(@types/node@26.4.1)(@vitest/browser-preview@4.1.11)(@vitest/browser-webdriverio@5.0.0)(@vitest/ui@5.0.1(vitest@5.0.1))(@voidzero-dev/vite-plus-core@0.3.3(@types/node@26.4.1)(esbuild@0.28.2)(jiti@2.7.0)(publint@0.3.24)(tsx@4.23.13)(typescript-native-bridge@6.0.3-bridge.17.tsgo.7.0.2)(yaml@2.9.0))(happy-dom@20.14.5)
+      vitest: 5.0.2(@types/node@26.4.1)(@vitest/browser-preview@4.1.11)(@vitest/browser-webdriverio@5.0.0)(@voidzero-dev/vite-plus-core@0.3.3(@types/node@26.4.1)(esbuild@0.28.2)(jiti@2.7.0)(publint@0.3.24)(tsx@4.23.13)(typescript-native-bridge@6.0.3-bridge.17.tsgo.7.0.2)(yaml@2.9.0))(happy-dom@20.14.5)
 
   '@vitest/utils@4.1.11':
     dependencies:
@@ -5633,7 +5652,7 @@ snapshots:
 
   basic-ftp@5.3.1: {}
 
-  better-auth@1.7.6(drizzle-kit@0.31.10)(drizzle-orm@0.45.2(@cloudflare/workers-types@4.20260702.1)(better-sqlite3@13.0.3)(kysely@0.29.5)(mysql2@3.24.4(@types/node@26.4.1))(pg@8.23.0))(mysql2@3.24.4(@types/node@26.4.1))(pg@8.23.0)(react-dom@19.3.0(react@19.3.0))(react@19.3.0)(vitest@5.0.1)(vue@3.5.43(typescript-native-bridge@6.0.3-bridge.17.tsgo.7.0.2)):
+  better-auth@1.7.6(drizzle-kit@0.31.10)(drizzle-orm@0.45.2(@cloudflare/workers-types@4.20260702.1)(better-sqlite3@13.0.3)(kysely@0.29.5)(mysql2@3.24.4(@types/node@26.4.1))(pg@8.23.0))(mysql2@3.24.4(@types/node@26.4.1))(pg@8.23.0)(react-dom@19.3.0(react@19.3.0))(react@19.3.0)(vitest@5.0.2)(vue@3.5.43(typescript-native-bridge@6.0.3-bridge.17.tsgo.7.0.2)):
     dependencies:
       '@better-auth/core': 1.7.6(@better-auth/utils@0.4.2)(@better-fetch/fetch@1.3.2)(better-call@1.4.0(zod@4.5.4))(jose@6.2.10)(kysely@0.29.5)(nanostores@1.5.3)
       '@better-auth/drizzle-adapter': 1.7.6(@better-auth/core@1.7.6(@better-auth/utils@0.4.2)(@better-fetch/fetch@1.3.2)(better-call@1.4.0(zod@4.5.4))(jose@6.2.10)(kysely@0.29.5)(nanostores@1.5.3))(@better-auth/utils@0.4.2)(drizzle-orm@0.45.2(@cloudflare/workers-types@4.20260702.1)(better-sqlite3@13.0.3)(kysely@0.29.5)(mysql2@3.24.4(@types/node@26.4.1))(pg@8.23.0))
@@ -5659,7 +5678,7 @@ snapshots:
       pg: 8.23.0
       react: 19.3.0
       react-dom: 19.3.0(react@19.3.0)
-      vitest: 5.0.1(@types/node@26.4.1)(@vitest/browser-preview@4.1.11)(@vitest/browser-webdriverio@5.0.0)(@vitest/ui@5.0.1(vitest@5.0.1))(@voidzero-dev/vite-plus-core@0.3.3(@types/node@26.4.1)(esbuild@0.28.2)(jiti@2.7.0)(publint@0.3.24)(tsx@4.23.13)(typescript-native-bridge@6.0.3-bridge.17.tsgo.7.0.2)(yaml@2.9.0))(happy-dom@20.14.5)
+      vitest: 5.0.2(@types/node@26.4.1)(@vitest/browser-preview@4.1.11)(@vitest/browser-webdriverio@5.0.0)(@voidzero-dev/vite-plus-core@0.3.3(@types/node@26.4.1)(esbuild@0.28.2)(jiti@2.7.0)(publint@0.3.24)(tsx@4.23.13)(typescript-native-bridge@6.0.3-bridge.17.tsgo.7.0.2)(yaml@2.9.0))(happy-dom@20.14.5)
       vue: 3.5.43(typescript-native-bridge@6.0.3-bridge.17.tsgo.7.0.2)
     transitivePeerDependencies:
       - '@opentelemetry/api'
@@ -6492,7 +6511,7 @@ snapshots:
       regex: 6.1.0
       regex-recursion: 6.0.2
 
-  oxfmt@0.68.0(vite-plus@0.3.3(@types/node@26.4.1)(@vitest/browser-webdriverio@5.0.0)(@vitest/ui@5.0.1)(esbuild@0.28.2)(happy-dom@20.14.5)(jiti@2.7.0)(publint@0.3.24)(tsx@4.23.13)(typescript-native-bridge@6.0.3-bridge.17.tsgo.7.0.2)(yaml@2.9.0)):
+  oxfmt@0.68.0(vite-plus@0.3.3(@types/node@26.4.1)(@vitest/browser-webdriverio@5.0.0)(esbuild@0.28.2)(happy-dom@20.14.5)(jiti@2.7.0)(publint@0.3.24)(tsx@4.23.13)(typescript-native-bridge@6.0.3-bridge.17.tsgo.7.0.2)(yaml@2.9.0)):
     dependencies:
       tinypool: 2.1.2
     optionalDependencies:
@@ -6515,7 +6534,7 @@ snapshots:
       '@oxfmt/binding-win32-arm64-msvc': 0.68.0
       '@oxfmt/binding-win32-ia32-msvc': 0.68.0
       '@oxfmt/binding-win32-x64-msvc': 0.68.0
-      vite-plus: 0.3.3(@types/node@26.4.1)(@vitest/browser-webdriverio@5.0.0)(@vitest/ui@5.0.1)(esbuild@0.28.2)(happy-dom@20.14.5)(jiti@2.7.0)(publint@0.3.24)(tsx@4.23.13)(typescript-native-bridge@6.0.3-bridge.17.tsgo.7.0.2)(yaml@2.9.0)
+      vite-plus: 0.3.3(@types/node@26.4.1)(@vitest/browser-webdriverio@5.0.0)(esbuild@0.28.2)(happy-dom@20.14.5)(jiti@2.7.0)(publint@0.3.24)(tsx@4.23.13)(typescript-native-bridge@6.0.3-bridge.17.tsgo.7.0.2)(yaml@2.9.0)
 
   oxlint-tsgolint@7.0.2001:
     optionalDependencies:
@@ -6526,7 +6545,7 @@ snapshots:
       '@oxlint-tsgolint/win32-arm64': 7.0.2001
       '@oxlint-tsgolint/win32-x64': 7.0.2001
 
-  oxlint@1.83.0(oxlint-tsgolint@7.0.2001)(vite-plus@0.3.3(@types/node@26.4.1)(@vitest/browser-webdriverio@5.0.0)(@vitest/ui@5.0.1)(esbuild@0.28.2)(happy-dom@20.14.5)(jiti@2.7.0)(publint@0.3.24)(tsx@4.23.13)(typescript-native-bridge@6.0.3-bridge.17.tsgo.7.0.2)(yaml@2.9.0)):
+  oxlint@1.83.0(oxlint-tsgolint@7.0.2001)(vite-plus@0.3.3(@types/node@26.4.1)(@vitest/browser-webdriverio@5.0.0)(esbuild@0.28.2)(happy-dom@20.14.5)(jiti@2.7.0)(publint@0.3.24)(tsx@4.23.13)(typescript-native-bridge@6.0.3-bridge.17.tsgo.7.0.2)(yaml@2.9.0)):
     optionalDependencies:
       '@oxlint/binding-android-arm-eabi': 1.83.0
       '@oxlint/binding-android-arm64': 1.83.0
@@ -6548,7 +6567,7 @@ snapshots:
       '@oxlint/binding-win32-ia32-msvc': 1.83.0
       '@oxlint/binding-win32-x64-msvc': 1.83.0
       oxlint-tsgolint: 7.0.2001
-      vite-plus: 0.3.3(@types/node@26.4.1)(@vitest/browser-webdriverio@5.0.0)(@vitest/ui@5.0.1)(esbuild@0.28.2)(happy-dom@20.14.5)(jiti@2.7.0)(publint@0.3.24)(tsx@4.23.13)(typescript-native-bridge@6.0.3-bridge.17.tsgo.7.0.2)(yaml@2.9.0)
+      vite-plus: 0.3.3(@types/node@26.4.1)(@vitest/browser-webdriverio@5.0.0)(esbuild@0.28.2)(happy-dom@20.14.5)(jiti@2.7.0)(publint@0.3.24)(tsx@4.23.13)(typescript-native-bridge@6.0.3-bridge.17.tsgo.7.0.2)(yaml@2.9.0)
 
   pac-proxy-agent@7.2.0(supports-color@10.2.2):
     dependencies:
@@ -6854,8 +6873,6 @@ snapshots:
       '@shikijs/vscode-textmate': 10.0.2
       '@types/hast': 3.0.5
 
-  siginfo@2.0.0: {}
-
   signal-exit@3.0.7: {}
 
   signal-exit@4.1.0: {}
@@ -6897,8 +6914,6 @@ snapshots:
   split2@4.2.0: {}
 
   sql-escaper@1.5.2: {}
-
-  stackback@0.0.2: {}
 
   std-env@4.2.0: {}
 
@@ -7140,12 +7155,12 @@ snapshots:
       '@types/unist': 3.0.3
       vfile-message: 4.0.3
 
-  vite-plus@0.3.3(@types/node@26.4.1)(@vitest/browser-webdriverio@5.0.0)(@vitest/ui@5.0.1)(esbuild@0.28.2)(happy-dom@20.14.5)(jiti@2.7.0)(publint@0.3.24)(tsx@4.23.13)(typescript-native-bridge@6.0.3-bridge.17.tsgo.7.0.2)(yaml@2.9.0):
+  vite-plus@0.3.3(@types/node@26.4.1)(@vitest/browser-webdriverio@5.0.0)(esbuild@0.28.2)(happy-dom@20.14.5)(jiti@2.7.0)(publint@0.3.24)(tsx@4.23.13)(typescript-native-bridge@6.0.3-bridge.17.tsgo.7.0.2)(yaml@2.9.0):
     dependencies:
       '@oxc-project/types': 0.150.0
       '@oxlint/plugins': 1.79.0
-      '@vitest/browser': 4.1.11(@voidzero-dev/vite-plus-core@0.3.3(@types/node@26.4.1)(esbuild@0.28.2)(jiti@2.7.0)(publint@0.3.24)(tsx@4.23.13)(typescript-native-bridge@6.0.3-bridge.17.tsgo.7.0.2)(yaml@2.9.0))(vitest@5.0.1)
-      '@vitest/browser-preview': 4.1.11(@voidzero-dev/vite-plus-core@0.3.3(@types/node@26.4.1)(esbuild@0.28.2)(jiti@2.7.0)(publint@0.3.24)(tsx@4.23.13)(typescript-native-bridge@6.0.3-bridge.17.tsgo.7.0.2)(yaml@2.9.0))(vitest@5.0.1)
+      '@vitest/browser': 4.1.11(@voidzero-dev/vite-plus-core@0.3.3(@types/node@26.4.1)(esbuild@0.28.2)(jiti@2.7.0)(publint@0.3.24)(tsx@4.23.13)(typescript-native-bridge@6.0.3-bridge.17.tsgo.7.0.2)(yaml@2.9.0))(vitest@5.0.2)
+      '@vitest/browser-preview': 4.1.11(@voidzero-dev/vite-plus-core@0.3.3(@types/node@26.4.1)(esbuild@0.28.2)(jiti@2.7.0)(publint@0.3.24)(tsx@4.23.13)(typescript-native-bridge@6.0.3-bridge.17.tsgo.7.0.2)(yaml@2.9.0))(vitest@5.0.2)
       '@vitest/expect': 4.1.11
       '@vitest/mocker': 4.1.11(@voidzero-dev/vite-plus-core@0.3.3(@types/node@26.4.1)(esbuild@0.28.2)(jiti@2.7.0)(publint@0.3.24)(tsx@4.23.13)(typescript-native-bridge@6.0.3-bridge.17.tsgo.7.0.2)(yaml@2.9.0))
       '@vitest/pretty-format': 4.1.11
@@ -7153,13 +7168,13 @@ snapshots:
       '@vitest/snapshot': 4.1.11
       '@vitest/spy': 4.1.11
       '@vitest/utils': 4.1.11
-      oxfmt: 0.68.0(vite-plus@0.3.3(@types/node@26.4.1)(@vitest/browser-webdriverio@5.0.0)(@vitest/ui@5.0.1)(esbuild@0.28.2)(happy-dom@20.14.5)(jiti@2.7.0)(publint@0.3.24)(tsx@4.23.13)(typescript-native-bridge@6.0.3-bridge.17.tsgo.7.0.2)(yaml@2.9.0))
-      oxlint: 1.83.0(oxlint-tsgolint@7.0.2001)(vite-plus@0.3.3(@types/node@26.4.1)(@vitest/browser-webdriverio@5.0.0)(@vitest/ui@5.0.1)(esbuild@0.28.2)(happy-dom@20.14.5)(jiti@2.7.0)(publint@0.3.24)(tsx@4.23.13)(typescript-native-bridge@6.0.3-bridge.17.tsgo.7.0.2)(yaml@2.9.0))
+      oxfmt: 0.68.0(vite-plus@0.3.3(@types/node@26.4.1)(@vitest/browser-webdriverio@5.0.0)(esbuild@0.28.2)(happy-dom@20.14.5)(jiti@2.7.0)(publint@0.3.24)(tsx@4.23.13)(typescript-native-bridge@6.0.3-bridge.17.tsgo.7.0.2)(yaml@2.9.0))
+      oxlint: 1.83.0(oxlint-tsgolint@7.0.2001)(vite-plus@0.3.3(@types/node@26.4.1)(@vitest/browser-webdriverio@5.0.0)(esbuild@0.28.2)(happy-dom@20.14.5)(jiti@2.7.0)(publint@0.3.24)(tsx@4.23.13)(typescript-native-bridge@6.0.3-bridge.17.tsgo.7.0.2)(yaml@2.9.0))
       oxlint-tsgolint: 7.0.2001
       vite: '@voidzero-dev/vite-plus-core@0.3.3(@types/node@26.4.1)(esbuild@0.28.2)(jiti@2.7.0)(publint@0.3.24)(tsx@4.23.13)(typescript-native-bridge@6.0.3-bridge.17.tsgo.7.0.2)(yaml@2.9.0)'
-      vitest: 5.0.1(@types/node@26.4.1)(@vitest/browser-preview@4.1.11)(@vitest/browser-webdriverio@5.0.0)(@vitest/ui@5.0.1(vitest@5.0.1))(@voidzero-dev/vite-plus-core@0.3.3(@types/node@26.4.1)(esbuild@0.28.2)(jiti@2.7.0)(publint@0.3.24)(tsx@4.23.13)(typescript-native-bridge@6.0.3-bridge.17.tsgo.7.0.2)(yaml@2.9.0))(happy-dom@20.14.5)
+      vitest: 5.0.2(@types/node@26.4.1)(@vitest/browser-preview@4.1.11)(@vitest/browser-webdriverio@5.0.0)(@voidzero-dev/vite-plus-core@0.3.3(@types/node@26.4.1)(esbuild@0.28.2)(jiti@2.7.0)(publint@0.3.24)(tsx@4.23.13)(typescript-native-bridge@6.0.3-bridge.17.tsgo.7.0.2)(yaml@2.9.0))(happy-dom@20.14.5)
     optionalDependencies:
-      '@vitest/browser-webdriverio': 5.0.0(@voidzero-dev/vite-plus-core@0.3.3(@types/node@26.4.1)(esbuild@0.28.2)(jiti@2.7.0)(publint@0.3.24)(tsx@4.23.13)(typescript-native-bridge@6.0.3-bridge.17.tsgo.7.0.2)(yaml@2.9.0))(vitest@5.0.1)(webdriverio@9.32.0(supports-color@10.2.2))
+      '@vitest/browser-webdriverio': 5.0.0(@voidzero-dev/vite-plus-core@0.3.3(@types/node@26.4.1)(esbuild@0.28.2)(jiti@2.7.0)(publint@0.3.24)(tsx@4.23.13)(typescript-native-bridge@6.0.3-bridge.17.tsgo.7.0.2)(yaml@2.9.0))(vitest@5.0.2)(webdriverio@9.32.0(supports-color@10.2.2))
       '@voidzero-dev/vite-plus-darwin-arm64': 0.3.3
       '@voidzero-dev/vite-plus-darwin-x64': 0.3.3
       '@voidzero-dev/vite-plus-linux-arm64-gnu': 0.3.3
@@ -7198,10 +7213,10 @@ snapshots:
       - utf-8-validate
       - yaml
 
-  vitest@5.0.1(@types/node@26.4.1)(@vitest/browser-preview@4.1.11)(@vitest/browser-webdriverio@5.0.0)(@vitest/ui@5.0.1(vitest@5.0.1))(@voidzero-dev/vite-plus-core@0.3.3(@types/node@26.4.1)(esbuild@0.28.2)(jiti@2.7.0)(publint@0.3.24)(tsx@4.23.13)(typescript-native-bridge@6.0.3-bridge.17.tsgo.7.0.2)(yaml@2.9.0))(happy-dom@20.14.5):
+  vitest@5.0.2(@types/node@26.4.1)(@vitest/browser-preview@4.1.11)(@vitest/browser-webdriverio@5.0.0)(@voidzero-dev/vite-plus-core@0.3.3(@types/node@26.4.1)(esbuild@0.28.2)(jiti@2.7.0)(publint@0.3.24)(tsx@4.23.13)(typescript-native-bridge@6.0.3-bridge.17.tsgo.7.0.2)(yaml@2.9.0))(happy-dom@20.14.5):
     dependencies:
       '@types/chai': 5.2.3
-      '@vitest/mocker': 5.0.1(@voidzero-dev/vite-plus-core@0.3.3(@types/node@26.4.1)(esbuild@0.28.2)(jiti@2.7.0)(publint@0.3.24)(tsx@4.23.13)(typescript-native-bridge@6.0.3-bridge.17.tsgo.7.0.2)(yaml@2.9.0))
+      '@vitest/mocker': 5.0.2(@voidzero-dev/vite-plus-core@0.3.3(@types/node@26.4.1)(esbuild@0.28.2)(jiti@2.7.0)(publint@0.3.24)(tsx@4.23.13)(typescript-native-bridge@6.0.3-bridge.17.tsgo.7.0.2)(yaml@2.9.0))
       chai: 6.2.2
       es-module-lexer: 2.3.2
       expect-type: 1.4.0
@@ -7213,17 +7228,16 @@ snapshots:
       tinyexec: 1.3.0
       tinyglobby: 0.2.17
       vite: '@voidzero-dev/vite-plus-core@0.3.3(@types/node@26.4.1)(esbuild@0.28.2)(jiti@2.7.0)(publint@0.3.24)(tsx@4.23.13)(typescript-native-bridge@6.0.3-bridge.17.tsgo.7.0.2)(yaml@2.9.0)'
-      why-is-node-running: 2.3.0
+      why-is-node-running: 3.2.2
     optionalDependencies:
       '@types/node': 26.4.1
-      '@vitest/browser-preview': 4.1.11(@voidzero-dev/vite-plus-core@0.3.3(@types/node@26.4.1)(esbuild@0.28.2)(jiti@2.7.0)(publint@0.3.24)(tsx@4.23.13)(typescript-native-bridge@6.0.3-bridge.17.tsgo.7.0.2)(yaml@2.9.0))(vitest@5.0.1)
-      '@vitest/browser-webdriverio': 5.0.0(@voidzero-dev/vite-plus-core@0.3.3(@types/node@26.4.1)(esbuild@0.28.2)(jiti@2.7.0)(publint@0.3.24)(tsx@4.23.13)(typescript-native-bridge@6.0.3-bridge.17.tsgo.7.0.2)(yaml@2.9.0))(vitest@5.0.1)(webdriverio@9.32.0(supports-color@10.2.2))
-      '@vitest/ui': 5.0.1(vitest@5.0.1)
+      '@vitest/browser-preview': 4.1.11(@voidzero-dev/vite-plus-core@0.3.3(@types/node@26.4.1)(esbuild@0.28.2)(jiti@2.7.0)(publint@0.3.24)(tsx@4.23.13)(typescript-native-bridge@6.0.3-bridge.17.tsgo.7.0.2)(yaml@2.9.0))(vitest@5.0.2)
+      '@vitest/browser-webdriverio': 5.0.0(@voidzero-dev/vite-plus-core@0.3.3(@types/node@26.4.1)(esbuild@0.28.2)(jiti@2.7.0)(publint@0.3.24)(tsx@4.23.13)(typescript-native-bridge@6.0.3-bridge.17.tsgo.7.0.2)(yaml@2.9.0))(vitest@5.0.2)(webdriverio@9.32.0(supports-color@10.2.2))
       happy-dom: 20.14.5
     transitivePeerDependencies:
       - msw
 
-  void@0.20.3(@types/node@26.4.1)(@voidzero-dev/vite-plus-core@0.3.3(@types/node@26.4.1)(esbuild@0.28.2)(jiti@2.7.0)(publint@0.3.24)(tsx@4.23.13)(typescript-native-bridge@6.0.3-bridge.17.tsgo.7.0.2)(yaml@2.9.0))(arktype@2.2.3)(kysely@0.29.5)(react-dom@19.3.0(react@19.3.0))(react@19.3.0)(valibot@1.4.2(typescript-native-bridge@6.0.3-bridge.17.tsgo.7.0.2))(vitest@5.0.1)(vue@3.5.43(typescript-native-bridge@6.0.3-bridge.17.tsgo.7.0.2))(zod@4.5.4):
+  void@0.20.3(@types/node@26.4.1)(@voidzero-dev/vite-plus-core@0.3.3(@types/node@26.4.1)(esbuild@0.28.2)(jiti@2.7.0)(publint@0.3.24)(tsx@4.23.13)(typescript-native-bridge@6.0.3-bridge.17.tsgo.7.0.2)(yaml@2.9.0))(arktype@2.2.3)(kysely@0.29.5)(react-dom@19.3.0(react@19.3.0))(react@19.3.0)(valibot@1.4.2(typescript-native-bridge@6.0.3-bridge.17.tsgo.7.0.2))(vitest@5.0.2)(vue@3.5.43(typescript-native-bridge@6.0.3-bridge.17.tsgo.7.0.2))(zod@4.5.4):
     dependencies:
       '@cloudflare/sandbox': 0.12.9
       '@cloudflare/vite-plugin': 1.54.7(@types/node@26.4.1)(@voidzero-dev/vite-plus-core@0.3.3(@types/node@26.4.1)(esbuild@0.28.2)(jiti@2.7.0)(publint@0.3.24)(tsx@4.23.13)(typescript-native-bridge@6.0.3-bridge.17.tsgo.7.0.2)(yaml@2.9.0))(wrangler@4.131.0(@cloudflare/workers-types@4.20260702.1)(@types/node@26.4.1))
@@ -7234,7 +7248,7 @@ snapshots:
       '@void/edge': 0.20.3
       '@void/isr': 0.20.3
       '@void/platform': 0.20.3
-      better-auth: 1.7.6(drizzle-kit@0.31.10)(drizzle-orm@0.45.2(@cloudflare/workers-types@4.20260702.1)(better-sqlite3@13.0.3)(kysely@0.29.5)(mysql2@3.24.4(@types/node@26.4.1))(pg@8.23.0))(mysql2@3.24.4(@types/node@26.4.1))(pg@8.23.0)(react-dom@19.3.0(react@19.3.0))(react@19.3.0)(vitest@5.0.1)(vue@3.5.43(typescript-native-bridge@6.0.3-bridge.17.tsgo.7.0.2))
+      better-auth: 1.7.6(drizzle-kit@0.31.10)(drizzle-orm@0.45.2(@cloudflare/workers-types@4.20260702.1)(better-sqlite3@13.0.3)(kysely@0.29.5)(mysql2@3.24.4(@types/node@26.4.1))(pg@8.23.0))(mysql2@3.24.4(@types/node@26.4.1))(pg@8.23.0)(react-dom@19.3.0(react@19.3.0))(react@19.3.0)(vitest@5.0.2)(vue@3.5.43(typescript-native-bridge@6.0.3-bridge.17.tsgo.7.0.2))
       better-sqlite3: 13.0.3
       blake3-jit: 1.1.0
       drizzle-arktype: 0.1.3(arktype@2.2.3)(drizzle-orm@0.45.2(@cloudflare/workers-types@4.20260702.1)(better-sqlite3@13.0.3)(kysely@0.29.5)(mysql2@3.24.4(@types/node@26.4.1))(pg@8.23.0))
@@ -7404,10 +7418,7 @@ snapshots:
     dependencies:
       isexe: 4.0.0
 
-  why-is-node-running@2.3.0:
-    dependencies:
-      siginfo: 2.0.0
-      stackback: 0.0.2
+  why-is-node-running@3.2.2: {}
 
   workerd@1.20260910.1:
     optionalDependencies:
