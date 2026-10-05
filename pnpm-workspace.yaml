@@ -1,5 +1,5 @@
 overrides:
-  typescript: npm:typescript-native-bridge@6.0.3-bridge.17.tsgo.7.0.2
+  typescript: npm:typescript-native-bridge@6.0.3-bridge.18.tsgo.7.0.2
   vite@*: "catalog:"
   vitest@*: "catalog:"
 catalog:
