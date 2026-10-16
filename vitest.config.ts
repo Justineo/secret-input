@@ -73,7 +73,10 @@ export default defineConfig(({ mode }) => {
               headless: browser !== "safari",
             })),
             provider: webdriverio({
-              capabilities: driverCapabilities(),
+              capabilities: {
+                ...driverCapabilities(),
+                "wdio:enforceWebDriverClassic": true,
+              },
               outputDir: ".vitest-attachments/webdriver",
             }),
             ui: false,
