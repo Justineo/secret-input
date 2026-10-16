@@ -31,6 +31,10 @@
     {
       "matchPackageNames": ["vitest", "@vitest/browser-webdriverio"],
       "groupName": "Vitest"
+    },
+    {
+      "matchPackageNames": ["vite-plus", "@voidzero-dev/vite-plus-core"],
+      "groupName": "Vite+ toolchain"
     }
   ]
 }
