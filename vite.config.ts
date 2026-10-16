@@ -1,4 +1,5 @@
 import { defineConfig } from "vite-plus";
+import type { Rolldown } from "vite-plus/pack";
 import Vue from "unplugin-vue/vite";
 import VueRolldown from "unplugin-vue/rolldown";
 
@@ -85,7 +86,7 @@ export default defineConfig({
           // referenced types are re-exported by our only public peer, vue.
           return code.replace(/import\("@vue\/(?:runtime-core|reactivity)"\)/g, 'import("vue")');
         },
-      },
+      } satisfies Rolldown.Plugin,
     ],
   },
   lint: {
