@@ -2,14 +2,16 @@ overrides:
   typescript: npm:typescript-native-bridge@6.0.3-bridge.19.tsgo.7.0.2
   vite@*: "catalog:"
   vitest@*: "catalog:"
+  "@vitest/browser-webdriverio>@vitest/browser": "catalog:"
 catalog:
+  "@vitest/browser": 5.1.0
   "@vitest/browser-webdriverio": 5.0.0
   bumpp: 12.3.0
   publint: 0.3.25
   releaselog: 8.1.0
   vite: npm:@voidzero-dev/vite-plus-core@1.4.0
   vite-plus: 1.4.0
-  vitest: 5.0.3
+  vitest: 5.1.0
   void: 0.28.0
   webdriverio: 10.1.0
 peerDependencyRules:
