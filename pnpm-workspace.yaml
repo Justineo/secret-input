@@ -2,7 +2,9 @@ overrides:
   typescript: npm:typescript-native-bridge@6.0.3-bridge.19.tsgo.7.0.2
   vite@*: "catalog:"
   vitest@*: "catalog:"
+  "@vitest/browser-webdriverio>@vitest/browser": "catalog:"
 catalog:
+  "@vitest/browser": 5.1.0
   "@vitest/browser-webdriverio": 5.0.0
   bumpp: 12.3.0
   publint: 0.3.25

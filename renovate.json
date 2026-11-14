@@ -29,7 +29,7 @@
       "automerge": false
     },
     {
-      "matchPackageNames": ["vitest", "@vitest/browser-webdriverio"],
+      "matchPackageNames": ["vitest", "@vitest/browser", "@vitest/browser-webdriverio"],
       "groupName": "Vitest"
     },
     {
