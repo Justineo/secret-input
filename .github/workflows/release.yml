@@ -72,7 +72,7 @@ jobs:
           echo "tag=$tag" >> "$GITHUB_OUTPUT"
 
       - name: Create GitHub release
-        uses: softprops/action-gh-release@v3.0.3
+        uses: softprops/action-gh-release@v3.0.4
         with:
           body_path: RELEASE_NOTES.md
           prerelease: ${{ contains(github.ref_name, '-') }}
