@@ -13,7 +13,7 @@ catalog:
   vite-plus: 1.4.0
   vitest: 5.1.0
   void: 1.6.2
-  webdriverio: 10.1.0
+  webdriverio: 10.2.0
 peerDependencyRules:
   allowAny:
     - vite
